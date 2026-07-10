@@ -1,0 +1,22 @@
+# 1. 프론트엔드 (React/Node.js) 제외 파일
+node_modules/
+dist/
+build/
+
+# 2. 백엔드 (Python) 제외 파일
+__pycache__/
+venv/
+env/
+.venv/
+*.pyc
+
+# 3. 환경변수 및 보안 파일 (절대 올라가면 안 되는 파일!)
+.env
+.env.local
+.env.*
+*.pem
+
+# 4. 운영체제 및 에디터 임시 파일
+.DS_Store
+.vscode/
+.idea/
