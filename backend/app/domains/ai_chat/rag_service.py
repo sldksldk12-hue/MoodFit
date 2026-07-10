@@ -5,19 +5,19 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# DB 모델 임포트 (기존에 정의된 모델 이름을 기반으로 고도화)
-from app.models.models import User, EmotionLog  # 실제 선호도/날씨 테이블 이름에 맞게 조정 필요
+# User 대신 취향 정보가 있는 UserPreference 모델을 임포트
+from app.models.models import UserPreference, EmotionLog 
 
 class RagsFashionService:
     def __init__(self):
-        # 1. OpenAI LLM 초기화 (GPT-4o-mini 같은 가성비 좋은 모델 추천)
+        # 1. OpenAI LLM 초기화
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.7,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
         
-        # 2. LangChain 프롬프트 템플릿 정의 (감정, 날씨, 취향, 제약조건 결합)
+        # 2. LangChain 프롬프트 템플릿 정의
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", """당신은 유저의 기분과 날씨, 패션 취향을 분석하여 최적의 코디를 제안하는 퍼스널 쇼퍼이자 패션 테라피스트 AI 'MoodFit'입니다.
 
@@ -42,31 +42,26 @@ class RagsFashionService:
         self.chain = self.prompt_template | self.llm | StrOutputParser()
 
     def generate_fashion_recommendation(self, db: Session, user_id: int, emotion: str, confidence: float, user_message: str) -> str:
-        """
-        DB에서 유저 취향과 날씨 정보를 가져와 LangChain RAG 워크플로우를 실행합니다.
-        """
-        # [하드 필터링 룰] 원래는 DB에서 해당 유저의 preference와 최신 weather_log를 조회해야 합니다.
-        # 아직 데이터가 없는 경우를 대비해, 기본(Fallback) 데이터를 세팅하고 DB 조회를 시도합니다.
-        preferred_style = "캐주얼(Casual)"
-        disliked_colors = "레드(Red), 네온그린(Neon Green)"
-        current_weather = "섭씨 24도, 조금 흐리고 선선한 바람이 부는 날씨"
+        # [기본값 설정] DB 조회를 실패했을 때를 대비한 안전망
+        preferred_style = "캐주얼(Casual)" 
+        disliked_colors = "없음"
+        current_weather = "섭씨 22도, 맑음"
 
         try:
-            # 💡 [AI-Core 업무 정의 반영] 유저 취향 데이터 조회 예시
-            user_prof = db.query(User).filter(User.id == user_id).first()
-            if user_prof and hasattr(user_prof, 'preferred_style'):
-                preferred_style = user_prof.preferred_style
-                # 만약 기피 색상 필드가 있다면 가져옴
-                disliked_colors = getattr(user_prof, 'disliked_colors', disliked_colors)
+            # 진짜 DB(UserPreference)에서 유저 아이디로 취향 정보를 가져오기
+            user_pref = db.query(UserPreference).filter(UserPreference.user_id == user_id).first()
             
-            # (선택 사항) 최신 날씨 로그 테이블이 있다면 쿼리해서 가동
-            # latest_weather = db.query(WeatherLog).order_by(WeatherLog.id.desc()).first()
-            # if latest_weather:
-            #     current_weather = f"{latest_weather.status}, 기온 {latest_weather.temperature}℃"
+            if user_pref:
+                # DB 설계도와 정확히 일치하는 이름(preferred_styles - s붙음)으로 매핑
+                if hasattr(user_pref, 'preferred_styles') and user_pref.preferred_styles:
+                    preferred_style = user_pref.preferred_styles
+                if hasattr(user_pref, 'disliked_colors') and user_pref.disliked_colors:
+                    disliked_colors = user_pref.disliked_colors
+                    
         except Exception as e:
-            print(f"⚠️ DB 가동 중 프로필 조회 실패(기본값 대체): {e}")
+            print(f"⚠️ DB 프로필 조회 실패(기본값 사용): {e}")
 
-        # 4. 랭체인 실행 (동적 데이터 바인딩)
+        # 4. 랭체인 실행 (진짜 DB에서 user1 스트릿 스타일 & 검정색 기피 조건)
         response = self.chain.invoke({
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",
