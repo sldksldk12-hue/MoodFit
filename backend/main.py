@@ -6,98 +6,116 @@ from transformers import pipeline
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-# 만든 DB 연결 도구와 모델 임포트
+# 기존 도구들 임포트
 from app.db.database import get_db
 from app.models.models import EmotionLog, ChatMessage, ChatSession
 
-# 1. 글로벌 변수로 ML 모델들을 담을 딕셔너리 선언
-ml_models = {}
+# 🌟 방금 만든 LangChain RAG 서비스 임포트
+from app.domains.ai_chat.rag_service import RagsFashionService
 
-# 2. FastAPI 라이프사이클 (서버 시작/종료 시 실행될 로직)
+ml_models = {}
+rag_service = None # RAG 서비스 인스턴스 변수
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🤖 AI 모델 로딩을 시작합니다... (시간이 조금 걸릴 수 있습니다)")
+    global rag_service
+    print("🤖 AI 모델 및 LangChain 서비스 로딩 시작...")
     try:
+        # 로컬 ML 모델 로드
         ml_models["emotion_classifier"] = pipeline(
             "text-classification", 
             model="bhadresh-savani/bert-base-uncased-emotion"
         )
-        print("✅ 로컬 감정 분류 모델 로드 완료!")
+        # LangChain 서비스 인스턴스 생성
+        rag_service = RagsFashionService()
+        print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
     except Exception as e:
-        print(f"❌ 모델 로딩 실패: {e}")
+        print(f"❌ 초기화 실패: {e}")
     
     yield 
-
     ml_models.clear()
-    print("🛑 AI 모델 메모리 해제 완료. 서버를 종료합니다.")
+    print("🛑 AI 모델 메모리 해제 완료.")
 
-# 3. FastAPI 앱 인스턴스 생성
 app = FastAPI(
     title="MoodFit AI API",
     description="로컬 모델 및 LangChain RAG 처리 서버",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan
 )
 
-# 4. 유저가 보낼 데이터의 형태(스펙) 정의
 class ChatRequest(BaseModel):
+    user_id: int = 1 # 테스트용 유저 ID 기본값
     message: str
 
-# 5. 서버 기본 상태 체크용 API
 @app.get("/")
 async def root():
-    return {"message": "MoodFit AI 서버가 정상적으로 실행 중입니다!", "model_loaded": "emotion_classifier" in ml_models}
+    return {"message": "MoodFit AI 서버 운영 중", "rag_ready": rag_service is not None}
 
-# 6. 감정 분석 & DB 자동 저장 API 엔드포인트
+# 🔥 고도화된 챗 엔드포인트
 @app.post("/api/chat/emotion")
-async def analyze_emotion(req: ChatRequest, db: Session = Depends(get_db)):
+async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(get_db)):
     classifier = ml_models.get("emotion_classifier")
+    if not classifier or not rag_service:
+        return {"error": "AI 서버 인프라가 준비되지 않았습니다."}
     
-    if not classifier:
-        return {"error": "모델이 아직 로드되지 않았습니다."}
-    
-    # AI 감정 분석 실행
+    # 1. 로컬 ML 모델로 1차 감정 분류 수행
     result = classifier(req.message)
     predicted_emotion = result[0]['label']
     emotion_score = result[0]['score']
     
     try:
-        # DB 구조 상 감정 로그는 채팅 메시지를, 채팅 메시지는 세션을 부모로 가져야 합니다.
-        # 테스트를 위해 임의의 세션과 메시지를 생성합니다.
-        new_session = ChatSession(session_uuid=f"test-session-{datetime.now().timestamp()}")
+        # 2. 대화 세션 및 메시지 생성 후 DB 기록
+        new_session = ChatSession(session_uuid=f"session-{datetime.now().timestamp()}")
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
 
-        new_message = ChatMessage(
+        user_message = ChatMessage(
             session_id=new_session.id,
             sender_type="USER",
             message_text=req.message
         )
-        db.add(new_message)
+        db.add(user_message)
         db.commit()
-        db.refresh(new_message)
+        db.refresh(user_message)
 
-        # AI가 분석한 결과를 EmotionLog 테이블에 저장합니다.
+        # 3. emotion_logs에 감정 데이터 저장
         new_emotion_log = EmotionLog(
-            message_id=new_message.id,
+            message_id=user_message.id,
             predicted_emotion=predicted_emotion,
             confidence=emotion_score,
             raw_input=req.message
         )
         db.add(new_emotion_log)
-        db.commit() # 최종 저장
+        db.commit()
         db.refresh(new_emotion_log)
         
+        # 4. 🌟 랭체인 RAG 워크플로우 가동 (감정 + 날씨 + 취향 결합 피드백 생성)
+        ai_recommendation = rag_service.generate_fashion_recommendation(
+            db=db,
+            user_id=req.user_id,
+            emotion=predicted_emotion,
+            confidence=emotion_score,
+            user_message=req.message
+        )
+        
+        # 5. AI 답변도 ChatMessage 테이블에 저장 (선택 사항, 협업 시 대화 내역 유지용)
+        ai_message = ChatMessage(
+            session_id=new_session.id,
+            sender_type="AI",
+            message_text=ai_recommendation
+        )
+        db.add(ai_message)
+        db.commit()
+
         return {
             "status": "success",
-            "db_saved_id": new_emotion_log.id,
-            "input_message": req.message,
-            "analyzed_emotion": predicted_emotion,
-            "confidence_score": round(emotion_score, 4),
-            "message": "감정 분석 결과가 DB에 성공적으로 저장되었습니다!"
+            "emotion_log_id": new_emotion_log.id,
+            "detected_emotion": predicted_emotion,
+            "confidence": round(emotion_score, 4),
+            "ai_response": ai_recommendation
         }
         
     except Exception as e:
-        db.rollback() # 에러 발생 시 변경사항 취소
-        return {"error": f"DB 저장 중 에러 발생: {str(e)}"}
+        db.rollback()
+        return {"error": f"RAG 워크플로우 처리 중 에러 발생: {str(e)}"}
