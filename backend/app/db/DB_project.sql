@@ -4,22 +4,19 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE COMMENT '이메일 주소',
     password_hash VARCHAR(255) NOT NULL COMMENT '암호화된 비밀번호',
     admin_role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '회원 권한 (USER: 일반 회원, ADMIN: 최고 관리자)',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '가입 일시'
-) COMMENT = '회원 정보';
-
-CREATE TABLE user_preferences (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '설정 일련번호',
-    user_id INT NOT NULL UNIQUE COMMENT '회원 일련번호',
-    gender VARCHAR(10) NOT NULL COMMENT '성별',
+    
+    -- 선호 설정 정보 (user_preferences 통합)
+    gender VARCHAR(10) NULL COMMENT '성별',
     user_height DECIMAL(5,1) NULL COMMENT '키',
     user_weight DECIMAL(5,1) NULL COMMENT '몸무게',
     body_form TEXT NULL COMMENT '체형',
     preferred_styles TEXT NULL COMMENT '선호하는 스타일',
     liked_colors TEXT NULL COMMENT '선호 색상',
     disliked_colors TEXT NULL COMMENT '기피 색상',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '최근 수정 일시',
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE 
-) COMMENT = '선호 설정';
+    pref_updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '선호 설정 최근 수정 일시',
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '가입 일시'
+) COMMENT = '회원 정보 및 선호 설정';
 
 CREATE TABLE user_addresses (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '주소 일련번호',
@@ -96,16 +93,6 @@ CREATE TABLE user_activity_logs (
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL,
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) COMMENT = '행동 로그';
-
-CREATE TABLE user_weighted_preferences (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '가중치 일련번호',
-    user_id INT NOT NULL COMMENT '회원 일련번호',
-    category_id INT NOT NULL COMMENT '카테고리 ID',
-    weight_score DECIMAL(5, 2) DEFAULT 0.00 COMMENT '카테고리 가중치 점수',
-    last_updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '최근 갱신 일시',
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES product_categories (id)
-) COMMENT = '동적 가중치 선호';
 
 CREATE TABLE chat_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '세션 일련번호',
@@ -215,7 +202,6 @@ CREATE TABLE product_reviews (
     image_url VARCHAR(1024) NULL COMMENT '리뷰 이미지 URL',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '리뷰 작성 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
     FOREIGN KEY (order_item_id) REFERENCES order_items (id) ON DELETE CASCADE,
     UNIQUE KEY uq_user_order_item_review (user_id, order_item_id)
 ) COMMENT = '상품 리뷰';
@@ -236,13 +222,17 @@ CREATE TABLE cart_items (
 CREATE TABLE recommendation_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '추천 세션 일련번호',
     user_id INT NOT NULL COMMENT '회원 일련번호',
-    weather_log_id INT NULL COMMENT '날씨 로그 일련번호',
     chat_session_id INT NULL COMMENT '대화 세션 일련번호',
+    weather_log_id INT NULL COMMENT '날씨 로그 일련번호',
+    emotion_log_id INT NULL COMMENT '감정 로그 일련번호',
+    tour_log_id INT NULL COMMENT '관광 로그 일련번호',
     input_query TEXT NULL COMMENT '추천 요청 입력 내용 (검색어 또는 프롬프트 입력값)',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '추천 생성 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions (id) ON DELETE SET NULL,
     FOREIGN KEY (weather_log_id) REFERENCES weather_logs (id) ON DELETE SET NULL,
-    FOREIGN KEY (chat_session_id) REFERENCES chat_sessions (id) ON DELETE SET NULL
+    FOREIGN KEY (emotion_log_id) REFERENCES emotion_logs (id) ON DELETE SET NULL,
+    FOREIGN KEY (tour_log_id) REFERENCES tour_logs (id) ON DELETE SET NULL
 ) COMMENT = '추천 세션 마스터';
 
 CREATE TABLE recommendation_items (

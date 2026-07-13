@@ -29,19 +29,30 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, comment="이메일 주소")
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False, comment="암호화된 비밀번호")
     admin_role: Mapped[str] = mapped_column(String(20), nullable=False, default='USER', comment="회원 권한")
+
+    # 선호 설정 정보 (UserPreference 통합)
+    gender: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, comment="성별")
+    user_height: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 1), nullable=True, comment="키")
+    user_weight: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 1), nullable=True, comment="몸무게")
+    body_form: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="체형")
+    preferred_styles: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="선호하는 스타일")
+    liked_colors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="선호 색상")
+    disliked_colors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="기피 색상")
+    pref_updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime,
+        onupdate=func.now(),
+        nullable=True,
+        comment="선호 설정 최근 수정 일시"
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="가입 일시"
     )
 
     # Relationships
-    # 1:1 관계 (User - UserPreference)
-    preferences: Mapped[Optional["UserPreference"]] = relationship(
-        "UserPreference", back_populates="user", cascade="all, delete-orphan", uselist=False
-    )
     # 1:N 관계
     addresses: Mapped[List["UserAddress"]] = relationship("UserAddress", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[List["UserActivityLog"]] = relationship("UserActivityLog", back_populates="user")
-    weighted_preferences: Mapped[List["UserWeightedPreference"]] = relationship("UserWeightedPreference", back_populates="user")
     chat_sessions: Mapped[List["ChatSession"]] = relationship("ChatSession", back_populates="user")
     likes: Mapped[List["ProductLike"]] = relationship("ProductLike", back_populates="user", cascade="all, delete-orphan")
     orders: Mapped[List["Order"]] = relationship("Order", back_populates="user", cascade="all, delete-orphan")
@@ -51,32 +62,7 @@ class User(Base):
     recommendation_sessions: Mapped[List["RecommendationSession"]] = relationship("RecommendationSession", back_populates="user", cascade="all, delete-orphan")
 
 
-class UserPreference(Base):
-    """선호 설정"""
-    __tablename__ = "user_preferences"
-    __table_args__ = {"comment": "선호 설정"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="설정 일련번호")
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, comment="회원 일련번호"
-    )
-    gender: Mapped[str] = mapped_column(String(10), nullable=False, comment="성별")
-    user_height: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 1), nullable=True, comment="키")
-    user_weight: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 1), nullable=True, comment="몸무게")
-    body_form: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="체형")
-    preferred_styles: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="선호하는 스타일")
-    liked_colors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="선호 색상")
-    disliked_colors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="기피 색상")
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-        comment="최근 수정 일시"
-    )
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="preferences")
 
 
 class UserAddress(Base):
@@ -126,9 +112,6 @@ class ProductCategory(Base):
     subcategories: Mapped[List["ProductCategory"]] = relationship(
         "ProductCategory", back_populates="parent"
     )
-    weighted_preferences: Mapped[List["UserWeightedPreference"]] = relationship(
-        "UserWeightedPreference", back_populates="category"
-    )
     products: Mapped[List["Product"]] = relationship("Product", back_populates="category")
 
 
@@ -173,9 +156,6 @@ class Product(Base):
     )
     order_items: Mapped[List["OrderItem"]] = relationship(
         "OrderItem", back_populates="product"
-    )
-    reviews: Mapped[List["ProductReview"]] = relationship(
-        "ProductReview", back_populates="product", cascade="all, delete-orphan"
     )
     inquiries: Mapped[List["Inquiry"]] = relationship(
         "Inquiry", back_populates="product", cascade="all, delete-orphan"
@@ -256,34 +236,6 @@ class UserActivityLog(Base):
     product: Mapped["Product"] = relationship("Product", back_populates="activity_logs")
 
 
-class UserWeightedPreference(Base):
-    """동적 가중치 선호"""
-    __tablename__ = "user_weighted_preferences"
-    __table_args__ = {"comment": "동적 가중치 선호"}
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="가중치 일련번호")
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="회원 일련번호"
-    )
-    category_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("product_categories.id"), nullable=False, comment="카테고리 ID"
-    )
-    weight_score: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(5, 2), nullable=True, default=Decimal("0.00"), comment="카테고리 가중치 점수"
-    )
-    last_updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-        comment="최근 갱신 일시"
-    )
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="weighted_preferences")
-    category: Mapped["ProductCategory"] = relationship("ProductCategory", back_populates="weighted_preferences")
-
-
 class ChatSession(Base):
     """대화 세션"""
     __tablename__ = "chat_sessions"
@@ -361,6 +313,9 @@ class EmotionLog(Base):
 
     # Relationships
     message: Mapped["ChatMessage"] = relationship("ChatMessage", back_populates="emotion_logs")
+    recommendation_sessions: Mapped[List["RecommendationSession"]] = relationship(
+        "RecommendationSession", back_populates="emotion_log"
+    )
 
 
 class WeatherLog(Base):
@@ -407,6 +362,9 @@ class TourLog(Base):
 
     # Relationships
     session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="tour_logs")
+    recommendation_sessions: Mapped[List["RecommendationSession"]] = relationship(
+        "RecommendationSession", back_populates="tour_log"
+    )
 
 
 class ProductLike(Base):
@@ -521,9 +479,6 @@ class ProductReview(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, comment="회원 일련번호"
     )
-    product_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, comment="상품 일련번호"
-    )
     order_item_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("order_items.id", ondelete="CASCADE"), nullable=False, comment="주문 상세 일련번호"
     )
@@ -536,7 +491,6 @@ class ProductReview(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="reviews")
-    product: Mapped["Product"] = relationship("Product", back_populates="reviews")
     order_item: Mapped["OrderItem"] = relationship("OrderItem", back_populates="review")
 
 
@@ -584,6 +538,12 @@ class RecommendationSession(Base):
     chat_session_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("chat_sessions.id", ondelete="SET NULL"), nullable=True, comment="대화 세션 일련번호"
     )
+    emotion_log_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("emotion_logs.id", ondelete="SET NULL"), nullable=True, comment="감정 로그 일련번호"
+    )
+    tour_log_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tour_logs.id", ondelete="SET NULL"), nullable=True, comment="관광 로그 일련번호"
+    )
     input_query: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="추천 요청 입력 내용")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="추천 생성 일시"
@@ -593,6 +553,8 @@ class RecommendationSession(Base):
     user: Mapped["User"] = relationship("User", back_populates="recommendation_sessions")
     weather_log: Mapped[Optional["WeatherLog"]] = relationship("WeatherLog", back_populates="recommendation_sessions")
     chat_session: Mapped[Optional["ChatSession"]] = relationship("ChatSession", back_populates="recommendation_sessions")
+    emotion_log: Mapped[Optional["EmotionLog"]] = relationship("EmotionLog", back_populates="recommendation_sessions")
+    tour_log: Mapped[Optional["TourLog"]] = relationship("TourLog", back_populates="recommendation_sessions")
     items: Mapped[List["RecommendationItem"]] = relationship("RecommendationItem", back_populates="recommendation_session", cascade="all, delete-orphan")
     ai_call_logs: Mapped[List["AiCallLog"]] = relationship("AiCallLog", back_populates="recommendation_session", cascade="all, delete-orphan")
 
