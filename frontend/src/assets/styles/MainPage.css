@@ -1,0 +1,149 @@
+.hero-section {
+  max-width: 1180px;
+  margin: 36px auto 0;
+  padding: 70px 40px;
+  display: grid;
+  grid-template-columns: 1.5fr 0.9fr;
+  gap: 32px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, #eaf3ff, #fff);
+}
+
+.section {
+  max-width: 1180px;
+  margin: 70px auto;
+  padding: 0 22px;
+}
+
+.section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.section-title h2 {
+  font-size: 30px;
+  margin: 0 0 6px;
+}
+
+.section-title p {
+  margin: 0;
+  color: #777;
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.event-banner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #eee;
+  min-height: 220px;
+}
+
+.event-banner img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.event-banner div {
+  position: absolute;
+  left: 22px;
+  bottom: 20px;
+}
+
+.event-banner h3 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.event-banner p {
+  margin: 0;
+  font-weight: 700;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.brand-video {
+  max-width: 1180px;
+  margin: 70px auto;
+  padding: 50px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 38px;
+  align-items: center;
+  background: #111827;
+  color: white;
+  border-radius: 30px;
+}
+
+.video-box {
+  height: 260px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: #2a3448;
+}
+
+.brand-video p {
+  color: #ccd4e0;
+  line-height: 1.7;
+}
+
+.trend-banner {
+  margin: 70px 0;
+  padding: 70px 22px;
+  text-align: center;
+  background: #614242;
+  color: white;
+}
+
+.trend-banner h2 {
+  font-size: 36px;
+  margin: 0 0 10px;
+}
+
+.trend-banner button {
+  margin-top: 18px;
+  padding: 13px 24px;
+  border: 1px solid white;
+  border-radius: 999px;
+  background: transparent;
+  color: white;
+  font-weight: 800;
+}
+
+
+
+@media (max-width: 900px) {
+  .hero-section,
+  .brand-video {
+    grid-template-columns: 1fr;
+  }
+
+  .banner-grid,
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.chat-sticky-section {
+    max-width: 1180px;
+    margin: 28px auto 0;
+    padding: 0 22px;
+
+    position: sticky;
+    top: 115px;
+    z-index: 40;
+}

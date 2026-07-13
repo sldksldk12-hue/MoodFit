@@ -1,0 +1,181 @@
+.admin-page {
+  display: flex;
+  gap: 24px;
+  padding: 32px;
+  background: #f8fafc;
+  min-height: 100vh;
+  color: #1f2937;
+}
+
+.admin-sidebar {
+  width: 190px;
+  background: #ffffff;
+  border: 1px solid #d9dfe8;
+  border-radius: 12px;
+  padding: 20px 14px;
+  height: fit-content;
+}
+
+.admin-sidebar h3 {
+  font-size: 17px;
+  margin-bottom: 20px;
+  color: #1d4ed8;
+  text-align: center;
+}
+
+.admin-sidebar button {
+  width: 100%;
+  height: 42px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  text-align: left;
+  padding: 0 14px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.admin-sidebar button.active,
+.admin-sidebar button:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.admin-main {
+  flex: 1;
+}
+
+.admin-section {
+  background: white;
+  border: 1px solid #d9dfe8;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.admin-section h2 {
+  font-size: 18px;
+  color: #1d4ed8;
+  margin-bottom: 16px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.kpi-card {
+  border: 1px solid #d9dfe8;
+  border-radius: 10px;
+  padding: 20px;
+  background: #f9fafb;
+}
+
+.kpi-card span {
+  display: block;
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.kpi-card strong {
+  font-size: 22px;
+  color: #111827;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 13px 10px;
+  text-align: center;
+}
+
+.admin-table th {
+  color: #374151;
+  background: #f3f4f6;
+  font-weight: 700;
+}
+
+.admin-table td:first-child,
+.admin-table th:first-child {
+  text-align: left;
+}
+
+.admin-table button {
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin: 0 3px;
+  cursor: pointer;
+}
+
+.admin-table button:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.admin-bottom {
+  display: flex;
+  gap: 18px;
+}
+
+.admin-section.half {
+  flex: 1;
+}
+
+.admin-table.small td {
+  font-size: 14px;
+}
+
+.tag-section {
+  border: 1px dashed #2563eb;
+}
+
+.tag-box {
+  display: flex;
+  gap: 10px;
+}
+
+.tag-box input {
+  flex: 1;
+  height: 42px;
+  border: 1px solid #d9dfe8;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.tag-box button {
+  width: 120px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag-list {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tag-list span {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e0ecff;
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 600;
+}

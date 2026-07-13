@@ -1,0 +1,126 @@
+.preference-page {
+    min-height: 100vh;
+    padding: 70px 22px;
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+}
+
+.preference-card {
+    width: 100%;
+    max-width: 760px;
+    background: white;
+    border-radius: 30px;
+    padding: 46px;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.1);
+}
+
+.preference-title {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.preference-title svg {
+    color: #5b7cfa;
+}
+
+.preference-title h1 {
+    font-size: 38px;
+    margin: 12px 0 8px;
+}
+
+.preference-title p {
+    color: #6b7280;
+}
+
+.preference-form {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 900;
+    color: #111827;
+}
+
+.form-group input,
+.form-group select {
+    height: 52px;
+    padding: 0 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 15px;
+    font-size: 15px;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #5b7cfa;
+    box-shadow: 0 0 0 4px rgba(91, 124, 250, 0.15);
+}
+
+.two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.radio-box,
+.chip-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.radio-box button,
+.chip {
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 999px;
+    padding: 11px 18px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.radio-box button.selected,
+.chip.selected {
+    background: #172033;
+    color: white;
+    border-color: #172033;
+}
+
+.chip.danger {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.preference-submit {
+    height: 58px;
+    border: none;
+    border-radius: 18px;
+    background: #5b7cfa;
+    color: white;
+    font-size: 19px;
+    font-weight: 900;
+}
+
+@media (max-width: 700px) {
+    .two-column {
+        grid-template-columns: 1fr;
+    }
+
+    .preference-card {
+        padding: 34px 24px;
+    }
+}

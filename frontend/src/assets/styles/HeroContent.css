@@ -1,0 +1,234 @@
+.eyebrow {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 800;
+  color: #2d8cff;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.hero-text h1 {
+  font-size: 44px;
+  line-height: 1.18;
+  margin: 0 0 18px;
+  color: black;
+}
+
+.hero-text p {
+  color: black;
+  line-height: 1.7;
+  font-size: 17px;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 22px;
+  background: #172033;
+  color: white;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .hero-text h1 {
+    font-size: 32px;
+  }
+}
+.ai-input-box {
+    margin-top: 28px;
+    margin-bottom: 18px;
+}
+
+.ai-input {
+    width: 360px;
+    height: 54px;
+    padding: 0 20px;
+
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+
+    background: white;
+    color: #111827;
+
+    font-size: 16px;
+    outline: none;
+
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    transition: 0.25s;
+}
+
+.ai-input::placeholder {
+    color: #9ca3af;
+}
+
+.ai-input:focus {
+    border-color: #5b7cfa;
+    box-shadow: 0 0 0 4px rgba(91, 124, 250, 0.15);
+}
+.hero-festival{
+
+    display:block;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.hero-festival:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:0 20px 40px rgba(0,0,0,.08);
+
+}
+.festival-slider {
+  position: relative;
+  width: 100%;
+  min-height: 250px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+}
+
+.festival-slide {
+  width: 100%;
+  padding: 12px 60px 42px;
+
+  text-align: center;
+  animation: festival-slide-in 0.45s ease;
+}
+
+.festival-slide h1 {
+  margin: 16px 0 24px;
+
+  font-size: clamp(38px, 4vw, 66px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+
+  word-break: keep-all;
+}
+
+.festival-slide p {
+  max-width: 850px;
+  margin: 0 auto;
+
+  font-size: 20px;
+  line-height: 1.7;
+
+  word-break: keep-all;
+}
+
+.festival-detail-link {
+  display: inline-flex;
+  margin-top: 18px;
+  padding: 10px 18px;
+
+  border-radius: 999px;
+
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+
+  font-weight: 700;
+}
+
+.festival-arrow {
+  position: absolute;
+  top: 50%;
+
+  width: 44px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.festival-arrow--left {
+  left: 6px;
+}
+
+.festival-arrow--right {
+  right: 6px;
+}
+
+.festival-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+
+  display: flex;
+  gap: 8px;
+
+  transform: translateX(-50%);
+}
+
+.festival-dot {
+  width: 8px;
+  height: 8px;
+
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+
+  background: rgba(17, 24, 39, 0.25);
+  cursor: pointer;
+
+  transition: width 0.2s ease;
+}
+
+.festival-dot--active {
+  width: 24px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+@keyframes festival-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .festival-slider {
+    min-height: 220px;
+  }
+
+  .festival-slide {
+    padding: 10px 42px 38px;
+  }
+
+  .festival-slide h1 {
+    font-size: 34px;
+  }
+
+  .festival-slide p {
+    font-size: 16px;
+  }
+
+  .festival-arrow {
+    width: 36px;
+    height: 36px;
+  }
+}

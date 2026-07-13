@@ -1,0 +1,184 @@
+.mypage {
+    min-height: 100vh;
+    padding: 70px 48px;
+    background: #f8fafc;
+}
+
+.mypage-profile,
+.mypage-summary,
+.mypage-menu,
+.mypage-orders {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+}
+
+.mypage-profile {
+    padding: 42px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.profile-icon {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #eaf3ff;
+    display: grid;
+    place-items: center;
+    color: #5b7cfa;
+}
+
+.mypage-profile h1 {
+    font-size: 34px;
+    margin: 0 0 8px;
+}
+
+.mypage-profile p {
+    color: #6b7280;
+    margin: 0 0 12px;
+}
+
+.mypage-profile span {
+    display: inline-block;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: #172033;
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.mypage-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    text-align: center;
+}
+
+.mypage-summary div {
+    padding: 30px;
+    border-right: 1px solid #e5e7eb;
+}
+
+.mypage-summary div:last-child {
+    border-right: none;
+}
+
+.mypage-summary strong {
+    font-size: 30px;
+}
+
+.mypage-summary p {
+    color: #6b7280;
+}
+
+.mypage-menu {
+    padding: 26px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+}
+
+/* .mypage-menu button {
+    height: 90px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 800;
+    color: #111827
+} */
+
+.mypage-menu button:hover {
+    border-color: #5b7cfa;
+    color: #5b7cfa;
+}
+
+.logout-btn {
+    color: #ef4444;
+}
+
+.mypage-orders {
+    padding: 36px;
+}
+
+.mypage-orders h2 {
+    font-size: 28px;
+    margin-bottom: 24px;
+}
+
+.order-item {
+    display: grid;
+    grid-template-columns: 1fr 120px 140px;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.order-item h3 {
+    margin: 0 0 8px;
+}
+
+.order-item p {
+    color: #6b7280;
+    margin: 0;
+}
+
+.order-item span {
+    font-weight: 800;
+    color: #5b7cfa;
+}
+
+.order-item strong {
+    text-align: right;
+}
+.mypage-menu .mypage-menu-btn {
+    height: 110px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: #fff;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px;
+
+    color: #111827 !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.mypage-menu .mypage-menu-btn span {
+    display: block !important;
+    color: #111827 !important;
+    font-size: 16px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.mypage-menu .mypage-menu-btn svg {
+    display: block !important;
+    color: #111827 !important;
+    stroke: #111827 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.mypage-menu .interest-btn,
+.mypage-menu .interest-btn span,
+.mypage-menu .interest-btn svg {
+    color: #5b7cfa !important;
+    stroke: #5b7cfa !important;
+}

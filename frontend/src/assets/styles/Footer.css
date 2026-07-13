@@ -1,0 +1,37 @@
+.site-footer {
+  margin-top: 80px;
+  background: #111827;
+  color: white;
+  padding: 48px 22px 20px;
+}
+
+.footer-grid {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  gap: 28px;
+}
+
+.footer-grid p,
+.footer-grid a {
+  display: block;
+  color: #b7c0d1;
+  line-height: 1.7;
+  margin: 4px 0;
+}
+
+.footer-bottom {
+  max-width: 1180px;
+  margin: 36px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid #2a3448;
+  color: #9aa4b6;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+}

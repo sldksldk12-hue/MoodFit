@@ -1,0 +1,71 @@
+.weather-page {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  background-color: #eef3f7;
+}
+
+.weather-page--clear {
+  background: linear-gradient(180deg, #eef7ff 0%, #ffffff 58%, #f8fafc 100%);
+}
+
+.weather-page__content {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+}
+
+.weather-page__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(238, 244, 248, 0.2);
+}
+
+.weather-page--rain .weather-page__overlay {
+  background: rgba(8, 18, 34, 0.14);
+}
+
+.weather-page--snow .weather-page__overlay {
+  background: rgba(235, 244, 252, 0.2);
+}
+
+.weather-page--fog .weather-page__overlay,
+.weather-page--fog-light .weather-page__overlay {
+  background: rgba(225, 232, 235, 0.28);
+}
+
+.weather-effect-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.weather-effect-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 콘텐츠의 가독성을 높이고 싶을 때 카드에 추가하세요. */
+.weather-glass-card {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-effect-canvas {
+    display: none;
+  }
+}

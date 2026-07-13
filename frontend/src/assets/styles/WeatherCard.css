@@ -1,0 +1,74 @@
+.weather-card {
+  align-self: center;
+  padding: 32px;
+  border-radius: 26px;
+  background: white;
+  box-shadow: 0 20px 60px rgba(30, 45, 75, 0.12);
+}
+
+.weather-card h2 {
+  margin-bottom: 8px;
+}
+
+.weather-card p {
+  color: #666;
+}
+
+.weather-card strong {
+  display: block;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+.weather-skeleton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-icon,
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    #eceff3 25%,
+    #f7f8fa 50%,
+    #eceff3 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.3s infinite;
+}
+
+.skeleton-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+
+.skeleton-line {
+  height: 20px;
+  border-radius: 8px;
+}
+
+.skeleton-title {
+  width: 140px;
+}
+
+.skeleton-subtitle {
+  width: 190px;
+}
+
+.skeleton-recommend {
+  width: 280px;
+  height: 24px;
+}
+
+@keyframes skeleton-loading {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
