@@ -4,8 +4,8 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -1321,
-    "scrollLeft": -1723,
+    "scrollTop": -1428,
+    "scrollLeft": -1720,
     "zoomLevel": 0.79,
     "show": 431,
     "database": 4,
@@ -1391,18 +1391,18 @@
         "tableId": "6q1ZSmssEys9rUFXzNFE0",
         "name": "image_url",
         "comment": "상품 이미지 URL",
-        "dataType": "VARCHAR(512)",
+        "dataType": "JSON",
         "default": "",
         "options": 8,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 90,
-          "widthDataType": 81,
+          "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1782993067371,
+          "updateAt": 1783931465436,
           "createAt": 1782993067371
         }
       },
@@ -4131,18 +4131,18 @@
         "tableId": "BSS8hVfkaUPjxZoel-xYX",
         "name": "image_url",
         "comment": "리뷰 이미지 URL",
-        "dataType": "VARCHAR(1024)",
+        "dataType": "JSON",
         "default": "",
         "options": 0,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 90,
-          "widthDataType": 87,
+          "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783406991500,
+          "updateAt": 1783931454852,
           "createAt": 1783406710031
         }
       },
@@ -5963,7 +5963,7 @@
           "columnIds": [
             "svfIaEAVlGmaP2Pxy_kaw"
           ],
-          "x": 2745.2345,
+          "x": 2732.2345,
           "y": 2176.6023,
           "direction": 2
         },
@@ -6019,7 +6019,7 @@
           "columnIds": [
             "W2ErQN13uF9D4Go8ZhagA"
           ],
-          "x": 2745.2345,
+          "x": 2732.2345,
           "y": 2288.6023,
           "direction": 2
         },

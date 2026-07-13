@@ -128,7 +128,7 @@ class Product(Base):
     product_name: Mapped[str] = mapped_column(String(255), nullable=False, comment="상품명")
     original_price: Mapped[int] = mapped_column(Integer, nullable=False, comment="원가")
     discount_price: Mapped[int] = mapped_column(Integer, nullable=False, comment="판매가")
-    image_url: Mapped[str] = mapped_column(String(1024), nullable=False, comment="상품 이미지 URL")
+    image_url: Mapped[dict | list] = mapped_column(JSON, nullable=False, comment="상품 이미지 URL")
     product_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="상품 상세 설명")
     brand: Mapped[str] = mapped_column(String(100), nullable=False, comment="브랜드명")
     gender_target: Mapped[str] = mapped_column(String(10), nullable=False, comment="추천 대상 성별")
@@ -485,7 +485,7 @@ class ProductReview(Base):
     )
     rating: Mapped[Decimal] = mapped_column(Numeric(2, 1), nullable=False, comment="별점 (0.0~5.0점)")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="리뷰 내용")
-    image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True, comment="리뷰 이미지 URL")
+    image_url: Mapped[Optional[dict | list]] = mapped_column(JSON, nullable=True, comment="리뷰 이미지 URL")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="리뷰 작성 일시"
     )
