@@ -173,7 +173,8 @@ CREATE TABLE order_items (
     product_id INT NOT NULL COMMENT '상품 일련번호',
     quantity INT NOT NULL DEFAULT 1 COMMENT '구매 수량',
     price INT NOT NULL COMMENT '구매 당시 단가',
-    selected_size VARCHAR(20) NOT NULL COMMENT '선택한 사이즈',
+    selected_size VARCHAR(100) NOT NULL COMMENT '선택한 사이즈',
+    selected_color VARCHAR(100) NULL COMMENT '선택한 색상',
     FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT
 ) COMMENT = '주문 상세 내역';
@@ -211,7 +212,8 @@ CREATE TABLE cart_items (
     user_id INT NOT NULL COMMENT '회원 일련번호',
     product_id INT NOT NULL COMMENT '상품 일련번호',
     quantity INT NOT NULL DEFAULT 1 COMMENT '담은 수량',
-    selected_size VARCHAR(20) NOT NULL COMMENT '선택한 사이즈',
+    selected_size VARCHAR(100) NOT NULL COMMENT '선택한 사이즈',
+    selected_color VARCHAR(100) NULL COMMENT '선택한 색상',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '담은 일시',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,

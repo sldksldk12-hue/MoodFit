@@ -431,7 +431,8 @@ class OrderItem(Base):
     )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, comment="구매 수량")
     price: Mapped[int] = mapped_column(Integer, nullable=False, comment="구매 당시 단가")
-    selected_size: Mapped[str] = mapped_column(String(20), nullable=False, comment="선택한 사이즈")
+    selected_size: Mapped[str] = mapped_column(String(100), nullable=False, comment="선택한 사이즈")
+    selected_color: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, comment="선택한 색상")
 
     # Relationships
     order: Mapped["Order"] = relationship("Order", back_populates="order_items")
@@ -510,7 +511,8 @@ class CartItem(Base):
         Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, comment="상품 일련번호"
     )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1, comment="담은 수량")
-    selected_size: Mapped[str] = mapped_column(String(20), nullable=False, comment="선택한 사이즈")
+    selected_size: Mapped[str] = mapped_column(String(100), nullable=False, comment="선택한 사이즈")
+    selected_color: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, comment="선택한 색상")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="담은 일시"
     )
