@@ -4,9 +4,9 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -2018.7713,
-    "scrollLeft": -974.7048,
-    "zoomLevel": 0.73,
+    "scrollTop": -2122.0534,
+    "scrollLeft": -712,
+    "zoomLevel": 0.88,
     "show": 431,
     "database": 4,
     "databaseName": "",
@@ -490,20 +490,15 @@
       },
       "TsKj3gL-kDA_c8A6RAtOe": {
         "id": "TsKj3gL-kDA_c8A6RAtOe",
-        "name": "product_size_info",
-        "comment": "의류 실측 치수 테이블",
+        "name": "product_options",
+        "comment": "상품 옵션 및 실측 치수 통합 테이블",
         "columnIds": [
           "k1YbHobmB-33kU5HEKZC_",
           "8mGZr70xyVJNRq4MGIiE-",
           "kWAbpKM9R5j622fP8qq1g",
           "GtBBOPqhWtISJqNvEBKD_",
           "SQmsUIYfZONpfTm2-S4T8",
-          "iXV_qKNKZVz1yxov8aTbx",
-          "mcmuwLpUiYJt8NyoEJb0i",
-          "QNoNmp_GhRVHhKdY6ExB7",
-          "k3ubw9EQAkY5qNoNc9j8G",
-          "oM6W129-mfwK6PxTR_PGx",
-          "j-LSlbLSC91SNuMSHg60Q"
+          "iXV_qKNKZVz1yxov8aTbx"
         ],
         "seqColumnIds": [
           "k1YbHobmB-33kU5HEKZC_",
@@ -526,12 +521,12 @@
           "x": 1159.2465,
           "y": 2471.8781,
           "zIndex": 102,
-          "widthName": 94,
-          "widthComment": 120,
+          "widthName": 89,
+          "widthComment": 190,
           "color": ""
         },
         "meta": {
-          "updateAt": 1783931873080,
+          "updateAt": 1784005337198,
           "createAt": 1783299920399
         }
       },
@@ -2429,19 +2424,19 @@
         "id": "k1YbHobmB-33kU5HEKZC_",
         "tableId": "TsKj3gL-kDA_c8A6RAtOe",
         "name": "id",
-        "comment": "상세 사이즈 일련번호",
+        "comment": "옵션 일련번호",
         "dataType": "INT",
         "default": "",
         "options": 10,
         "ui": {
           "keys": 1,
           "widthName": 60,
-          "widthComment": 117,
+          "widthComment": 77,
           "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783388801134,
+          "updateAt": 1784005347563,
           "createAt": 1783299937895
         }
       },
@@ -2468,80 +2463,80 @@
       "kWAbpKM9R5j622fP8qq1g": {
         "id": "kWAbpKM9R5j622fP8qq1g",
         "tableId": "TsKj3gL-kDA_c8A6RAtOe",
-        "name": "size_name",
-        "comment": "사이즈 표기명",
-        "dataType": "VARCHAR(20)",
+        "name": "option_name",
+        "comment": "옵션명",
+        "dataType": "VARCHAR(50)",
         "default": "",
         "options": 8,
         "ui": {
           "keys": 0,
-          "widthName": 60,
-          "widthComment": 77,
+          "widthName": 71,
+          "widthComment": 60,
           "widthDataType": 75,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783300070973,
+          "updateAt": 1784005359613,
           "createAt": 1783299938343
         }
       },
       "GtBBOPqhWtISJqNvEBKD_": {
         "id": "GtBBOPqhWtISJqNvEBKD_",
         "tableId": "TsKj3gL-kDA_c8A6RAtOe",
-        "name": "shoulder_cm",
-        "comment": "어깨 단면 너비",
-        "dataType": "DECIMAL(4,1)",
-        "default": "NULL",
-        "options": 0,
+        "name": "option_values",
+        "comment": "옵션값 리스트 및 실측 치수 스펙",
+        "dataType": "JSON",
+        "default": "",
+        "options": 8,
         "ui": {
           "keys": 0,
-          "widthName": 69,
-          "widthComment": 81,
-          "widthDataType": 74,
+          "widthName": 75,
+          "widthComment": 174,
+          "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783300198123,
+          "updateAt": 1784005387192,
           "createAt": 1783299938503
         }
       },
       "SQmsUIYfZONpfTm2-S4T8": {
         "id": "SQmsUIYfZONpfTm2-S4T8",
         "tableId": "TsKj3gL-kDA_c8A6RAtOe",
-        "name": "chest_cm",
-        "comment": "가슴 단면 너비",
-        "dataType": "DECIMAL(4,1)",
-        "default": "NULL",
-        "options": 0,
+        "name": "is_required",
+        "comment": "필수 선택 여부",
+        "dataType": "TINYINT(1)",
+        "default": "1",
+        "options": 8,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 81,
-          "widthDataType": 74,
+          "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783300207365,
+          "updateAt": 1784005499726,
           "createAt": 1783299938663
         }
       },
       "iXV_qKNKZVz1yxov8aTbx": {
         "id": "iXV_qKNKZVz1yxov8aTbx",
         "tableId": "TsKj3gL-kDA_c8A6RAtOe",
-        "name": "sleeve_cm",
-        "comment": "소매 기장",
-        "dataType": "DECIMAL(4,1)",
-        "default": "NULL",
+        "name": "created_at",
+        "comment": "등록 일시",
+        "dataType": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
         "options": 0,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 60,
-          "widthDataType": 74,
-          "widthDefault": 60
+          "widthDataType": 60,
+          "widthDefault": 122
         },
         "meta": {
-          "updateAt": 1783300216842,
+          "updateAt": 1784005518444,
           "createAt": 1783299938823
         }
       },
@@ -5599,7 +5594,7 @@
             "8mGZr70xyVJNRq4MGIiE-"
           ],
           "x": 1159.2465,
-          "y": 2631.8781,
+          "y": 2571.8781,
           "direction": 1
         },
         "meta": {

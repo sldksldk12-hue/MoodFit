@@ -66,21 +66,15 @@ CREATE TABLE product_mood_tags (
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) COMMENT = '상품 감성 태그';
 
-CREATE TABLE product_size_info (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '상세 사이즈 일련번호',
+CREATE TABLE product_options (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '옵션 일련번호',
     product_id INT NOT NULL COMMENT '상품 일련번호',
-    size_name VARCHAR(20) NOT NULL COMMENT '사이즈 표기명 (M, 30인치, Free 등)',
-    shoulder_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '어깨 단면 너비(cm)',
-    chest_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '가슴 단면 너비(cm)',
-    sleeve_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '소매 기장(cm)',
-    waist_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '허리 단면 너비(cm)',
-    thigh_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '허벅지 단면 너비(cm)',
-    rise_cm DECIMAL(4,1) NULL DEFAULT NULL COMMENT '밑위 길이(cm)',
-    total_length_cm DECIMAL(4,1) NOT NULL DEFAULT 0.0 COMMENT '총 기장(cm)',
-    size_metadata JSON NULL DEFAULT NULL COMMENT '비정형 확장 치수 메타데이터 (JSON)',
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
-    INDEX idx_product_size_lookup (product_id, size_name)
-) COMMENT = '상의 및 하의 통합 상세 실측 치수 테이블';
+    option_name VARCHAR(50) NOT NULL COMMENT '옵션명 (예: 색상, 사이즈, 추가구성)',
+    option_values JSON NOT NULL COMMENT '옵션값 리스트 및 실측 치수 스펙',
+    is_required TINYINT(1) NOT NULL DEFAULT 1 COMMENT '필수 선택 여부 (1: 필수, 0: 선택)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '등록 일시',
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
+) COMMENT = '상품 옵션 및 실측 치수 통합 테이블';
 
 CREATE TABLE user_activity_logs (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '로그 일련번호',

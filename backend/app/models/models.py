@@ -145,8 +145,8 @@ class Product(Base):
     mood_tags: Mapped[List["ProductMoodTag"]] = relationship(
         "ProductMoodTag", back_populates="product", cascade="all, delete-orphan"
     )
-    size_infos: Mapped[List["ProductSizeInfo"]] = relationship(
-        "ProductSizeInfo", back_populates="product", cascade="all, delete-orphan"
+    options: Mapped[List["ProductOption"]] = relationship(
+        "ProductOption", back_populates="product", cascade="all, delete-orphan"
     )
     activity_logs: Mapped[List["UserActivityLog"]] = relationship(
         "UserActivityLog", back_populates="product", cascade="all, delete-orphan"
@@ -186,30 +186,24 @@ class ProductMoodTag(Base):
     product: Mapped["Product"] = relationship("Product", back_populates="mood_tags")
 
 
-class ProductSizeInfo(Base):
-    """상의 및 하의 통합 상세 실측 치수 테이블"""
-    __tablename__ = "product_size_info"
-    __table_args__ = (
-        Index("idx_product_size_lookup", "product_id", "size_name"),
-        {"comment": "상의 및 하의 통합 상세 실측 치수 테이블"}
-    )
+class ProductOption(Base):
+    """상품 옵션 및 실측 치수 통합 테이블"""
+    __tablename__ = "product_options"
+    __table_args__ = {"comment": "상품 옵션 및 실측 치수 통합 테이블"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="상세 사이즈 일련번호")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="옵션 일련번호")
     product_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, comment="상품 일련번호"
     )
-    size_name: Mapped[str] = mapped_column(String(20), nullable=False, comment="사이즈 표기명 (M, 30인치, Free 등)")
-    shoulder_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="어깨 단면 너비(cm)")
-    chest_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="가슴 단면 너비(cm)")
-    sleeve_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="소매 기장(cm)")
-    waist_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="허리 단면 너비(cm)")
-    thigh_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="허벅지 단면 너비(cm)")
-    rise_cm: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 1), nullable=True, default=None, comment="밑위 길이(cm)")
-    total_length_cm: Mapped[Decimal] = mapped_column(Numeric(4, 1), nullable=False, default=Decimal("0.0"), comment="총 기장(cm)")
-    size_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None, comment="비정형 확장 치수 메타데이터 (JSON)")
+    option_name: Mapped[str] = mapped_column(String(50), nullable=False, comment="옵션명 (예: 색상, 사이즈)")
+    option_values: Mapped[list] = mapped_column(JSON, nullable=False, comment="옵션값 및 실측 스펙 정보 (JSON Array)")
+    is_required: Mapped[bool] = mapped_column(Integer, nullable=False, default=1, comment="필수 선택 여부 (1: 필수, 0: 선택)")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False, comment="등록 일시"
+    )
 
     # Relationships
-    product: Mapped["Product"] = relationship("Product", back_populates="size_infos")
+    product: Mapped["Product"] = relationship("Product", back_populates="options")
 
 
 class UserActivityLog(Base):
