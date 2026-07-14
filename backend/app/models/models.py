@@ -181,7 +181,6 @@ class ProductMoodTag(Base):
     weather_tag: Mapped[str] = mapped_column(String(50), nullable=False, comment="날씨 태그")
     season_tag: Mapped[str] = mapped_column(String(50), nullable=False, comment="계절 태그")
     tour_tag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, comment="관광지 태그 (자연, 역사, 레포츠, 쇼핑, 음식 등)")
-    score: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=1.0, comment="태그 매칭 강도 점수")
 
     # Relationships
     product: Mapped["Product"] = relationship("Product", back_populates="mood_tags")
@@ -499,7 +498,7 @@ class CartItem(Base):
     """장바구니 상세 내역"""
     __tablename__ = "cart_items"
     __table_args__ = (
-        UniqueConstraint("user_id", "product_id", "selected_size", name="uq_user_product_size"),
+        UniqueConstraint("user_id", "product_id", "selected_size", "selected_color", name="uq_user_product_size_color"),
         {"comment": "장바구니 상세 내역"}
     )
 

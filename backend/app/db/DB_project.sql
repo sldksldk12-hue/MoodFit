@@ -63,7 +63,6 @@ CREATE TABLE product_mood_tags (
     weather_tag VARCHAR(50) NOT NULL COMMENT '날씨 태그',
     season_tag VARCHAR(50) NOT NULL COMMENT '계절 태그',
     tour_tag VARCHAR(50) NULL COMMENT '관광지 태그 (자연, 역사, 레포츠, 쇼핑, 음식 등)',
-    score FLOAT DEFAULT 1.0 COMMENT '태그 매칭 강도 점수',
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
 ) COMMENT = '상품 감성 태그';
 
@@ -218,7 +217,7 @@ CREATE TABLE cart_items (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
-    UNIQUE KEY uq_user_product_size (user_id, product_id, selected_size)
+    UNIQUE KEY uq_user_product_size_color (user_id, product_id, selected_size, selected_color)
 ) COMMENT = '장바구니 상세 내역';
 
 CREATE TABLE recommendation_sessions (
