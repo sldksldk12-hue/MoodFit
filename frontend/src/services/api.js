@@ -14,7 +14,7 @@ export const getFestival = async () => {
 };
 //날씨
 export const getWeather = async () => {
-  const response = await api.get("/moodfit/weather");
+  const response = await api.get("/api/weather");
   return response.data;
 };
 
