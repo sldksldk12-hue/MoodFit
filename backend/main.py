@@ -1,4 +1,3 @@
-# backend/main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
@@ -19,7 +18,7 @@ async def lifespan(app: FastAPI):
     global rag_service
     print("AI 모델 및 LangChain 서비스 로딩 시작...")
     try:
-        # 최신 KoELECTRA 감정 모델로 교체!
+        # 최신 KoELECTRA 감정 모델로 교체
         ml_models["emotion_classifier"] = pipeline(
             "text-classification", 
             model="Jinuuuu/KoELECTRA_fine_tunning_emotion"
@@ -64,6 +63,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     if not classifier or not rag_service:
         return {"error": "AI 서버 인프라가 준비되지 않았습니다."}
     
+    # 감정 분석 실행
     result = classifier(req.message)
     raw_label = result[0]['label']
     emotion_score = result[0]['score']
@@ -75,41 +75,28 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         "불안": "fear", "당황": "surprise", "상처": "sadness"
     }
     
-    # 60% 미만은 중립 처리
+    # 신뢰도 60% 미만 중립 처리 방어 로직
     if emotion_score < 0.60:
         predicted_emotion = "neutral"
-        print(f"확신도 부족({emotion_score:.2f}) -> 감정 중립(neutral) 처리됨")
+        print(f"🛡️ 확신도 부족({emotion_score:.2f}) -> 감정 중립(neutral) 처리됨")
     else:
         predicted_emotion = emotion_map.get(raw_label, "neutral")
         
+    # 데이터베이스 및 RAG 처리 블록
     try:
-        # 60% 이상일 때만 매핑 딕셔너리 사용
-        predicted_emotion = emotion_map.get(raw_label, "neutral")
-    
-    emotion_map = {
-        "happy": "joy", "sad": "sadness", "angry": "anger",
-        "anxious": "fear", "embarrassed": "surprise", "heartache": "sadness",
-        "행복": "joy", "슬픔": "sadness", "분노": "anger", 
-        "불안": "fear", "당황": "surprise", "상처": "sadness"
-    }
-    predicted_emotion = emotion_map.get(raw_label, "neutral")
-    
-    try:
-        # 1. 대화 세션 처리 (핵심 변경점)
+        # 세션 처리
         if req.session_id:
-            # 클라이언트가 기존 세션 ID를 주면 그걸 그대로 사용!
             current_session_id = req.session_id
         else:
-            # 없으면 새로 생성
             new_session = ChatSession(session_uuid=f"session-{datetime.now().timestamp()}")
             db.add(new_session)
             db.commit()
             db.refresh(new_session)
             current_session_id = new_session.id
 
-        # 2. 유저 메시지 DB 저장
+        # 유저 메시지 DB 저장
         user_message = ChatMessage(
-            session_id=current_session_id, # 👈 current_session_id 사용
+            session_id=current_session_id,
             sender_type="USER",
             message_text=req.message
         )
@@ -117,7 +104,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.commit()
         db.refresh(user_message)
 
-        # 3. 감정 로그 DB 저장
+        # 감정 로그 DB 저장
         new_emotion_log = EmotionLog(
             message_id=user_message.id,
             predicted_emotion=predicted_emotion,
@@ -128,28 +115,29 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.commit()
         db.refresh(new_emotion_log)
         
-        # 4. RAG 워크플로우 가동 
+        # RAG 워크플로우 가동 
         ai_recommendation = rag_service.generate_fashion_recommendation(
             db=db,
             user_id=req.user_id,
             emotion=predicted_emotion,
             confidence=emotion_score,
             user_message=req.message,
-            session_id=current_session_id  # current_session_id 넘겨주기
+            session_id=current_session_id
         )
         
-        # 5. AI 답변 DB 저장
+        # AI 답변 DB 저장
         ai_message = ChatMessage(
-            session_id=current_session_id, # current_session_id 사용
+            session_id=current_session_id,
             sender_type="AI",
             message_text=ai_recommendation
         )
         db.add(ai_message)
         db.commit()
 
+        # 프론트엔드로 응답 반환
         return {
             "status": "success",
-            "session_id": current_session_id, # 프론트엔드가 다음 질문 때 쓸 수 있게 응답에 포함
+            "session_id": current_session_id,
             "emotion_log_id": new_emotion_log.id,
             "mapped_emotion": predicted_emotion,
             "ai_response": ai_recommendation
