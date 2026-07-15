@@ -9,7 +9,44 @@ const api = axios.create({
   },
 });
 export const getFestival = async () => {
-  const response = await api.get("/moodfit/festival")
+  const response = await api.get("/api/festival");
+
+  console.log("백엔드 응답 전체:", response.data);
+
+  if (response.data.error) {
+    throw new Error(response.data.error);
+  }
+
+  return response.data.data ?? [];
+};
+//chat
+// chat
+export const chatStart = async ({
+  userId = 1,
+  message,
+  sessionId = null,
+}) => {
+  const payload = {
+    user_id: Number(userId),
+    message: String(message).trim(),
+  };
+
+  // sessionId가 실제 숫자일 때만 요청에 포함
+  if (
+    sessionId !== null &&
+    sessionId !== undefined &&
+    sessionId !== ""
+  ) {
+    payload.session_id = Number(sessionId);
+  }
+
+  console.log("채팅 요청 payload:", payload);
+
+  const response = await api.post(
+    "/api/chat/emotion",
+    payload
+  );
+
   return response.data;
 };
 //날씨
