@@ -101,13 +101,14 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.commit()
         db.refresh(new_emotion_log)
         
-        # 4. 🌟 랭체인 RAG 워크플로우 가동 (영어 라벨이 GPT 프롬프트에 주입됨)
+        # 4. 랭체인 RAG 워크플로우 가동 (영어 라벨이 GPT 프롬프트에 주입됨)
         ai_recommendation = rag_service.generate_fashion_recommendation(
             db=db,
             user_id=req.user_id,
             emotion=predicted_emotion,
             confidence=emotion_score,
-            user_message=req.message
+            user_message=req.message,
+            session_id=new_session.id # 날씨
         )
         
         # 5. AI 답변 DB 저장
