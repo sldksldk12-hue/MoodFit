@@ -44,6 +44,7 @@ CREATE TABLE products (
     category_id INT NOT NULL COMMENT '카테고리 ID',
     shop_product_id VARCHAR(100) NOT NULL UNIQUE COMMENT '쇼핑몰 상품 고유 ID',
     product_name VARCHAR(255) NOT NULL COMMENT '상품명',
+    inventory INT NOT NULL DEFAULT 0 COMMENT '재고 수량',
     original_price INT NOT NULL COMMENT '원가',
     discount_price INT NOT NULL COMMENT '판매가',
     image_url JSON NOT NULL COMMENT '상품 이미지 URL',

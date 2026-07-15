@@ -4,9 +4,9 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -532.5062,
-    "scrollLeft": -1110.0075,
-    "zoomLevel": 0.79,
+    "scrollTop": -1790.2504,
+    "scrollLeft": -629.5799,
+    "zoomLevel": 0.73,
     "show": 431,
     "database": 4,
     "databaseName": "",
@@ -222,6 +222,7 @@
           "cXuqV9B_gbu2ETCJaEn8I",
           "sZDUw6vtzZ7ZUzHBAznDF",
           "D0pUlpQzR0hN2CZtcn_kB",
+          "LDnYrvogRsg4WE0zvUD1Q",
           "pvL2TkfWEiOLk-46alvP_",
           "v3iGziXW1glV1COB3BfR-",
           "IsX2Yhf_-uipqDFNANoVT",
@@ -237,6 +238,7 @@
           "cXuqV9B_gbu2ETCJaEn8I",
           "sZDUw6vtzZ7ZUzHBAznDF",
           "D0pUlpQzR0hN2CZtcn_kB",
+          "LDnYrvogRsg4WE0zvUD1Q",
           "pvL2TkfWEiOLk-46alvP_",
           "v3iGziXW1glV1COB3BfR-",
           "IsX2Yhf_-uipqDFNANoVT",
@@ -259,7 +261,7 @@
           "color": ""
         },
         "meta": {
-          "updateAt": 1783931873080,
+          "updateAt": 1784090471555,
           "createAt": 1782993067370
         }
       },
@@ -5319,6 +5321,26 @@
           "updateAt": 1783931046156,
           "createAt": 1783931010532
         }
+      },
+      "LDnYrvogRsg4WE0zvUD1Q": {
+        "id": "LDnYrvogRsg4WE0zvUD1Q",
+        "tableId": "6q1ZSmssEys9rUFXzNFE0",
+        "name": "inventory",
+        "comment": "재고 수량",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784090887143,
+          "createAt": 1784090463555
+        }
       }
     },
     "relationshipEntities": {
@@ -5389,7 +5411,7 @@
             "4bh03WwS4ANlfYTFkXNna"
           ],
           "x": 832.1687,
-          "y": 2343.2532,
+          "y": 2367.2532,
           "direction": 8
         },
         "end": {
@@ -5585,7 +5607,7 @@
             "4bh03WwS4ANlfYTFkXNna"
           ],
           "x": 1094.6687,
-          "y": 2343.2532,
+          "y": 2367.2532,
           "direction": 8
         },
         "end": {
@@ -5697,7 +5719,7 @@
             "4bh03WwS4ANlfYTFkXNna"
           ],
           "x": 1225.9187,
-          "y": 2036.5865333333336,
+          "y": 2040.5865333333336,
           "direction": 2
         },
         "end": {
@@ -5781,7 +5803,7 @@
             "4bh03WwS4ANlfYTFkXNna"
           ],
           "x": 1225.9187,
-          "y": 2281.9198666666666,
+          "y": 2301.9198666666666,
           "direction": 2
         },
         "end": {
@@ -5874,7 +5896,7 @@
             "cXuqV9B_gbu2ETCJaEn8I"
           ],
           "x": 700.9187,
-          "y": 2159.2532,
+          "y": 2171.2532,
           "direction": 1
         },
         "meta": {
@@ -6005,7 +6027,7 @@
             "4bh03WwS4ANlfYTFkXNna"
           ],
           "x": 1225.9187,
-          "y": 2159.2532,
+          "y": 2171.2532,
           "direction": 2
         },
         "end": {

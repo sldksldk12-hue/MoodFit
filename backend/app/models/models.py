@@ -136,6 +136,7 @@ class Product(Base):
         Numeric(2, 1), nullable=False, default=Decimal("0.0"), comment="평균 별점"
     )
     like_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="좋아요 수")
+    inventory: Mapped[int] = mapped_column(Integer, nullable=False, default=0, comment="재고 수량")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="상품 등록 일시"
     )
