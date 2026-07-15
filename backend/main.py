@@ -1,3 +1,5 @@
+import os         # 🌟 환경변수(API 키)를 읽어오기
+import requests   # 🌟 외부 API(OpenWeather)와 통신
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
@@ -56,6 +58,22 @@ class ChatRequest(BaseModel):
 @app.get("/")
 async def root():
     return {"message": "MoodFit AI 서버 운영 중", "rag_ready": rag_service is not None}
+
+@app.get("/api/weather")
+async def get_current_weather():
+    # 백엔드에서 안전하게 OpenWeather를 찔러서 프론트엔드로 전달 (API 키 숨김)
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    city = "Seoul"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=kr"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json() # 원본 형태 그대로 반환
+        else:
+            return {"error": "날씨 정보를 불러오지 못했습니다."}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/api/chat/emotion")
 async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(get_db)):
