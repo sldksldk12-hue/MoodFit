@@ -42,6 +42,7 @@ app = FastAPI(
 class ChatRequest(BaseModel):
     user_id: int = 1 
     message: str
+    session_id: int = None  # 선택 사항: 기존 대화를 이어가고 싶을 때 넘겨받을 세션 ID
 
 @app.get("/")
 async def root():
@@ -53,36 +54,34 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     if not classifier or not rag_service:
         return {"error": "AI 서버 인프라가 준비되지 않았습니다."}
     
-    # 1. 로컬 ML 모델로 1차 감정 분류 수행
     result = classifier(req.message)
     raw_label = result[0]['label']
     emotion_score = result[0]['score']
     
-    # KoELECTRA 모델이 뱉는 라벨을 LangChain 공통 규격으로 맵핑
     emotion_map = {
-        "happy": "joy",
-        "sad": "sadness",
-        "angry": "anger",
-        "anxious": "fear",
-        "embarrassed": "surprise",
-        "heartache": "sadness",
-        # (혹시 한글로 나올 경우를 대비한 방탄 코드)
+        "happy": "joy", "sad": "sadness", "angry": "anger",
+        "anxious": "fear", "embarrassed": "surprise", "heartache": "sadness",
         "행복": "joy", "슬픔": "sadness", "분노": "anger", 
         "불안": "fear", "당황": "surprise", "상처": "sadness"
     }
-    
-    # 변환 실패 시 'neutral(중립)'으로 기본값 처리
     predicted_emotion = emotion_map.get(raw_label, "neutral")
     
     try:
-        # 2. 대화 세션 및 메시지 생성 후 DB 기록
-        new_session = ChatSession(session_uuid=f"session-{datetime.now().timestamp()}")
-        db.add(new_session)
-        db.commit()
-        db.refresh(new_session)
+        # 🌟 1. 대화 세션 처리 (핵심 변경점)
+        if req.session_id:
+            # 클라이언트가 기존 세션 ID를 주면 그걸 그대로 사용!
+            current_session_id = req.session_id
+        else:
+            # 없으면 새로 생성
+            new_session = ChatSession(session_uuid=f"session-{datetime.now().timestamp()}")
+            db.add(new_session)
+            db.commit()
+            db.refresh(new_session)
+            current_session_id = new_session.id
 
+        # 2. 유저 메시지 DB 저장
         user_message = ChatMessage(
-            session_id=new_session.id,
+            session_id=current_session_id, # 👈 current_session_id 사용
             sender_type="USER",
             message_text=req.message
         )
@@ -90,7 +89,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.commit()
         db.refresh(user_message)
 
-        # 3. emotion_logs에 변환된 공통 감정 데이터(영어) 저장
+        # 3. 감정 로그 DB 저장
         new_emotion_log = EmotionLog(
             message_id=user_message.id,
             predicted_emotion=predicted_emotion,
@@ -101,32 +100,30 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.commit()
         db.refresh(new_emotion_log)
         
-        # 4. 랭체인 RAG 워크플로우 가동 (영어 라벨이 GPT 프롬프트에 주입됨)
+        # 4. RAG 워크플로우 가동 
         ai_recommendation = rag_service.generate_fashion_recommendation(
             db=db,
             user_id=req.user_id,
             emotion=predicted_emotion,
             confidence=emotion_score,
             user_message=req.message,
-            session_id=new_session.id # 날씨
+            session_id=current_session_id  # 👈 current_session_id 넘겨주기
         )
         
         # 5. AI 답변 DB 저장
         ai_message = ChatMessage(
-            session_id=new_session.id,
+            session_id=current_session_id, # 👈 current_session_id 사용
             sender_type="AI",
             message_text=ai_recommendation
         )
         db.add(ai_message)
         db.commit()
 
-        # 원본 한글 라벨과 변환된 라벨을 모두 출력해 줍니다.
         return {
             "status": "success",
+            "session_id": current_session_id, # 🌟 프론트엔드가 다음 질문 때 쓸 수 있게 응답에 포함
             "emotion_log_id": new_emotion_log.id,
-            "raw_korean_label": raw_label,
             "mapped_emotion": predicted_emotion,
-            "confidence": round(emotion_score, 4),
             "ai_response": ai_recommendation
         }
         
