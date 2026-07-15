@@ -56,7 +56,14 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     
     result = classifier(req.message)
     raw_label = result[0]['label']
-    emotion_score = result[0]['score']
+    emotion_score = result[0]['score'] # 확신도 (0.0 ~ 1.0)
+    
+    # 모델이 60% 미만으로 확신하면, 그냥 '중립'으로 처리
+    if emotion_score < 0.60:
+        predicted_emotion = "neutral"
+    else:
+        # 60% 이상일 때만 매핑 딕셔너리 사용
+        predicted_emotion = emotion_map.get(raw_label, "neutral")
     
     emotion_map = {
         "happy": "joy", "sad": "sadness", "angry": "anger",
@@ -67,7 +74,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     predicted_emotion = emotion_map.get(raw_label, "neutral")
     
     try:
-        # 🌟 1. 대화 세션 처리 (핵심 변경점)
+        # 1. 대화 세션 처리 (핵심 변경점)
         if req.session_id:
             # 클라이언트가 기존 세션 ID를 주면 그걸 그대로 사용!
             current_session_id = req.session_id
@@ -107,12 +114,12 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
             emotion=predicted_emotion,
             confidence=emotion_score,
             user_message=req.message,
-            session_id=current_session_id  # 👈 current_session_id 넘겨주기
+            session_id=current_session_id  # current_session_id 넘겨주기
         )
         
         # 5. AI 답변 DB 저장
         ai_message = ChatMessage(
-            session_id=current_session_id, # 👈 current_session_id 사용
+            session_id=current_session_id, # current_session_id 사용
             sender_type="AI",
             message_text=ai_recommendation
         )
@@ -121,7 +128,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
 
         return {
             "status": "success",
-            "session_id": current_session_id, # 🌟 프론트엔드가 다음 질문 때 쓸 수 있게 응답에 포함
+            "session_id": current_session_id, # 프론트엔드가 다음 질문 때 쓸 수 있게 응답에 포함
             "emotion_log_id": new_emotion_log.id,
             "mapped_emotion": predicted_emotion,
             "ai_response": ai_recommendation

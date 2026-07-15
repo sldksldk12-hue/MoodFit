@@ -3,11 +3,11 @@ import os
 import requests
 from sqlalchemy.orm import Session
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder # 🌟 메모리용 모듈 추가
-from langchain_core.messages import HumanMessage, AIMessage # 🌟 대화 타입 지정용 모듈 추가
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder # 메모리용 모듈 추가
+from langchain_core.messages import HumanMessage, AIMessage # 대화 타입 지정용 모듈 추가
 from langchain_core.output_parsers import StrOutputParser
 
-# 🌟 ChatMessage 모델 추가
+# ChatMessage 모델 추가
 from app.models.models import User, EmotionLog, WeatherLog, ChatMessage 
 
 class RagsFashionService:
@@ -19,7 +19,7 @@ class RagsFashionService:
         )
         self.weather_api_key = os.getenv("OPENWEATHER_API_KEY")
         
-        # 🌟 시스템 메시지와 유저 메시지 사이에 'chat_history'라는 기억 장치 추가
+        # 시스템 메시지와 유저 메시지 사이에 'chat_history'라는 기억 장치 추가
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", """당신은 유저의 기분과 날씨, 패션 취향을 분석하여 최적의 코디를 제안하는 퍼스널 쇼퍼이자 패션 테라피스트 AI 'MoodFit'입니다.
 
@@ -59,7 +59,7 @@ class RagsFashionService:
         weather_data = self.get_real_weather()
         current_weather = f"섭씨 {weather_data['temp']}도, {weather_data['desc']}"
         
-        # 🌟 1. DB에서 이전 대화(기억) 긁어오기
+        # 1. DB에서 이전 대화(기억) 긁어오기
         chat_history = []
         if session_id:
             try:
