@@ -1,6 +1,7 @@
 # backend/main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
 from pydantic import BaseModel
 from transformers import pipeline
 from sqlalchemy.orm import Session
@@ -39,6 +40,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# CORS 설정 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 개발 단계이므로 일단 모든 프론트엔드 주소(React, Vue 등) 허용
+    allow_credentials=True,
+    allow_methods=["*"],  # GET, POST, PUT, DELETE 등 모든 요청 방식 허용
+    allow_headers=["*"],  # 모든 데이터 헤더 허용
+)
+
 class ChatRequest(BaseModel):
     user_id: int = 1 
     message: str
@@ -56,12 +66,23 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     
     result = classifier(req.message)
     raw_label = result[0]['label']
-    emotion_score = result[0]['score'] # 확신도 (0.0 ~ 1.0)
+    emotion_score = result[0]['score']
     
-    # 모델이 60% 미만으로 확신하면, 그냥 '중립'으로 처리
+    emotion_map = {
+        "happy": "joy", "sad": "sadness", "angry": "anger",
+        "anxious": "fear", "embarrassed": "surprise", "heartache": "sadness",
+        "행복": "joy", "슬픔": "sadness", "분노": "anger", 
+        "불안": "fear", "당황": "surprise", "상처": "sadness"
+    }
+    
+    # 60% 미만은 중립 처리
     if emotion_score < 0.60:
         predicted_emotion = "neutral"
+        print(f"확신도 부족({emotion_score:.2f}) -> 감정 중립(neutral) 처리됨")
     else:
+        predicted_emotion = emotion_map.get(raw_label, "neutral")
+        
+    try:
         # 60% 이상일 때만 매핑 딕셔너리 사용
         predicted_emotion = emotion_map.get(raw_label, "neutral")
     
