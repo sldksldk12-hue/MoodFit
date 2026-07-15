@@ -4,9 +4,9 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -2122.0534,
-    "scrollLeft": -712,
-    "zoomLevel": 0.88,
+    "scrollTop": -532.5062,
+    "scrollLeft": -1110.0075,
+    "zoomLevel": 0.79,
     "show": 431,
     "database": 4,
     "databaseName": "",
@@ -4863,20 +4863,20 @@
       "IbvyonZgwjtU6yLGGScev": {
         "id": "IbvyonZgwjtU6yLGGScev",
         "tableId": "VjK8gdeoGzRpspmia3MrN",
-        "name": "INT",
-        "comment": "",
+        "name": "completion_tokens",
+        "comment": "출력(답변) 토큰 사용량",
         "dataType": "INT",
         "default": "",
         "options": 0,
         "ui": {
           "keys": 0,
-          "widthName": 60,
-          "widthComment": 60,
+          "widthName": 102,
+          "widthComment": 124,
           "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783931155020,
+          "updateAt": 1784075096908,
           "createAt": 1783495849910
         }
       },
