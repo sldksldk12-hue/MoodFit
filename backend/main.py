@@ -1,5 +1,6 @@
 import os         # 🌟 환경변수(API 키)를 읽어오기
 import requests   # 🌟 외부 API(OpenWeather)와 통신
+from dotenv import load_dotenv
 import urllib.parse
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
@@ -83,41 +84,34 @@ async def get_recommended_festivals():
         return {"error": "서버에 축제 API 키가 설정되지 않았습니다."}
 
     try:
-        # 오늘 날짜 구하기 (YYYYMMDD 형식)
         today_str = datetime.now().strftime("%Y%m%d")
+        url = "http://apis.data.go.kr/B551011/KorService1/searchFestival1"
         
-        # 이중 인코딩 방지를 위한 수동 URL 조합
-        # MobileOS=ETC, MobileApp=MoodFit (서비스명), _type=json, eventStartDate=오늘날짜
-        base_url = "http://apis.data.go.kr/B551011/KorService1/searchFestival1"
-        query_string = (
-            f"?serviceKey={api_key}"
-            f"&numOfRows=5"            # 프론트엔드 화면에 맞게 5개만 가져오기
-            f"&pageNo=1"
-            f"&MobileOS=ETC"
-            f"&MobileApp=MoodFit"
-            f"&_type=json"
-            f"&listYN=Y"
-            f"&arrange=A"              # A: 제목순, D: 생성일순
-            f"&eventStartDate={today_str}"
-        )
-        url = base_url + query_string
+        # 🌟 1. 공공데이터포털 인코딩 에러 원천 차단 로직 (params 딕셔너리 사용)
+        params = {
+            "serviceKey": urllib.parse.unquote(api_key), # 어떤 키를 넣어도 디코딩 상태로 통일!
+            "numOfRows": 5,
+            "pageNo": 1,
+            "MobileOS": "ETC",
+            "MobileApp": "MoodFit",
+            "_type": "json",
+            "listYN": "Y",
+            "arrange": "A",
+            "eventStartDate": today_str
+        }
 
-        # API 호출
-        response = requests.get(url)
+        # 🌟 2. 안전하게 묶어서 API 호출
+        response = requests.get(url, params=params)
         
         if response.status_code == 200:
             data = response.json()
             
-            # 4. 공공데이터포털의 복잡한 JSON 구조 파싱
+            # (이하 파싱 로직은 동일)
             items = data.get("response", {}).get("body", {}).get("items", {})
-            # 데이터가 없을 경우 items가 빈 문자열("")로 올 수 있으므로 방어 로직 추가
             item_list = items.get("item", []) if isinstance(items, dict) else []
 
             festivals = []
             for idx, item in enumerate(item_list):
-                # 프론트엔드 위젯 규격(id, title, location, period, image_url, description)에 맞게 변환
-                
-                # 원본 날짜 포맷팅 (20260715 -> 2026.07.15)
                 start_date = item.get("eventstartdate", "")
                 end_date = item.get("eventenddate", "")
                 period = f"{start_date[:4]}.{start_date[4:6]}.{start_date[6:]} ~ {end_date[:4]}.{end_date[4:6]}.{end_date[6:]}" if start_date else "상시 진행"
@@ -127,7 +121,6 @@ async def get_recommended_festivals():
                     "title": item.get("title", "축제명 없음"),
                     "location": item.get("addr1", "장소 미상"),
                     "period": period,
-                    # 이미지가 없으면 회색 기본 이미지(Placeholder)를 넘겨서 프론트엔드 화면이 깨지지 않게 방어!
                     "image_url": item.get("firstimage") or item.get("firstimage2") or "https://via.placeholder.com/600x400?text=No+Image",
                     "description": "자세한 사항은 관광공사 홈페이지를 참고해주세요.",
                     "tags": ["축제", "나들이"]
