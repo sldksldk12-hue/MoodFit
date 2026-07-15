@@ -1,23 +1,20 @@
-# backend/app/domains/ai_chat/rag_service.py
 import os
 from sqlalchemy.orm import Session
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# User 대신 취향 정보가 있는 UserPreference 모델을 임포트
-from app.models.models import UserPreference, EmotionLog 
+# 취향 정보가 다시 합쳐진 'User' 모델을 임포트
+from app.models.models import User, EmotionLog 
 
 class RagsFashionService:
     def __init__(self):
-        # 1. OpenAI LLM 초기화
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.7,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
         
-        # 2. LangChain 프롬프트 템플릿 정의
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", """당신은 유저의 기분과 날씨, 패션 취향을 분석하여 최적의 코디를 제안하는 퍼스널 쇼퍼이자 패션 테라피스트 AI 'MoodFit'입니다.
 
@@ -38,30 +35,27 @@ class RagsFashionService:
             ("human", "{user_message}")
         ])
         
-        # 3. LangChain 표현식(LCEL)을 이용한 체인 구성
         self.chain = self.prompt_template | self.llm | StrOutputParser()
 
     def generate_fashion_recommendation(self, db: Session, user_id: int, emotion: str, confidence: float, user_message: str) -> str:
-        # [기본값 설정] DB 조회를 실패했을 때를 대비한 안전망
         preferred_style = "캐주얼(Casual)" 
         disliked_colors = "없음"
         current_weather = "섭씨 22도, 맑음"
 
         try:
-            # 진짜 DB(UserPreference)에서 유저 아이디로 취향 정보를 가져오기
-            user_pref = db.query(UserPreference).filter(UserPreference.user_id == user_id).first()
+            # 통합된 User 테이블에서 유저 아이디로 정보를 가져옴
+            user_info = db.query(User).filter(User.id == user_id).first()
             
-            if user_pref:
-                # DB 설계도와 정확히 일치하는 이름(preferred_styles - s붙음)으로 매핑
-                if hasattr(user_pref, 'preferred_styles') and user_pref.preferred_styles:
-                    preferred_style = user_pref.preferred_styles
-                if hasattr(user_pref, 'disliked_colors') and user_pref.disliked_colors:
-                    disliked_colors = user_pref.disliked_colors
+            if user_info:
+                # DB 컬럼명(preferred_styles, disliked_colors) 그대로 매핑
+                if hasattr(user_info, 'preferred_styles') and user_info.preferred_styles:
+                    preferred_style = user_info.preferred_styles
+                if hasattr(user_info, 'disliked_colors') and user_info.disliked_colors:
+                    disliked_colors = user_info.disliked_colors
                     
         except Exception as e:
             print(f"⚠️ DB 프로필 조회 실패(기본값 사용): {e}")
 
-        # 4. 랭체인 실행 (진짜 DB에서 user1 스트릿 스타일 & 검정색 기피 조건)
         response = self.chain.invoke({
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",

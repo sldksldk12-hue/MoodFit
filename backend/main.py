@@ -16,7 +16,7 @@ rag_service = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global rag_service
-    print("🤖 AI 모델 및 LangChain 서비스 로딩 시작...")
+    print("AI 모델 및 LangChain 서비스 로딩 시작...")
     try:
         # 최신 KoELECTRA 감정 모델로 교체!
         ml_models["emotion_classifier"] = pipeline(
@@ -58,7 +58,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
     raw_label = result[0]['label']
     emotion_score = result[0]['score']
     
-    # 🌟 KoELECTRA 모델이 뱉는 라벨을 LangChain 공통 규격으로 맵핑
+    # KoELECTRA 모델이 뱉는 라벨을 LangChain 공통 규격으로 맵핑
     emotion_map = {
         "happy": "joy",
         "sad": "sadness",
