@@ -84,29 +84,26 @@ async def get_recommended_festivals():
         return {"error": "서버에 축제 API 키가 설정되지 않았습니다."}
 
     try:
+        # 오늘 날짜
         today_str = datetime.now().strftime("%Y%m%d")
-        url = "http://apis.data.go.kr/B551011/KorService1/searchFestival1"
+        url = "http://apis.data.go.kr/B551011/KorService2/searchFestival2"
         
-        # 🌟 1. 공공데이터포털 인코딩 에러 원천 차단 로직 (params 딕셔너리 사용)
         params = {
-            "serviceKey": urllib.parse.unquote(api_key), # 어떤 키를 넣어도 디코딩 상태로 통일!
+            "serviceKey": urllib.parse.unquote(api_key), 
             "numOfRows": 5,
             "pageNo": 1,
             "MobileOS": "ETC",
             "MobileApp": "MoodFit",
             "_type": "json",
-            "listYN": "Y",
             "arrange": "A",
             "eventStartDate": today_str
         }
 
-        # 🌟 2. 안전하게 묶어서 API 호출
         response = requests.get(url, params=params)
         
         if response.status_code == 200:
             data = response.json()
-            
-            # (이하 파싱 로직은 동일)
+
             items = data.get("response", {}).get("body", {}).get("items", {})
             item_list = items.get("item", []) if isinstance(items, dict) else []
 
