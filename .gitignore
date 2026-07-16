@@ -20,3 +20,5 @@ env/
 .DS_Store
 .vscode/
 .idea/
+
+recreate_db.py
