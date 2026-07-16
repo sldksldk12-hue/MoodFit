@@ -210,7 +210,7 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
             return [
                 {
                     "title": p.product_name,
-                    "link": p.purchase_link,
+                    "link": f"/product/{p.id}", # (예: localhost:5173/product/15)
                     "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
                     "lprice": p.discount_price
                 } for p in final_products
