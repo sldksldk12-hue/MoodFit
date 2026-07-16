@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
 from pydantic import BaseModel, Field
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 
 # 랭체인 관련 임포트 추가
 from langchain_core.output_parsers import PydanticOutputParser
@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.db.database import get_db
-from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User, Product
+from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User, Product, ProductCategory
 from app.domains.ai_chat.rag_service import RagsFashionService
 
 load_dotenv() # 환경변수 로드
@@ -107,6 +107,25 @@ def search_naver_shopping(query: str, display: int = 3):
     except Exception as e:
         print(f"❌ 상품 검색 중 에러 발생: {e}")
         return []
+
+def get_or_create_category(db: Session, category_name: str) -> int:
+    """
+    카테고리 이름으로 DB를 검색하고, 없으면 새로 만들어서 ID를 반환합니다.
+    """
+    category = db.query(ProductCategory).filter(ProductCategory.category_name == category_name).first()
+    if category:
+        return category.id
+    
+    max_id = db.query(func.max(ProductCategory.id)).scalar() or 0
+    new_id = max_id + 1
+    
+    new_category = ProductCategory(id=new_id, category_name=category_name)
+    db.add(new_category)
+    db.commit()
+    db.refresh(new_category)
+    
+    print(f"📁 새로운 카테고리 생성됨: [{new_id}] {category_name}")
+    return new_category.id
     
 def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
     """
