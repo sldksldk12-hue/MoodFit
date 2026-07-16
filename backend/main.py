@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.db.database import get_db
-from app.models.models import EmotionLog, ChatMessage, ChatSession
+from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User
 from app.domains.ai_chat.rag_service import RagsFashionService
 
 load_dotenv() # 환경변수 로드
@@ -192,16 +192,28 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         predicted_emotion = emotion_map.get(raw_label, "neutral")
         
     try:
-        # 세션 및 DB 저장 처리
+        # 외래키(FK) 에러 방지용 가짜 유저 생성 로직
+        # (DB에 1번 유저가 없으면 Foreign Key 제약 조건 때문에 에러)
+        user = db.query(User).filter(User.id == req.user_id).first()
+        if not user:
+            dummy_user = User(id=req.user_id, user_account="test_user", email="test@test.com", password_hash="1234")
+            db.add(dummy_user)
+            db.commit()
+
+        # 세션 처리 (user_id 연결 추가)
         if req.session_id:
             current_session_id = req.session_id
         else:
-            new_session = ChatSession(session_uuid=f"session-{datetime.now().timestamp()}")
+            new_session = ChatSession(
+                user_id=req.user_id, # 확장한 DB에 맞춰 유저 ID를 추가
+                session_uuid=f"session-{datetime.now().timestamp()}"
+            )
             db.add(new_session)
             db.commit()
             db.refresh(new_session)
             current_session_id = new_session.id
 
+        # 유저 메시지 및 감정 로그 DB 저장
         user_message = ChatMessage(session_id=current_session_id, sender_type="USER", message_text=req.message)
         db.add(user_message)
         db.commit()
@@ -210,8 +222,18 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         new_emotion_log = EmotionLog(message_id=user_message.id, predicted_emotion=predicted_emotion, confidence=emotion_score, raw_input=req.message)
         db.add(new_emotion_log)
         db.commit()
+
+        # 날씨 정보 DB 저장 (WeatherLog 활용)
+        new_weather_log = WeatherLog(
+            session_id=current_session_id,
+            region_name="Seoul",
+            temperature=25.0, # 추후 실제 날씨 API 데이터로 교체
+            condition_code="Clear"
+        )
+        db.add(new_weather_log)
+        db.commit()
         
-        # RAG 워크플로우 가동 (텍스트 답변 생성)
+        # RAG 워크플로우 가동 
         ai_recommendation = rag_service.generate_fashion_recommendation(
             db=db, user_id=req.user_id, emotion=predicted_emotion, confidence=emotion_score, user_message=req.message, session_id=current_session_id
         )
@@ -240,6 +262,16 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
                 
                 # 추출된 키워드로 진짜 상품 검색
                 recommended_products = search_naver_shopping(search_keyword, display=3)
+                
+                # AI 토큰/호출 로그 DB 저장 (AiCallLog 활용)
+                new_ai_log = AiCallLog(
+                    chat_session_id=current_session_id,
+                    model_name="gpt-4o-mini",
+                    prompt_version="v1.0.0",
+                    log_status="SUCCESS"
+                )
+                db.add(new_ai_log)
+                
             except Exception as e:
                 print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
 
@@ -248,14 +280,14 @@ async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(
         db.add(ai_message)
         db.commit()
 
-        # 프론트엔드로 최종 응답 반환 (상품 리스트 포함)
+        # 프론트엔드로 최종 응답 반환
         return {
             "status": "success",
             "session_id": current_session_id,
             "mapped_emotion": predicted_emotion,
             "ai_response": ai_recommendation,
             "search_keyword": search_keyword,
-            "products": recommended_products # 배열 형태로 네이버 상품 3개
+            "products": recommended_products 
         }
         
     except Exception as e:
