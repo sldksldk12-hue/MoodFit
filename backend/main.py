@@ -40,6 +40,66 @@ async def lifespan(app: FastAPI):
         )
         rag_service = RagsFashionService()
         print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
+        
+        # 카테고리 자동 적재 (Auto-Seeding)
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        try:
+            existing_count = db.query(ProductCategory).count()
+            if existing_count == 0:
+                print("🌱 카테고리 데이터가 비어 있어 자동 적재(Seeding)를 시작합니다...")
+                c100 = ProductCategory(id=100, category_name='상의', parent_id=None)
+                c200 = ProductCategory(id=200, category_name='하의', parent_id=None)
+                c300 = ProductCategory(id=300, category_name='아우터', parent_id=None)
+                c400 = ProductCategory(id=400, category_name='악세사리/신발', parent_id=None)
+                db.add_all([c100, c200, c300, c400])
+                db.flush()
+                
+                subs = [
+                    ProductCategory(id=101, category_name='반소매 티셔츠', parent_id=100),
+                    ProductCategory(id=102, category_name='긴소매 티셔츠', parent_id=100),
+                    ProductCategory(id=103, category_name='맨투맨', parent_id=100),
+                    ProductCategory(id=104, category_name='셔츠', parent_id=100),
+                    ProductCategory(id=105, category_name='후드', parent_id=100),
+                    ProductCategory(id=106, category_name='니트', parent_id=100),
+                    
+                    ProductCategory(id=201, category_name='데님', parent_id=200),
+                    ProductCategory(id=202, category_name='트레이닝', parent_id=200),
+                    ProductCategory(id=203, category_name='코튼', parent_id=200),
+                    ProductCategory(id=204, category_name='숏 팬츠', parent_id=200),
+                    ProductCategory(id=205, category_name='레깅스', parent_id=200),
+                    ProductCategory(id=206, category_name='조거 팬츠', parent_id=200),
+                    ProductCategory(id=207, category_name='청바지', parent_id=200),
+                    ProductCategory(id=208, category_name='스커트', parent_id=200),
+                    
+                    ProductCategory(id=301, category_name='집업', parent_id=300),
+                    ProductCategory(id=302, category_name='슈트', parent_id=300),
+                    ProductCategory(id=303, category_name='카디건', parent_id=300),
+                    ProductCategory(id=304, category_name='패딩', parent_id=300),
+                    ProductCategory(id=305, category_name='재킷', parent_id=300),
+                    ProductCategory(id=306, category_name='코트', parent_id=300),
+                    ProductCategory(id=307, category_name='베스트', parent_id=300),
+                    
+                    ProductCategory(id=401, category_name='캡', parent_id=400),
+                    ProductCategory(id=402, category_name='베레모', parent_id=400),
+                    ProductCategory(id=403, category_name='페도라', parent_id=400),
+                    ProductCategory(id=404, category_name='비니', parent_id=400),
+                    ProductCategory(id=405, category_name='스니커즈', parent_id=400),
+                    ProductCategory(id=406, category_name='스포츠화', parent_id=400),
+                    ProductCategory(id=407, category_name='구두', parent_id=400),
+                    ProductCategory(id=408, category_name='부츠', parent_id=400),
+                    ProductCategory(id=409, category_name='샌들', parent_id=400)
+                ]
+                db.add_all(subs)
+                db.commit()
+                print("✅ 3자리 코드 기반 카테고리 데이터 자동 적재 완료!")
+            else:
+                print(f"📁 이미 {existing_count}개의 카테고리 데이터가 존재하므로 시더를 건너뜁니다.")
+        except Exception as seeder_err:
+            db.rollback()
+            print(f"⚠️ 카테고리 자동 적재 중 오류 발생: {seeder_err}")
+        finally:
+            db.close()
     except Exception as e:
         print(f"❌ 초기화 실패: {e}")
     
@@ -127,6 +187,46 @@ def get_or_create_category(db: Session, category_name: str) -> int:
     print(f"📁 새로운 카테고리 생성됨: [{new_id}] {category_name}")
     return new_category.id
     
+# 커스텀 카테고리 매핑 사전 정의
+CATEGORY_MAP = {
+    # 상의
+    "반소매": 101, "반팔": 101,
+    "긴소매": 102, "긴팔": 102,
+    "맨투맨": 103, "스웨트셔츠": 103,
+    "셔츠": 104, "남방": 104,
+    "후드": 105,
+    "니트": 106, "스웨터": 106,
+
+    # 하의
+    "데님": 201, "청바지": 207,
+    "트레이닝": 202, "츄리닝": 202,
+    "코튼": 203, "면바지": 203,
+    "숏 팬츠": 204, "반바지": 204, "핫팬츠": 204,
+    "레깅스": 205,
+    "조거": 206,
+    "스커트": 208, "치마": 208,
+
+    # 아우터
+    "집업": 301,
+    "슈트": 302, "수트": 302,
+    "카디건": 303, "가디건": 303,
+    "패딩": 304, "다운": 304,
+    "재킷": 305, "자켓": 305, "블레이저": 305,
+    "코트": 306,
+    "베스트": 307, "조끼": 307,
+
+    # 악세사리/신발
+    "캡": 401, "야구모": 401,
+    "베레모": 402,
+    "페도라": 403,
+    "비니": 404,
+    "스니커즈": 405, "단화": 405,
+    "스포츠화": 406, "런닝화": 406, "운동화": 406,
+    "구두": 407, "로퍼": 407, "힐": 407,
+    "부츠": 408, "워커": 408,
+    "샌들": 409, "슬리퍼": 409
+}
+
 def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
     """
     1. 우리 DB에서 먼저 키워드로 상품을 검색합니다.
@@ -177,12 +277,25 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
                 shop_pid = item.get("productId", str(hash(item["link"])))
                 existing_p = db.query(Product).filter(Product.shop_product_id == shop_pid).first()
                 if not existing_p:
-                    # 네이버 대분류를 이용해 카테고리 매핑
-                    category_name = item.get("category1", "AI 추천 상품")
-                    cat_id = get_or_create_category(db, category_name)
+                    # 커스텀 카테고리 자동 매핑 로직
+                    matched_cat_id = None
+                    prod_name = item["title"].replace("<b>", "").replace("</b>", "")
+                    
+                    # 1차: 상품명에서 키워드 대조 매핑
+                    for key, cat_id in CATEGORY_MAP.items():
+                        if key in prod_name:
+                            matched_cat_id = cat_id
+                            break
+                            
+                    # 2차: 상품명에 없다면 검색 키워드에서 대조 매핑
+                    if not matched_cat_id:
+                        for key, cat_id in CATEGORY_MAP.items():
+                            if key in keyword:
+                                matched_cat_id = cat_id
+                                break
                     
                     new_p = Product(
-                        category_id=cat_id,
+                        category_id=matched_cat_id,
                         shop_product_id=shop_pid,
                         product_name=item["title"].replace("<b>", "").replace("</b>", ""),
                         original_price=int(item["lprice"]),
