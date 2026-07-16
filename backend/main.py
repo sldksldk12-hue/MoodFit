@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import urllib.parse
 from urllib.parse import quote
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, and_, func
@@ -331,11 +331,6 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
         print(f"❌ 데이터 자동 수집 파이프라인 에러: {e}")
         db.rollback()
         return []
-            
-    except Exception as e:
-        print(f"❌ 데이터 자동 수집 파이프라인 에러: {e}")
-        db.rollback()
-        return []
 
 @app.get("/")
 async def root():
@@ -397,6 +392,54 @@ async def get_recommended_festivals():
             return {"error": f"공공데이터 API 통신 실패: {response.status_code}"}
     except Exception as e:
         return {"error": f"축제 정보를 파싱하는 중 에러가 발생했습니다: {str(e)}"}
+    
+@app.get("/api/products/{product_id}")
+async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
+    """
+    특정 상품의 상세 정보를 조회합니다.
+    """
+    try:
+        # DB에서 해당 ID의 상품을 찾기.
+        product = db.query(Product).filter(Product.id == product_id).first()
+        
+        # 상품이 없으면 404 에러를 반환
+        if not product:
+            raise HTTPException(status_code=404, detail="해당 상품을 찾을 수 없습니다.")
+        
+        # 카테고리 이름도 가져오기 (옵션)
+        category_name = "미분류"
+        if product.category_id:
+            category = db.query(ProductCategory).filter(ProductCategory.id == product.category_id).first()
+            if category:
+                category_name = category.category_name
+        
+        # 프론트엔드가 쓰기 편하게 예쁜 JSON 형태로 가공하여 반환
+        return {
+            "status": "success",
+            "data": {
+                "id": product.id,
+                "shop_product_id": product.shop_product_id,
+                "category": category_name,
+                "brand": product.brand,
+                "name": product.product_name,
+                "original_price": product.original_price,
+                "discount_price": product.discount_price,
+                # 이미지가 배열이면 그대로, 아니면 배열로 감싸서 반환
+                "images": product.image_url if isinstance(product.image_url, list) else [product.image_url],
+                "purchase_link": product.purchase_link,
+                "gender_target": product.gender_target,
+                "inventory": product.inventory,
+                "average_rating": float(product.average_rating), # Decimal은 float으로 변환
+                "like_count": product.like_count,
+            }
+        }
+        
+    except Exception as e:
+        print(f"❌ 상품 상세 조회 중 에러 발생: {e}")
+        # SQLAlchemy 에러가 아닌 프론트엔드에 전달할 에러
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")
 
 @app.post("/api/chat/emotion")
 async def analyze_emotion_and_recommend(req: ChatRequest, db: Session = Depends(get_db)):
