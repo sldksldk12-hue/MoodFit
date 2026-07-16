@@ -1,8 +1,29 @@
+/**
+ * 파일: src/pages/PreferencePage.jsx
+ * 분류: 라우팅 페이지
+ *
+ * 역할
+ * - 사용자의 패션 취향 선택 폼을 관리합니다.
+ *
+ * 사용 기술
+ * - useState, checkbox/radio controlled inputs
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
+// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { useState } from "react";
 import { Sparkles, Ruler, Weight, Palette, Shirt } from "lucide-react";
-import "../assets/styles/PreferencePage.css";
+import "../assets/styles/pages/preference/PreferencePage.css";
 
+/**
+ * PreferencePage 컴포넌트
+ * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
+ */
 const PreferencePage = () => {
+    // prefs: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [prefs, setPrefs] = useState({
         gender: "",
         height: "",
@@ -16,6 +37,7 @@ const PreferencePage = () => {
     const styles = ["캐주얼", "미니멀", "스트릿", "러블리", "스포티", "댄디", "오피스룩"];
     const colors = ["블랙", "화이트", "그레이", "네이비", "베이지", "브라운", "블루", "핑크"];
 
+    // changeValue: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
     const changeValue = (e) => {
         setPrefs({
             ...prefs,
@@ -23,6 +45,7 @@ const PreferencePage = () => {
         });
     };
 
+    // toggleArrayValue: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
     const toggleArrayValue = (name, value) => {
         setPrefs((prev) => ({
             ...prev,
@@ -32,6 +55,7 @@ const PreferencePage = () => {
         }));
     };
 
+    // submitPrefs: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
     const submitPrefs = (e) => {
         e.preventDefault();
 
@@ -48,6 +72,7 @@ const PreferencePage = () => {
         alert("취향등록이 완료되었습니다.");
     };
 
+    // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
     return (
         <main className="preference-page">
             <section className="preference-card">
@@ -176,4 +201,5 @@ const PreferencePage = () => {
     );
 };
 
+// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default PreferencePage;

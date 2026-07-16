@@ -1,3 +1,19 @@
+/**
+ * 파일: src/services/api.js
+ * 분류: API 통신 모듈
+ *
+ * 역할
+ * - Axios 인스턴스와 MoodFit 백엔드 엔드포인트별 요청 함수를 한곳에 모읍니다.
+ *
+ * 사용 기술
+ * - Axios, JWT Authorization header, async/await
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
+// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import axios from "axios";
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -88,4 +104,5 @@ export const register = async (userData) => {
   return response.data;
 }
 
+// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default api; 

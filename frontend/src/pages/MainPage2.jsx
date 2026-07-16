@@ -1,13 +1,30 @@
-import { Bot, PlayCircle } from 'lucide-react';
+/**
+ * 파일: src/pages/MainPage2.jsx
+ * 분류: 라우팅 페이지
+ *
+ * 역할
+ * - 메인 Hero·날씨 카드·추천 상품·메인 채팅 영역을 조합합니다.
+ *
+ * 사용 기술
+ * - Redux UI 상태, useEffect, 조건부 렌더링
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
+// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
+import { PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import ProductCard from '../components/ProductCard';
-import ChatPage from '../components/ChatPage';
-import HeroContent from '../components/HeroContent';
-import WeatherCard from '../components/WeatherCard';
+import { useDispatch, useSelector } from 'react-redux';
+import ProductCard from '../components/product/ProductCard';
+import ChatPage from '../components/chat/ChatPage';
+import HeroContent from '../components/main/HeroContent';
+import WeatherCard from '../components/main/WeatherCard';
 import '../assets/styles/global.css';
-import '../assets/styles/MainPage.css';
+import '../assets/styles/main/MainPage.css';
 import { getList } from '../services/api';
-import WeatherBackground from '../components/weather/WeatherBackground';
+import { closeMainChat } from '../store/slices/chatSlice';
 
 // const products = [
 //     {
@@ -42,9 +59,18 @@ const banners = [
     { title: 'NEW COLLECTION', desc: '새로운 시즌 컬렉션', image: '/images/banner03.jpg' },
 ];
 
-const MainPage2 = ({ chatMessage, setChatMessage}) => {
-    const [isChatOpen, setIsChatOpen] = useState(false);
+/**
+ * MainPage2 컴포넌트
+ * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
+ */
+const MainPage2 = () => {
+    // Redux Store에 상태 변경 명령(action)을 전달하기 위한 dispatch 함수입니다.
+    const dispatch = useDispatch();
+    // 여러 컴포넌트가 공유하는 Redux 상태에서 현재 화면에 필요한 값만 선택합니다.
+    const isChatOpen = useSelector((state) => state.chat.mainChatOpen);
+    // chatMode: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [chatMode, setChatMode] = useState("full");
+    // product: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [product, setProduct] = useState([{
         id: "",
         product_name: '',
@@ -52,11 +78,7 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
         image_url: '',
     }])
 
-
-
-    const openChatWithMessage = () => {
-        setIsChatOpen(true);
-    };
+    // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {
         getList()
             .then(data => {
@@ -65,6 +87,7 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
             }
             )
         console.log(product)
+        // handleScroll: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
         const handleScroll = () => {
             if (window.scrollY > 250) {
                 setChatMode("sticky");
@@ -81,6 +104,7 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
     }, []);
 
 
+    // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
     return (
         <>
             
@@ -88,11 +112,7 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
 
                 {!isChatOpen && (
                     <section className="hero-section">
-                        <HeroContent
-                            openChat={openChatWithMessage}
-                            chatMessage={chatMessage}
-                            setChatMessage={setChatMessage}
-                        />
+                        <HeroContent />
 
                         <WeatherCard />
                     </section>
@@ -101,8 +121,7 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
                     <section className="chat-sticky-section">
                         <ChatPage
                             mode={chatMode}
-                            closeChat={() => setIsChatOpen(false)}
-                            firstMessage={chatMessage}
+                            closeChat={() => dispatch(closeMainChat())}
                         />
                     </section>
                 )}
@@ -182,4 +201,5 @@ const MainPage2 = ({ chatMessage, setChatMessage}) => {
     );
 };
 
+// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default MainPage2;

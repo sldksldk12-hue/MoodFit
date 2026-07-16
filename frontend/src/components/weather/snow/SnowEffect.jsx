@@ -1,3 +1,19 @@
+/**
+ * 파일: src/components/weather/snow/SnowEffect.jsx
+ * 분류: 날씨 시각 효과 모듈
+ *
+ * 역할
+ * - 눈 입자 애니메이션을 생성하고 컴포넌트 해제 시 정리합니다.
+ *
+ * 사용 기술
+ * - Canvas animation, useEffect cleanup
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
+// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
@@ -74,6 +90,7 @@ function seededRandom(seed) {
 }
 
 function SnowParticles({ type }) {
+  // 렌더링을 발생시키지 않고 DOM 또는 이전 실행 여부를 기억하기 위해 useRef를 사용합니다.
   const materialRef = useRef(null);
   const texture = useLoader(THREE.TextureLoader, snowflakeUrl);
   const settings = SETTINGS[type] ?? SETTINGS.gentle;
@@ -127,6 +144,7 @@ function SnowParticles({ type }) {
       (type === "storm" ? 14 : 4);
   });
 
+  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
     <points>
       <bufferGeometry>
@@ -160,7 +178,9 @@ function SnowParticles({ type }) {
   );
 }
 
+// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default function SnowEffect({ type = "gentle", className = "" }) {
+  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
     <div
       className={`weather-effect-canvas ${className}`.trim()}

@@ -1,3 +1,18 @@
+/**
+ * 파일: src/utils/weather.js
+ * 분류: 공통 유틸리티 모듈
+ *
+ * 역할
+ * - 날씨 API 값을 화면용 테마·문구로 변환하는 공통 유틸리티입니다.
+ *
+ * 사용 기술
+ * - 순수 함수, 데이터 매핑
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
 export function getWeatherType(main) {
   switch (main) {
     case "Clear":
@@ -70,6 +85,7 @@ export function getWeatherRecommendation(main) {
       "얇은 아우터 + 마스크 착용 추천",
   };
 
+  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
     recommendations[main] ??
     "오늘 날씨에 맞는 코디를 준비하고 있어요."

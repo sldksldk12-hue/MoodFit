@@ -1,3 +1,19 @@
+/**
+ * 파일: src/components/weather/rain/RainEffect.jsx
+ * 분류: 날씨 시각 효과 모듈
+ *
+ * 역할
+ * - Canvas/WebGL 기반 빗방울 애니메이션의 생명주기를 관리합니다.
+ *
+ * 사용 기술
+ * - Canvas, WebGL, useEffect cleanup
+ *
+ * 이 구조를 사용한 이유
+ * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
+ * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
+ * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
+ */
+// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { useEffect, useRef } from "react";
 
 import RainRenderer from "./rain-renderer.jsx";
@@ -19,14 +35,18 @@ function loadBackgroundImage(url) {
   });
 }
 
+// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default function RainEffect({
   backgroundImageUrl = "/assets/rainycolor.png",
   type = "rain",
   className = "",
 }) {
+  // 렌더링을 발생시키지 않고 DOM 또는 이전 실행 여부를 기억하기 위해 useRef를 사용합니다.
   const containerRef = useRef(null);
+  // 렌더링을 발생시키지 않고 DOM 또는 이전 실행 여부를 기억하기 위해 useRef를 사용합니다.
   const canvasRef = useRef(null);
 
+  // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -150,6 +170,7 @@ export default function RainEffect({
     };
   }, [backgroundImageUrl, type]);
 
+  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
     <div
       ref={containerRef}
