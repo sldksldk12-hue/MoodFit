@@ -33,7 +33,7 @@ CREATE TABLE user_addresses (
 ) COMMENT = '회원 배송지 주소 목록';
 
 CREATE TABLE product_categories (
-    id INT PRIMARY KEY COMMENT '카테고리 ID',
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '카테고리 ID',
     category_name VARCHAR(50) NOT NULL COMMENT '카테고리명',
     parent_id INT NULL COMMENT '상위 카테고리 ID',
     FOREIGN KEY (parent_id) REFERENCES product_categories (id)

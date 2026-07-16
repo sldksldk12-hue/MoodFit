@@ -4,8 +4,8 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -871.6666,
-    "scrollLeft": -1673,
+    "scrollTop": -1470.6666,
+    "scrollLeft": -383,
     "zoomLevel": 0.76,
     "show": 511,
     "database": 4,
@@ -1274,7 +1274,7 @@
         "comment": "카테고리 ID",
         "dataType": "INT",
         "default": "",
-        "options": 10,
+        "options": 11,
         "ui": {
           "keys": 1,
           "widthName": 60,
@@ -1283,7 +1283,7 @@
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783388818430,
+          "updateAt": 1784187003743,
           "createAt": 1782993067370
         }
       },

@@ -99,7 +99,7 @@ class ProductCategory(Base):
     __tablename__ = "product_categories"
     __table_args__ = {"comment": "상품 카테고리"}
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, comment="카테고리 ID")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="카테고리 ID")
     category_name: Mapped[str] = mapped_column(String(50), nullable=False, comment="카테고리명")
     parent_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("product_categories.id"), nullable=True, comment="상위 카테고리 ID"
