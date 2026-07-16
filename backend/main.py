@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware  # CORS 미들웨어 임포트
 from pydantic import BaseModel, Field
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 # 랭체인 관련 임포트 추가
 from langchain_core.output_parsers import PydanticOutputParser
@@ -116,22 +116,28 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
     4. 저장된 자체 상품 리스트를 프론트엔드에 반환합니다.
     """
     try:
-        # 자체 DB(products 테이블)에서 먼저 검색!
-        local_products = db.query(Product).filter(
-            or_(
-                Product.product_name.ilike(f"%{keyword}%"),
-                Product.brand.ilike(f"%{keyword}%")
-            )
-        ).limit(display).all()
+        # 🌟 키워드를 공백 기준으로 분리 (예: "여성 반팔 티셔츠" -> ["여성", "반팔", "티셔츠"])
+        search_terms = keyword.split()
         
-        # DB에 상품이 충분히 있다면 외부 API를 부르지 않고 바로 반환 (캐싱 효과)
+        # 모든 단어가 상품명이나 브랜드명에 포함되어야 한다는 조건 생성
+        conditions = [
+            or_(
+                Product.product_name.ilike(f"%{term}%"),
+                Product.brand.ilike(f"%{term}%")
+            ) for term in search_terms
+        ]
+        
+        # 자체 DB에서 먼저 검색
+        local_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+        
+        # DB에 상품이 충분히 있다면 외부 API를 부르지 않고 바로 반환
         if len(local_products) >= display:
             print(f"🟢 자체 DB에서 '{keyword}' 상품을 찾았습니다! (API 호출 안함)")
             return [
                 {
                     "title": p.product_name,
                     "link": p.purchase_link,
-                    "image": p.image_url[0] if isinstance(p.image_url, list) else p.image_url,
+                    "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
                     "lprice": p.discount_price
                 } for p in local_products
             ]
@@ -149,19 +155,20 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
             new_products = []
             
             for item in items:
-                # 네이버가 제공하는 고유 상품 ID (없으면 링크를 해시하여 생성)
                 shop_pid = item.get("productId", str(hash(item["link"])))
-                
-                # 중복 저장 방지
                 existing_p = db.query(Product).filter(Product.shop_product_id == shop_pid).first()
                 if not existing_p:
-                    # 🌟 3단계: 네이버 데이터를 우리 모델(models.py) 양식에 맞춰 변환 후 DB에 저장!
+                    # 네이버 대분류를 이용해 카테고리 매핑
+                    category_name = item.get("category1", "AI 추천 상품")
+                    cat_id = get_or_create_category(db, category_name)
+                    
                     new_p = Product(
+                        category_id=cat_id,
                         shop_product_id=shop_pid,
                         product_name=item["title"].replace("<b>", "").replace("</b>", ""),
                         original_price=int(item["lprice"]),
                         discount_price=int(item["lprice"]),
-                        image_url=[item["image"]],  # JSON 배열 형태로 저장
+                        image_url=[item["image"]],
                         purchase_link=item["link"],
                         brand=item.get("mallName", "제휴 쇼핑몰"),
                         gender_target="공용",
@@ -170,26 +177,32 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
                     db.add(new_p)
                     new_products.append(new_p)
             
-            # DB에 반영(Commit)
             if new_products:
                 db.commit()
                 print(f"🟢 수집 완료! {len(new_products)}개의 상품을 자체 DB에 영구 저장했습니다.")
             
-            # 방금 저장한 자체 DB 데이터를 다시 꺼내서 반환
-            final_products = db.query(Product).filter(
-                Product.product_name.ilike(f"%{keyword}%")
-            ).limit(display).all()
+            # 저장한 자체 DB 데이터를 다시 꺼내기 (다중 조건 적용)
+            final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+            
+            # DB 검색이 못 찾았다면, 방금 네이버에서 가져온 상품을 그대로 반환
+            if not final_products and new_products:
+                final_products = new_products[:display]
             
             return [
                 {
                     "title": p.product_name,
-                    "link": p.purchase_link, # 차후엔 자체 상세페이지 주소(f"/product/{p.id}")로 변경 가능
-                    "image": p.image_url[0] if isinstance(p.image_url, list) else p.image_url,
+                    "link": p.purchase_link,
+                    "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
                     "lprice": p.discount_price
                 } for p in final_products
             ]
         else:
             return []
+            
+    except Exception as e:
+        print(f"❌ 데이터 자동 수집 파이프라인 에러: {e}")
+        db.rollback()
+        return []
             
     except Exception as e:
         print(f"❌ 데이터 자동 수집 파이프라인 에러: {e}")
