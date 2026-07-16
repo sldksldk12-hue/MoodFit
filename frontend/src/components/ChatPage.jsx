@@ -201,13 +201,21 @@ const ChatPage = ({
         sender: "ai",
         text: toMessageText(
           data?.ai_response ??
-            "AI 응답 내용이 없습니다."
+          "AI 응답 내용이 없습니다."
         ),
 
         /*
           감정 분석 결과를 메시지 아래에 표시하기 위한 값
         */
         emotion: data?.mapped_emotion,
+        searchKeyword:
+          data?.search_keyword ?? "",
+
+        // 네이버 쇼핑 API에서 받은 상품 목록
+        // 배열이 아닌 값이 들어오면 빈 배열로 처리
+        products: Array.isArray(data?.products)
+          ? data.products
+          : [],
       };
 
       setMessages((prev) => [
@@ -358,21 +366,19 @@ const ChatPage = ({
           return (
             <div
               key={msg.id}
-              className={`chat-message-row ${
-                isUser
-                  ? "chat-message-row--user"
-                  : "chat-message-row--ai"
-              }`}
+              className={`chat-message-row ${isUser
+                ? "chat-message-row--user"
+                : "chat-message-row--ai"
+                }`}
             >
               <div
                 className={
                   isUser
                     ? "user-message"
-                    : `ai-message ${
-                        msg.isError
-                          ? "ai-message--error"
-                          : ""
-                      }`
+                    : `ai-message ${msg.isError
+                      ? "ai-message--error"
+                      : ""
+                    }`
                 }
               >
                 {/*
@@ -383,6 +389,58 @@ const ChatPage = ({
                 <p>
                   {toMessageText(msg.text)}
                 </p>
+                {/* 네이버 쇼핑 검색 키워드 */}
+                {!isUser && msg.searchKeyword && (
+                  <p className="shopping-keyword">
+                    추천 상품 검색어:{" "}
+                    <strong>
+                      {msg.searchKeyword}
+                    </strong>
+                  </p>
+                )}
+
+                {/* 네이버 쇼핑 추천 상품 목록 */}
+                {!isUser &&
+                  Array.isArray(msg.products) &&
+                  msg.products.length > 0 && (
+                    <div className="chat-product-list">
+                      {msg.products.map(
+                        (product, index) => (
+                          <a
+                            key={`${product.link}-${index}`}
+                            className="chat-product-card"
+                            href={product.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <img
+                              src={product.image}
+                              alt={product.title}
+                              className="chat-product-image"
+                              loading="lazy"
+                            />
+
+                            <div className="chat-product-info">
+                              <strong className="chat-product-title">
+                                {product.title}
+                              </strong>
+
+                              <span className="chat-product-price">
+                                {Number(
+                                  product.lprice
+                                ).toLocaleString()}
+                                원
+                              </span>
+
+                              <span className="chat-product-link">
+                                네이버 쇼핑에서 보기
+                              </span>
+                            </div>
+                          </a>
+                        )
+                      )}
+                    </div>
+                  )}
 
                 {/*
                   AI 응답에 감정 분석 결과가 있을 때만 표시한다.
