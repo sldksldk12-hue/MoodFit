@@ -4,9 +4,9 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -780.6199,
-    "scrollLeft": -2682,
-    "zoomLevel": 0.79,
+    "scrollTop": -591.7413,
+    "scrollLeft": -2337.2651,
+    "zoomLevel": 0.76,
     "show": 431,
     "database": 4,
     "databaseName": "",
@@ -993,15 +993,15 @@
           "6yQYkk9NdKXNfxHMEloXz"
         ],
         "ui": {
-          "x": 3102.799,
-          "y": 828.0756,
+          "x": 3088.8748,
+          "y": 815.4176,
           "zIndex": 1491,
           "widthName": 135,
           "widthComment": 93,
           "color": ""
         },
         "meta": {
-          "updateAt": 1784168883846,
+          "updateAt": 1784169165933,
           "createAt": 1784168273494
         }
       }
@@ -5472,18 +5472,18 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "title",
         "comment": "상품명",
-        "dataType": "",
+        "dataType": "VARCHAR(255)",
         "default": "",
-        "options": 0,
+        "options": 8,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 60,
-          "widthDataType": 60,
+          "widthDataType": 81,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1784168962248,
+          "updateAt": 1784169188838,
           "createAt": 1784168285613
         }
       },
@@ -5492,18 +5492,18 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "link",
         "comment": "네이버 쇼핑 상품 링크",
-        "dataType": "",
+        "dataType": "VARCHAR(1024)",
         "default": "",
-        "options": 0,
+        "options": 8,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 120,
-          "widthDataType": 60,
+          "widthDataType": 87,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1784168965950,
+          "updateAt": 1784169189326,
           "createAt": 1784168285773
         }
       },
@@ -5592,7 +5592,7 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "image_url",
         "comment": "상품 이미지 링크",
-        "dataType": "",
+        "dataType": "JSON",
         "default": "",
         "options": 0,
         "ui": {
@@ -5603,7 +5603,7 @@
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1784168971662,
+          "updateAt": 1784169170694,
           "createAt": 1784168882702
         }
       },
@@ -5612,7 +5612,7 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "low_price",
         "comment": "최저가",
-        "dataType": "",
+        "dataType": "INT",
         "default": "",
         "options": 0,
         "ui": {
@@ -5623,7 +5623,7 @@
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1784169105723,
+          "updateAt": 1784169172897,
           "createAt": 1784168883101
         }
       },
@@ -5632,18 +5632,18 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "mall_name",
         "comment": "판매 쇼핑몰 명칭",
-        "dataType": "",
+        "dataType": "VARCHAR(100)",
         "default": "",
         "options": 0,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 93,
-          "widthDataType": 60,
+          "widthDataType": 81,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1784169007011,
+          "updateAt": 1784169177119,
           "createAt": 1784168883510
         }
       },
@@ -5652,18 +5652,18 @@
         "tableId": "sDHwimqlPwB_eKzSYygOd",
         "name": "created_at",
         "comment": "등록 일시",
-        "dataType": "",
-        "default": "",
+        "dataType": "DATETIME",
+        "default": "CURRENT_TIMESTAMP",
         "options": 0,
         "ui": {
           "keys": 0,
           "widthName": 60,
           "widthComment": 60,
           "widthDataType": 60,
-          "widthDefault": 60
+          "widthDefault": 122
         },
         "meta": {
-          "updateAt": 1784169010824,
+          "updateAt": 1784169183168,
           "createAt": 1784168883846
         }
       }
@@ -6696,8 +6696,8 @@
           "columnIds": [
             "VHVF1bh9ssTECQ5nh2pLH"
           ],
-          "x": 3360.799,
-          "y": 828.0756,
+          "x": 3391.3748,
+          "y": 815.4176,
           "direction": 4
         },
         "meta": {

@@ -121,14 +121,15 @@ class Product(Base):
     __table_args__ = {"comment": "상품 마스터"}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="상품 일련번호")
-    category_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("product_categories.id", ondelete="RESTRICT"), nullable=False, comment="카테고리 ID"
+    category_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("product_categories.id", ondelete="SET NULL"), nullable=True, comment="카테고리 ID"
     )
     shop_product_id: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, comment="쇼핑몰 상품 고유 ID")
     product_name: Mapped[str] = mapped_column(String(255), nullable=False, comment="상품명")
     original_price: Mapped[int] = mapped_column(Integer, nullable=False, comment="원가")
     discount_price: Mapped[int] = mapped_column(Integer, nullable=False, comment="판매가")
     image_url: Mapped[dict | list] = mapped_column(JSON, nullable=False, comment="상품 이미지 URL")
+    purchase_link: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True, comment="외부 구매 페이지 링크")
     product_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="상품 상세 설명")
     brand: Mapped[str] = mapped_column(String(100), nullable=False, comment="브랜드명")
     gender_target: Mapped[str] = mapped_column(String(10), nullable=False, comment="추천 대상 성별")
@@ -552,7 +553,6 @@ class RecommendationSession(Base):
     emotion_log: Mapped[Optional["EmotionLog"]] = relationship("EmotionLog", back_populates="recommendation_sessions")
     tour_log: Mapped[Optional["TourLog"]] = relationship("TourLog", back_populates="recommendation_sessions")
     items: Mapped[List["RecommendationItem"]] = relationship("RecommendationItem", back_populates="recommendation_session", cascade="all, delete-orphan")
-    naver_recommendations: Mapped[List["NaverRecommendation"]] = relationship("NaverRecommendation", back_populates="recommendation_session", cascade="all, delete-orphan")
     ai_call_logs: Mapped[List["AiCallLog"]] = relationship("AiCallLog", back_populates="recommendation_session", cascade="all, delete-orphan")
 
 
@@ -581,27 +581,6 @@ class RecommendationItem(Base):
     recommendation_session: Mapped["RecommendationSession"] = relationship("RecommendationSession", back_populates="items")
     product: Mapped["Product"] = relationship("Product", back_populates="recommendation_items")
 
-
-class NaverRecommendation(Base):
-    """네이버 쇼핑 외부 추천 상품 이력"""
-    __tablename__ = "naver_recommendations"
-    __table_args__ = {"comment": "네이버 쇼핑 외부 추천 상품 이력"}
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="네이버 추천 일련번호")
-    recommendation_session_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("recommendation_sessions.id", ondelete="CASCADE"), nullable=False, comment="추천 세션 ID"
-    )
-    title: Mapped[str] = mapped_column(String(255), nullable=False, comment="상품명")
-    link: Mapped[str] = mapped_column(String(1024), nullable=False, comment="네이버 쇼핑 상품 링크")
-    image_url: Mapped[Optional[dict | list]] = mapped_column(JSON, nullable=True, comment="상품 이미지 링크")
-    low_price: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="최저가")
-    mall_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, comment="판매 쇼핑몰 명칭")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), nullable=False, comment="등록 일시"
-    )
-
-    # Relationships
-    recommendation_session: Mapped["RecommendationSession"] = relationship("RecommendationSession", back_populates="naver_recommendations")
 
 
 class AiCallLog(Base):

@@ -41,20 +41,21 @@ CREATE TABLE product_categories (
 
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '상품 일련번호',
-    category_id INT NOT NULL COMMENT '카테고리 ID',
+    category_id INT NULL COMMENT '카테고리 ID',
     shop_product_id VARCHAR(100) NOT NULL UNIQUE COMMENT '쇼핑몰 상품 고유 ID',
     product_name VARCHAR(255) NOT NULL COMMENT '상품명',
     inventory INT NOT NULL DEFAULT 0 COMMENT '재고 수량',
     original_price INT NOT NULL COMMENT '원가',
     discount_price INT NOT NULL COMMENT '판매가',
     image_url JSON NOT NULL COMMENT '상품 이미지 URL',
+    purchase_link VARCHAR(1024) NULL COMMENT '외부 구매 페이지 링크',
     product_content TEXT NULL COMMENT '상품 상세 설명',
     brand VARCHAR(100) NOT NULL COMMENT '브랜드명',
     gender_target VARCHAR(10) NOT NULL COMMENT '추천 대상 성별',
     average_rating DECIMAL(2, 1) NOT NULL DEFAULT 0.0 COMMENT '평균 별점',
     like_count INT NOT NULL DEFAULT 0 COMMENT '좋아요 수',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '상품 등록 일시',
-    FOREIGN KEY (category_id) REFERENCES product_categories (id) ON DELETE RESTRICT
+    FOREIGN KEY (category_id) REFERENCES product_categories (id) ON DELETE SET NULL
 ) COMMENT = '상품 마스터';
 
 CREATE TABLE product_mood_tags (
@@ -242,18 +243,6 @@ CREATE TABLE recommendation_items (
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
     UNIQUE KEY uq_recommendation_session_product (recommendation_session_id, product_id)
 ) COMMENT = '추천 아이템 상세';
-
-CREATE TABLE naver_recommendations (
-    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '네이버 추천 일련번호',
-    recommendation_session_id INT NOT NULL COMMENT '추천 세션 ID',
-    title VARCHAR(255) NOT NULL COMMENT '상품명',
-    link VARCHAR(1024) NOT NULL COMMENT '네이버 쇼핑 상품 링크',
-    image_url JSON NULL COMMENT '상품 이미지 링크',
-    low_price INT NULL COMMENT '최저가',
-    mall_name VARCHAR(100) NULL COMMENT '판매 쇼핑몰 명칭',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '등록 일시',
-    FOREIGN KEY (recommendation_session_id) REFERENCES recommendation_sessions (id) ON DELETE CASCADE
-) COMMENT = '네이버 쇼핑 외부 추천 상품 이력';
 
 CREATE TABLE ai_call_logs (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'AI 호출 로그 일련번호',
