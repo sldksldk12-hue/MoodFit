@@ -55,6 +55,26 @@ const HeroContent = () => {
   const handleOpenChat = () => {
     dispatch(openMainChat());
   };
+  /**
+ * 단어의 마지막 글자에 받침이 있는지 검사하여
+ * '이' 또는 '가'를 반환한다.
+ */
+  function getSubjectParticle(word) {
+    if (!word) return "가";
+
+    const lastChar = word[word.length - 1];
+    const code = lastChar.charCodeAt(0);
+
+    // 한글이 아니면 기본적으로 '가'
+    if (code < 0xac00 || code > 0xd7a3) {
+      return "가";
+    }
+
+    // 받침 여부 확인
+    const hasBatchim = (code - 0xac00) % 28 !== 0;
+
+    return hasBatchim ? "이" : "가";
+  }
 
   // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
@@ -65,7 +85,7 @@ const HeroContent = () => {
         <div className="festival-slide">
           <h1>
             {festival
-              ? `${festival.title}이 시작되었습니다!`
+              ? `${festival.title}${getSubjectParticle(festival.title)} 시작되었습니다!`
               : "오늘의 축제를 불러오는 중..."}
           </h1>
           <p>
