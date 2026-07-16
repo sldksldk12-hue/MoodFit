@@ -20,5 +20,3 @@ env/
 .DS_Store
 .vscode/
 .idea/
-
-test_db_logging.py

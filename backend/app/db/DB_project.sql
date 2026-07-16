@@ -243,6 +243,18 @@ CREATE TABLE recommendation_items (
     UNIQUE KEY uq_recommendation_session_product (recommendation_session_id, product_id)
 ) COMMENT = '추천 아이템 상세';
 
+CREATE TABLE naver_recommendations (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '네이버 추천 일련번호',
+    recommendation_session_id INT NOT NULL COMMENT '추천 세션 ID',
+    title VARCHAR(255) NOT NULL COMMENT '상품명',
+    link VARCHAR(1024) NOT NULL COMMENT '네이버 쇼핑 상품 링크',
+    image_url JSON NULL COMMENT '상품 이미지 링크',
+    low_price INT NULL COMMENT '최저가',
+    mall_name VARCHAR(100) NULL COMMENT '판매 쇼핑몰 명칭',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '등록 일시',
+    FOREIGN KEY (recommendation_session_id) REFERENCES recommendation_sessions (id) ON DELETE CASCADE
+) COMMENT = '네이버 쇼핑 외부 추천 상품 이력';
+
 CREATE TABLE ai_call_logs (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT 'AI 호출 로그 일련번호',
     recommendation_session_id INT NULL COMMENT '추천 세션 일련번호',
