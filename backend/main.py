@@ -169,22 +169,18 @@ def search_naver_shopping(query: str, display: int = 3):
         return []
 
 def get_or_create_category(db: Session, category_name: str) -> int:
-    """
-    카테고리 이름으로 DB를 검색하고, 없으면 새로 만들어서 ID를 반환합니다.
-    """
+    # DB에 있는지 확인
     category = db.query(ProductCategory).filter(ProductCategory.category_name == category_name).first()
     if category:
         return category.id
     
-    max_id = db.query(func.max(ProductCategory.id)).scalar() or 0
-    new_id = max_id + 1
-    
-    new_category = ProductCategory(id=new_id, category_name=category_name)
+    # 없으면 새로 생성 (DB가 AUTO_INCREMENT로 알아서 번호를 부여)
+    new_category = ProductCategory(category_name=category_name)
     db.add(new_category)
     db.commit()
     db.refresh(new_category)
     
-    print(f"📁 새로운 카테고리 생성됨: [{new_id}] {category_name}")
+    print(f"📁 새로운 카테고리 생성됨: [{new_category.id}] {category_name}")
     return new_category.id
     
 # 커스텀 카테고리 매핑 사전 정의
