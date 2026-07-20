@@ -81,10 +81,11 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
             try:
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
-                # 프롬프트 내용만 업그레이드
+                # 프롬프트 내용 업그레이드 (우선순위 조건 추가)
                 keyword_prompt = ChatPromptTemplate.from_template(
-                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 적합한 '의류 쇼핑 키워드 딱 1개'를 추출해줘.\n"
-                    "[주의사항]: '화려한', '시원한', '편안한', '가벼운' 같은 형용사/수식어는 절대 포함하지 말고, 오직 상품의 종류(예: '그래픽 티셔츠', '와이드 데님 팬츠', '린넨 셔츠')만 추출할 것!\n\n"
+                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류 쇼핑 키워드 딱 1개'를 추출해줘.\n"
+                    "[주의사항 1]: '화려한', '시원한', '편안한' 같은 형용사는 절대 포함하지 말고, 오직 상품의 종류만 추출할 것.\n"
+                    "[주의사항 2]: 만약 날씨나 상황에 맞춘 겉옷(바람막이, 패딩, 코트 등)이나 포인트 아이템이 새롭게 강조되었다면, 이너웨어(티셔츠)보다 그 핵심 아이템을 우선적으로 단일 키워드로 뽑아줄 것!\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
                 )
                 keyword_chain = keyword_prompt | keyword_llm | parser
