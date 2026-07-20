@@ -123,8 +123,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 )
                 db.add(new_ai_log)
 
-        # 🌟 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
-        # 🌟 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
+        # 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
         if recommended_products:
             try:
                 # 1. 추천 세션 마스터 등록
@@ -138,20 +137,32 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 db.add(new_rec_session)
                 db.flush()  # ID 임시 획득
                 
+                # [점수 산정 로직 1] 기본 점수: AI 감정 분석 신뢰도를 백분율로 환산
+                # 상단에서 분류한 emotion_score (예: 0.85 -> 85.0) 사용
+                base_score = float(emotion_score * 100)
+                
                 # 2. 추천 아이템 상세 등록
                 for item in recommended_products:
                     prod_id = item.get("id")
+                    prod_title = item.get("title", "")
+                    
                     if prod_id:
+                        # [점수 산정 로직 2] 가산점: 추출된 키워드가 실제 상품명에 포함되어 있으면 5점 추가
+                        bonus = 5.0 if search_keyword in prod_title else 0.0
+                        
+                        # 최종 점수 계산 (최대 99.9점을 넘지 않도록 제한)
+                        final_score = min(base_score + bonus, 99.9)
+                        
                         new_rec_item = RecommendationItem(
                             recommendation_session_id=new_rec_session.id,
                             product_id=prod_id,
-                            score=90.0,
-                            recommendation_reason=f"[{predicted_emotion}] 기분과 날씨에 매칭되는 추천 의류 상품입니다."
+                            score=round(final_score, 1),
+                            recommendation_reason=f"[{predicted_emotion}] 기분과 매칭 확률 {round(final_score, 1)}%의 추천 의류입니다."
                         )
                         db.add(new_rec_item)
             except Exception as rec_err:
                 print(f"⚠️ 추천 세션 저장 실패: {rec_err}")
-                db.rollback()  # 에러 발생 시 DB 상태를 안전하게 초기화하는 코드 추가
+                db.rollback()  # 에러 발생 시 DB 상태를 안전하게 초기화
 
         ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=ai_recommendation)
         db.add(ai_message)
