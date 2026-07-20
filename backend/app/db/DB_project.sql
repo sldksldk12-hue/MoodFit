@@ -223,7 +223,6 @@ CREATE TABLE recommendation_sessions (
     weather_log_id INT NULL COMMENT '날씨 로그 일련번호',
     emotion_log_id INT NULL COMMENT '감정 로그 일련번호',
     tour_log_id INT NULL COMMENT '관광 로그 일련번호',
-    input_query TEXT NULL COMMENT '추천 요청 입력 내용 (검색어 또는 프롬프트 입력값)',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '추천 생성 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (chat_session_id) REFERENCES chat_sessions (id) ON DELETE SET NULL,

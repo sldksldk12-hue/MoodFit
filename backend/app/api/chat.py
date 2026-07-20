@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.callbacks import get_openai_callback
 
 from app.db.database import get_db
-from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User
+from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User, RecommendationSession, RecommendationItem
 from app.schemas.chat_schema import ChatRequest, AIResponseSchema
 from app.domains.product.service import get_or_fetch_products
 
@@ -122,6 +122,34 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     latency_ms=latency_ms
                 )
                 db.add(new_ai_log)
+
+        # 🌟 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
+        if recommended_products:
+            try:
+                # 1. 추천 세션 마스터 등록
+                new_rec_session = RecommendationSession(
+                    user_id=req.user_id,
+                    chat_session_id=current_session_id,
+                    emotion_log_id=new_emotion_log.id,
+                    weather_log_id=new_weather_log.id,
+                    tour_log_id=None
+                )
+                db.add(new_rec_session)
+                db.flush()  # ID 임시 획득
+                
+                # 2. 추천 아이템 상세 등록
+                for item in recommended_products:
+                    prod_id = item.get("id")
+                    if prod_id:
+                        new_rec_item = RecommendationItem(
+                            recommendation_session_id=new_rec_session.id,
+                            product_id=prod_id,
+                            score=90.0,
+                            recommendation_reason=f"[{predicted_emotion}] 기분과 날씨에 매칭되는 추천 의류 상품입니다."
+                        )
+                        db.add(new_rec_item)
+            except Exception as rec_err:
+                print(f"⚠️ 추천 세션 저장 실패: {rec_err}")
 
         ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=ai_recommendation)
         db.add(ai_message)

@@ -5,6 +5,67 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from app.models.models import Product, ProductCategory
 
+def seed_initial_categories(db: Session):
+    """3자리 단축 코드 기반의 카테고리 시드 데이터를 자동으로 데이터베이스에 적재합니다."""
+    try:
+        if db.query(ProductCategory).count() == 0:
+            print("🌱 카테고리 데이터 자동 적재(Seeding)를 시작합니다...")
+            
+            # 1. 대분류 적재
+            c100 = ProductCategory(id=100, category_name='상의', parent_id=None)
+            c200 = ProductCategory(id=200, category_name='하의', parent_id=None)
+            c300 = ProductCategory(id=300, category_name='아우터', parent_id=None)
+            c400 = ProductCategory(id=400, category_name='악세사리/신발', parent_id=None)
+            db.add_all([c100, c200, c300, c400])
+            db.flush()
+            
+            # 2. 중분류 적재
+            subs = [
+                # 상의 하위
+                ProductCategory(id=101, category_name='반소매 티셔츠', parent_id=100),
+                ProductCategory(id=102, category_name='긴소매 티셔츠', parent_id=100),
+                ProductCategory(id=103, category_name='맨투맨', parent_id=100),
+                ProductCategory(id=104, category_name='셔츠', parent_id=100),
+                ProductCategory(id=105, category_name='후드', parent_id=100),
+                ProductCategory(id=106, category_name='니트', parent_id=100),
+                
+                # 하의 하위
+                ProductCategory(id=201, category_name='데님', parent_id=200),
+                ProductCategory(id=202, category_name='트레이닝', parent_id=200),
+                ProductCategory(id=203, category_name='코튼', parent_id=200),
+                ProductCategory(id=204, category_name='숏 팬츠', parent_id=200),
+                ProductCategory(id=205, category_name='레깅스', parent_id=200),
+                ProductCategory(id=206, category_name='조거 팬츠', parent_id=200),
+                ProductCategory(id=207, category_name='청바지', parent_id=200),
+                ProductCategory(id=208, category_name='스커트', parent_id=200),
+                
+                # 아우터 하위
+                ProductCategory(id=301, category_name='집업', parent_id=300),
+                ProductCategory(id=302, category_name='슈트', parent_id=300),
+                ProductCategory(id=303, category_name='카디건', parent_id=300),
+                ProductCategory(id=304, category_name='패딩', parent_id=300),
+                ProductCategory(id=305, category_name='재킷', parent_id=300),
+                ProductCategory(id=306, category_name='코트', parent_id=300),
+                ProductCategory(id=307, category_name='베스트', parent_id=300),
+                
+                # 악세사리/신발 하위
+                ProductCategory(id=401, category_name='캡', parent_id=400),
+                ProductCategory(id=402, category_name='베레모', parent_id=400),
+                ProductCategory(id=403, category_name='페도라', parent_id=400),
+                ProductCategory(id=404, category_name='비니', parent_id=400),
+                ProductCategory(id=405, category_name='스니커즈', parent_id=400),
+                ProductCategory(id=406, category_name='스포츠화', parent_id=400),
+                ProductCategory(id=407, category_name='구두', parent_id=400),
+                ProductCategory(id=408, category_name='부츠', parent_id=400),
+                ProductCategory(id=409, category_name='샌들', parent_id=400)
+            ]
+            db.add_all(subs)
+            db.commit()
+            print("✅ 3자리 단축 코드 기반 카테고리 데이터 자동 적재 완료!")
+    except Exception as seeder_err:
+        db.rollback()
+        print(f"⚠️ 카테고리 자동 적재 중 오류 발생: {seeder_err}")
+
 # 커스텀 카테고리 매핑 사전 정의
 CATEGORY_MAP = {
     # 상의
@@ -51,6 +112,7 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
             print(f"🟢 자체 DB에서 '{keyword}' 상품을 찾았습니다! (API 호출 안함)")
             return [
                 {
+                    "id": p.id,
                     "title": p.product_name,
                     "link": f"/product/{p.id}",
                     "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
@@ -115,6 +177,7 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
             
             return [
                 {
+                    "id": p.id,
                     "title": p.product_name,
                     "link": f"/product/{p.id}",
                     "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,

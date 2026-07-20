@@ -541,7 +541,6 @@ class RecommendationSession(Base):
     tour_log_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("tour_logs.id", ondelete="SET NULL"), nullable=True, comment="관광 로그 일련번호"
     )
-    input_query: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="추천 요청 입력 내용")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="추천 생성 일시"
     )
