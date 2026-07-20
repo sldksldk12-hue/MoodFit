@@ -111,6 +111,9 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         latency_ms=latency_ms
                     )
                     db.add(new_ai_log)
+                    db.commit()             # AI 로그를 DB에 우선 확정 저장
+                    db.refresh(new_ai_log)  # 이후 업데이트를 위해 객체 활성화
+                    
             except Exception as e:
                 latency_ms = int((time.perf_counter() - start_time) * 1000)
                 print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
@@ -124,6 +127,8 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     latency_ms=latency_ms
                 )
                 db.add(new_ai_log)
+                db.commit()             # 실패 로그도 무조건 DB에 확정 저장
+                db.refresh(new_ai_log)
 
         # 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
         if recommended_products:
