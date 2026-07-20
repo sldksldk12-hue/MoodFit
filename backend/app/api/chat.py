@@ -75,6 +75,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         
         search_keyword = "데일리 룩"
         recommended_products = []
+        new_ai_log = None
         
         if os.getenv("OPENAI_API_KEY"):
             start_time = time.perf_counter()
@@ -137,6 +138,10 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 )
                 db.add(new_rec_session)
                 db.flush()  # ID 임시 획득
+                
+                # AI 호출 로그가 존재할 경우 추천 세션 ID를 상호 연동
+                if new_ai_log:
+                    new_ai_log.recommendation_session_id = new_rec_session.id
                 
                 # [점수 산정 로직 1] 기본 점수: AI 감정 분석 신뢰도를 백분율로 환산
                 # 상단에서 분류한 emotion_score (예: 0.85 -> 85.0) 사용
