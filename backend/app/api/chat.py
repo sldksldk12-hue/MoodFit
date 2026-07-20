@@ -1,10 +1,12 @@
 import os
+import time
 from datetime import datetime
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.callbacks import get_openai_callback
 
 from app.db.database import get_db
 from app.models.models import EmotionLog, ChatMessage, ChatSession, WeatherLog, AiCallLog, User
@@ -75,6 +77,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         recommended_products = []
         
         if os.getenv("OPENAI_API_KEY"):
+            start_time = time.perf_counter()
             try:
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
@@ -82,18 +85,40 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 적합한 '의류 쇼핑 키워드 딱 1개'를 추출해줘.\n추천글:\n{recommendation}\n\n{format_instructions}"
                 )
                 keyword_chain = keyword_prompt | keyword_llm | parser
-                parsed_result = keyword_chain.invoke({
-                    "recommendation": ai_recommendation, "format_instructions": parser.get_format_instructions()
-                })
-                search_keyword = parsed_result.search_keyword
-                recommended_products = get_or_fetch_products(db, search_keyword, display=3)
+                
+                with get_openai_callback() as cb:
+                    parsed_result = keyword_chain.invoke({
+                        "recommendation": ai_recommendation, "format_instructions": parser.get_format_instructions()
+                    })
+                    
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
+                    search_keyword = parsed_result.search_keyword
+                    recommended_products = get_or_fetch_products(db, search_keyword, display=3)
+                    
+                    new_ai_log = AiCallLog(
+                        chat_session_id=current_session_id,
+                        model_name="gpt-4o-mini",
+                        prompt_version="v1.0.0",
+                        log_status="SUCCESS",
+                        prompt_tokens=cb.prompt_tokens,
+                        completion_tokens=cb.completion_tokens,
+                        total_tokens=cb.total_tokens,
+                        latency_ms=latency_ms
+                    )
+                    db.add(new_ai_log)
+            except Exception as e:
+                latency_ms = int((time.perf_counter() - start_time) * 1000)
+                print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
                 
                 new_ai_log = AiCallLog(
-                    chat_session_id=current_session_id, model_name="gpt-4o-mini", prompt_version="v1.0.0", log_status="SUCCESS"
+                    chat_session_id=current_session_id,
+                    model_name="gpt-4o-mini",
+                    prompt_version="v1.0.0",
+                    log_status="FAILURE",
+                    failure_reason=str(e),
+                    latency_ms=latency_ms
                 )
                 db.add(new_ai_log)
-            except Exception as e:
-                print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
 
         ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=ai_recommendation)
         db.add(ai_message)
