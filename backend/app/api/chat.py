@@ -124,6 +124,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 db.add(new_ai_log)
 
         # 🌟 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
+        # 🌟 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
         if recommended_products:
             try:
                 # 1. 추천 세션 마스터 등록
@@ -150,6 +151,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         db.add(new_rec_item)
             except Exception as rec_err:
                 print(f"⚠️ 추천 세션 저장 실패: {rec_err}")
+                db.rollback()  # 에러 발생 시 DB 상태를 안전하게 초기화하는 코드 추가
 
         ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=ai_recommendation)
         db.add(ai_message)
