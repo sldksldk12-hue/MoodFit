@@ -4,8 +4,8 @@
   "settings": {
     "width": 4000,
     "height": 4000,
-    "scrollTop": -352.1326,
-    "scrollLeft": -405,
+    "scrollTop": -1103.1326,
+    "scrollLeft": -2404,
     "zoomLevel": 0.76,
     "show": 511,
     "database": 4,
@@ -891,49 +891,6 @@
           "updateAt": 1784178643135,
           "createAt": 1783495832398
         }
-      },
-      "sDHwimqlPwB_eKzSYygOd": {
-        "id": "sDHwimqlPwB_eKzSYygOd",
-        "name": "naver_recommendations ",
-        "comment": "네이버 추천 상품",
-        "columnIds": [
-          "TUeZUiXeJicS7w-qoyqTn",
-          "VHVF1bh9ssTECQ5nh2pLH",
-          "18C332SkiFAC54M0LScy7",
-          "5xRKuWRMW7W7HxSqudF4O",
-          "X-LB5ve3aDooFFExRH2mF",
-          "ugzaVZOYauqJMBLznI1Ol",
-          "3aromT9duB0I65V2Bf-2y",
-          "6yQYkk9NdKXNfxHMEloXz"
-        ],
-        "seqColumnIds": [
-          "TUeZUiXeJicS7w-qoyqTn",
-          "o2rUXWfUlquW8kOfX5Uox",
-          "VHVF1bh9ssTECQ5nh2pLH",
-          "s9g2wfVbkhVjyPON2PQtl",
-          "xLQoYradJoB8I9rTeSarO",
-          "zGIx2H0_nkCP6a-1PGNvG",
-          "uxFqqEZb1MZxuLYlEuJM2",
-          "18C332SkiFAC54M0LScy7",
-          "5xRKuWRMW7W7HxSqudF4O",
-          "b5XJQVbx8i1l4qRN4UlnM",
-          "X-LB5ve3aDooFFExRH2mF",
-          "ugzaVZOYauqJMBLznI1Ol",
-          "3aromT9duB0I65V2Bf-2y",
-          "6yQYkk9NdKXNfxHMEloXz"
-        ],
-        "ui": {
-          "x": 3088.8748,
-          "y": 815.4176,
-          "zIndex": 1491,
-          "widthName": 135,
-          "widthComment": 93,
-          "color": ""
-        },
-        "meta": {
-          "updateAt": 1784169165933,
-          "createAt": 1784168273494
-        }
       }
     },
     "tableColumnEntities": {
@@ -1004,7 +961,7 @@
         "comment": "회원 아이디",
         "dataType": "VARCHAR(50)",
         "default": "",
-        "options": 8,
+        "options": 12,
         "ui": {
           "keys": 0,
           "widthName": 71,
@@ -1013,7 +970,7 @@
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1783308155537,
+          "updateAt": 1784529516822,
           "createAt": 1782993067365
         }
       },
@@ -4877,286 +4834,6 @@
           "createAt": 1784090463555
         }
       },
-      "TUeZUiXeJicS7w-qoyqTn": {
-        "id": "TUeZUiXeJicS7w-qoyqTn",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "id",
-        "comment": "네이버 추천 일련번호",
-        "dataType": "INT",
-        "default": "",
-        "options": 10,
-        "ui": {
-          "keys": 1,
-          "widthName": 60,
-          "widthComment": 117,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168951907,
-          "createAt": 1784168284934
-        }
-      },
-      "xLQoYradJoB8I9rTeSarO": {
-        "id": "xLQoYradJoB8I9rTeSarO",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "chat_session_id",
-        "comment": "대화 세션 일련번호",
-        "dataType": "",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 83,
-          "widthComment": 105,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168848624,
-          "createAt": 1784168285101
-        }
-      },
-      "zGIx2H0_nkCP6a-1PGNvG": {
-        "id": "zGIx2H0_nkCP6a-1PGNvG",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "model_name",
-        "comment": "사용한 AI 모델명",
-        "dataType": "",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 70,
-          "widthComment": 92,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168863606,
-          "createAt": 1784168285269
-        }
-      },
-      "uxFqqEZb1MZxuLYlEuJM2": {
-        "id": "uxFqqEZb1MZxuLYlEuJM2",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "prompt_version",
-        "comment": "",
-        "dataType": "",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 85,
-          "widthComment": 60,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168868636,
-          "createAt": 1784168285437
-        }
-      },
-      "18C332SkiFAC54M0LScy7": {
-        "id": "18C332SkiFAC54M0LScy7",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "title",
-        "comment": "상품명",
-        "dataType": "VARCHAR(255)",
-        "default": "",
-        "options": 8,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 60,
-          "widthDataType": 81,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784169188838,
-          "createAt": 1784168285613
-        }
-      },
-      "5xRKuWRMW7W7HxSqudF4O": {
-        "id": "5xRKuWRMW7W7HxSqudF4O",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "link",
-        "comment": "네이버 쇼핑 상품 링크",
-        "dataType": "VARCHAR(1024)",
-        "default": "",
-        "options": 8,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 120,
-          "widthDataType": 87,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784169189326,
-          "createAt": 1784168285773
-        }
-      },
-      "b5XJQVbx8i1l4qRN4UlnM": {
-        "id": "b5XJQVbx8i1l4qRN4UlnM",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "",
-        "comment": "",
-        "dataType": "",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 60,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168285965,
-          "createAt": 1784168285965
-        }
-      },
-      "o2rUXWfUlquW8kOfX5Uox": {
-        "id": "o2rUXWfUlquW8kOfX5Uox",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "recommendation_session_id",
-        "comment": "추천 아이템 일련번호",
-        "dataType": "INT",
-        "default": "",
-        "options": 8,
-        "ui": {
-          "keys": 0,
-          "widthName": 151,
-          "widthComment": 117,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168511032,
-          "createAt": 1784168468786
-        }
-      },
-      "s9g2wfVbkhVjyPON2PQtl": {
-        "id": "s9g2wfVbkhVjyPON2PQtl",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "id",
-        "comment": "세션 일련번호",
-        "dataType": "INT",
-        "default": "",
-        "options": 8,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 77,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168491916,
-          "createAt": 1784168491916
-        }
-      },
-      "VHVF1bh9ssTECQ5nh2pLH": {
-        "id": "VHVF1bh9ssTECQ5nh2pLH",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "recommendation_session_id",
-        "comment": "추천 세션 ID",
-        "dataType": "INT",
-        "default": "",
-        "options": 8,
-        "ui": {
-          "keys": 0,
-          "widthName": 151,
-          "widthComment": 68,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784168956851,
-          "createAt": 1784168567776
-        }
-      },
-      "X-LB5ve3aDooFFExRH2mF": {
-        "id": "X-LB5ve3aDooFFExRH2mF",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "image_url",
-        "comment": "상품 이미지 링크",
-        "dataType": "JSON",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 93,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784169170694,
-          "createAt": 1784168882702
-        }
-      },
-      "ugzaVZOYauqJMBLznI1Ol": {
-        "id": "ugzaVZOYauqJMBLznI1Ol",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "low_price",
-        "comment": "최저가",
-        "dataType": "INT",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 60,
-          "widthDataType": 60,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784169172897,
-          "createAt": 1784168883101
-        }
-      },
-      "3aromT9duB0I65V2Bf-2y": {
-        "id": "3aromT9duB0I65V2Bf-2y",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "mall_name",
-        "comment": "판매 쇼핑몰 명칭",
-        "dataType": "VARCHAR(100)",
-        "default": "",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 93,
-          "widthDataType": 81,
-          "widthDefault": 60
-        },
-        "meta": {
-          "updateAt": 1784169177119,
-          "createAt": 1784168883510
-        }
-      },
-      "6yQYkk9NdKXNfxHMEloXz": {
-        "id": "6yQYkk9NdKXNfxHMEloXz",
-        "tableId": "sDHwimqlPwB_eKzSYygOd",
-        "name": "created_at",
-        "comment": "등록 일시",
-        "dataType": "DATETIME",
-        "default": "CURRENT_TIMESTAMP",
-        "options": 0,
-        "ui": {
-          "keys": 0,
-          "widthName": 60,
-          "widthComment": 60,
-          "widthDataType": 60,
-          "widthDefault": 122
-        },
-        "meta": {
-          "updateAt": 1784169183168,
-          "createAt": 1784168883846
-        }
-      },
       "V_brB_ZbRzYwQD5Z-oKwL": {
         "id": "V_brB_ZbRzYwQD5Z-oKwL",
         "tableId": "6q1ZSmssEys9rUFXzNFE0",
@@ -6141,90 +5818,6 @@
         "meta": {
           "updateAt": 1783928366364,
           "createAt": 1783928366364
-        }
-      },
-      "oSnYgb5fcdMREkIowMTDr": {
-        "id": "oSnYgb5fcdMREkIowMTDr",
-        "identification": false,
-        "relationshipType": 16,
-        "startRelationshipType": 2,
-        "start": {
-          "tableId": "21h455SGeb41hQ143fLc7",
-          "columnIds": [
-            "skjqnSVNH3QUSSu6F4hbj"
-          ],
-          "x": 680.0934,
-          "y": 187.4581,
-          "direction": 2
-        },
-        "end": {
-          "tableId": "sDHwimqlPwB_eKzSYygOd",
-          "columnIds": [
-            "o2rUXWfUlquW8kOfX5Uox"
-          ],
-          "x": 966.6332,
-          "y": 874.0193,
-          "direction": 4
-        },
-        "meta": {
-          "updateAt": 1784168468787,
-          "createAt": 1784168468787
-        }
-      },
-      "Lb1hwh5N60ETVtnDrIolD": {
-        "id": "Lb1hwh5N60ETVtnDrIolD",
-        "identification": false,
-        "relationshipType": 16,
-        "startRelationshipType": 2,
-        "start": {
-          "tableId": "MuEMiUBt8th-AYgmMrGfv",
-          "columnIds": [
-            "WC0ZwEQkD3fAjm4DFFgSd"
-          ],
-          "x": 2337.0699999999997,
-          "y": 1014.8769,
-          "direction": 2
-        },
-        "end": {
-          "tableId": "sDHwimqlPwB_eKzSYygOd",
-          "columnIds": [
-            "s9g2wfVbkhVjyPON2PQtl"
-          ],
-          "x": 3205.3303,
-          "y": 953.3411,
-          "direction": 1
-        },
-        "meta": {
-          "updateAt": 1784168491916,
-          "createAt": 1784168491916
-        }
-      },
-      "K-pZhGQgJdWHExkrUsueV": {
-        "id": "K-pZhGQgJdWHExkrUsueV",
-        "identification": false,
-        "relationshipType": 16,
-        "startRelationshipType": 2,
-        "start": {
-          "tableId": "ekjvpybfs9qcyBD8kv-4-",
-          "columnIds": [
-            "6zL_jHCRABtqIPed0LvO6"
-          ],
-          "x": 3246.2504,
-          "y": 248.931,
-          "direction": 8
-        },
-        "end": {
-          "tableId": "sDHwimqlPwB_eKzSYygOd",
-          "columnIds": [
-            "VHVF1bh9ssTECQ5nh2pLH"
-          ],
-          "x": 3391.3748,
-          "y": 815.4176,
-          "direction": 4
-        },
-        "meta": {
-          "updateAt": 1784168567776,
-          "createAt": 1784168567776
         }
       }
     },

@@ -71,12 +71,16 @@ const MainPage2 = () => {
     // chatMode: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [chatMode, setChatMode] = useState("full");
     // product: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [product, setProduct] = useState([{
-        id: "",
-        product_name: '',
-        price: '',
-        image_url: '',
-    }])
+    const [product, setProduct] = useState([
+        {
+            id: "mock-1",
+            product_name: "추천 패션 상품",
+            price: 29000,
+            image_url: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500&auto=format&fit=crop&q=60",
+            category: "로딩 중",
+            desc: "상품 목록을 불러오고 있습니다..."
+        }
+    ])
 
     // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {

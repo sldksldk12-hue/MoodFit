@@ -26,7 +26,7 @@ const ProductCard = ({ product }) => {
   return (
     <article className="product-card">
       <div className="product-image-wrap">
-        <img src={product.image_url} alt={product.product_name} className="product-image" />
+        <img src={product.image_url || null} alt={product.product_name} className="product-image" />
         <button type="button" className="heart-button" aria-label="좋아요">
           <Heart size={18} />
         </button>
