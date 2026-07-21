@@ -72,7 +72,12 @@ export const getWeather = async () => {
 };
 
 export const getList = async () => {
-  const response = await api.get("/moodfit/list");
+  const response = await api.get("/api/products");
+  return response.data;
+};
+//상세페이지
+export const getDetail = async (id) => {
+  const response = await api.get(`/api/products/${id}`);
   return response.data;
 };
 // 로그인

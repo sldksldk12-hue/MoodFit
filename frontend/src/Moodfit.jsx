@@ -48,7 +48,7 @@ const Moodfit = () => {
 
           <Routes>
             <Route path="/" element={<MainPage2 />} />
-            <Route path="/moodfit/detail" element={<DetailPage />} />
+            <Route path="/moodfit/detail/:id" element={<DetailPage />} />
             <Route path="/moodfit/login" element={<LoginPage />} />
             <Route path="/moodfit/cart" element={<CartPage />} />
             <Route path="/moodfit/list" element={<ProductListPage />} />

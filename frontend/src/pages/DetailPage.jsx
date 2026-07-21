@@ -1,86 +1,180 @@
-/**
- * 파일: src/pages/DetailPage.jsx
- * 분류: 라우팅 페이지
- *
- * 역할
- * - 상품 상세 정보, 옵션·수량 선택, 장바구니 추가, 상세 탭을 관리합니다.
- *
- * 사용 기술
- * - useState, Redux dispatch, 탭 UI
- *
- * 이 구조를 사용한 이유
- * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
- * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
- * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
- */
-// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { Heart, ShoppingCart, Truck, ShieldCheck, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import {
+  Heart,
+  RotateCcw,
+  ShieldCheck,
+  ShoppingCart,
+  Truck,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import ProductDescription from "../components/detail/ProductDescription";
 import ProductReview from "../components/detail/ProductReview";
 import ProductQna from "../components/detail/ProductQna";
+import { getDetail } from "../services/api";
 import { addToCart } from "../store/slices/cartSlice";
 import "../assets/styles/detail/DetailPage.css";
 
-const product = {
-  id: 1,
-  name: "오버핏 블랙 후드티",
-  category: "NEW",
-  desc: "편안한 꾸안꾸 데일리룩",
-  price: 39000,
-  image: "/images/product01.jpg",
+const initialProduct = {
+  id: null,
+  shop_product_id: "",
+  category: "",
+  brand: "",
+  name: "",
+  original_price: 0,
+  discount_price: 0,
+  images: [],
+  purchase_link: "",
+  gender_target: "",
+  inventory: 0,
+  average_rating: 0,
+  like_count: 0,
 };
 
-/**
- * DetailPage 컴포넌트
- * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
- */
 const DetailPage = () => {
-  // Redux Store에 상태 변경 명령(action)을 전달하기 위한 dispatch 함수입니다.
+  const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  // tab: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-  const [tab, setTab] = useState("desc");
-  // size: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-  const [size, setSize] = useState("M");
-  // quantity: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-  const [quantity, setQuantity] = useState(1);
 
-  // handleAddCart: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
+  const [tab, setTab] = useState("desc");
+  const [size, setSize] = useState("M");
+  const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState(initialProduct);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) {
+        setError("상품 ID가 없습니다.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await getDetail(id);
+        const data = response?.data;
+
+        if (!data) {
+          throw new Error("상품 정보를 불러오지 못했습니다.");
+        }
+
+        setProduct({
+          ...initialProduct,
+          ...data,
+          original_price: Number(data.original_price ?? 0),
+          discount_price: Number(data.discount_price ?? 0),
+          inventory: Number(data.inventory ?? 0),
+          average_rating: Number(data.average_rating ?? 0),
+          like_count: Number(data.like_count ?? 0),
+          images: Array.isArray(data.images)
+            ? data.images.filter(Boolean)
+            : data.images
+              ? [data.images]
+              : [],
+        });
+      } catch (err) {
+        console.error("상품 상세 조회 실패:", err);
+        setError(
+          err.response?.data?.detail ||
+            err.message ||
+            "상품 정보를 불러오는 중 오류가 발생했습니다."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  const mainImage = useMemo(
+    () => product.images[0] || "/images/product-placeholder.png",
+    [product.images]
+  );
+
+  const salePrice = product.discount_price || product.original_price;
+  const maxQuantity = Math.max(1, Math.min(product.inventory || 4, 10));
+
   const handleAddCart = () => {
+    if (!product.id) return;
+
+    if (product.inventory <= 0) {
+      alert("품절된 상품입니다.");
+      return;
+    }
+
     dispatch(
       addToCart({
         ...product,
-        option: `블랙 / ${size}`,
+        image: mainImage,
+        price: salePrice,
+        option: `사이즈 ${size}`,
         quantity,
         cartKey: `${product.id}-${size}`,
       })
     );
+
     alert("장바구니에 상품을 담았습니다.");
   };
 
-  // handleBuyNow: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
   const handleBuyNow = () => {
+    if (product.inventory <= 0) {
+      alert("품절된 상품입니다.");
+      return;
+    }
+
     handleAddCart();
     navigate("/moodfit/cart");
   };
 
-  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
+  if (loading) {
+    return (
+      <main className="detail-page">
+        <p className="detail-status">상품 정보를 불러오는 중입니다.</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="detail-page">
+        <div className="detail-status detail-error">
+          <p>{error}</p>
+          <button type="button" onClick={() => navigate(-1)}>
+            이전 페이지로
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="detail-page">
       <section className="detail-container">
         <div className="detail-image-box">
-          <img src={product.image} alt={product.name} />
+          <img src={mainImage} alt={product.name || "상품 이미지"} />
         </div>
 
         <div className="detail-info">
           <span className="detail-category">{product.category}</span>
+          {product.brand && <p className="detail-brand">{product.brand}</p>}
           <h1>{product.name}</h1>
-          <p className="detail-desc">{product.desc}</p>
-          <div className="detail-price">{product.price.toLocaleString()}원</div>
+
+          <div className="detail-rating">
+            평점 {product.average_rating.toFixed(1)} · 좋아요 {product.like_count}
+          </div>
+
+          {product.original_price > salePrice && (
+            <div className="detail-original-price">
+              {product.original_price.toLocaleString()}원
+            </div>
+          )}
+          <div className="detail-price">{salePrice.toLocaleString()}원</div>
 
           <div className="detail-option">
             <label>사이즈</label>
@@ -99,28 +193,45 @@ const DetailPage = () => {
           </div>
 
           <div className="detail-option">
-            <label>수량</label>
+            <label htmlFor="product-quantity">수량</label>
             <select
+              id="product-quantity"
               value={quantity}
+              disabled={product.inventory <= 0}
               onChange={(event) => setQuantity(Number(event.target.value))}
             >
-              {[1, 2, 3, 4].map((count) => (
-                <option key={count} value={count}>
-                  {count}개
-                </option>
-              ))}
+              {Array.from({ length: maxQuantity }, (_, index) => index + 1).map(
+                (count) => (
+                  <option key={count} value={count}>
+                    {count}개
+                  </option>
+                )
+              )}
             </select>
+            <span className="detail-inventory">
+              {product.inventory > 0 ? `재고 ${product.inventory}개` : "품절"}
+            </span>
           </div>
 
           <div className="detail-buttons">
-            <button type="button" className="cart-btn" onClick={handleAddCart}>
+            <button
+              type="button"
+              className="cart-btn"
+              onClick={handleAddCart}
+              disabled={product.inventory <= 0}
+            >
               <ShoppingCart size={20} />
               장바구니
             </button>
-            <button type="button" className="buy-btn" onClick={handleBuyNow}>
+            <button
+              type="button"
+              className="buy-btn"
+              onClick={handleBuyNow}
+              disabled={product.inventory <= 0}
+            >
               바로 구매
             </button>
-            <button type="button" className="like-btn">
+            <button type="button" className="like-btn" aria-label="좋아요">
               <Heart size={22} />
             </button>
           </div>
@@ -135,19 +246,37 @@ const DetailPage = () => {
 
       <section className="detail-additional">
         <div className="detail-tabs">
-          <button className={`detail-tab ${tab === "desc" ? "active" : ""}`} onClick={() => setTab("desc")}>상품 설명</button>
-          <button className={`detail-tab ${tab === "review" ? "active" : ""}`} onClick={() => setTab("review")}>상품 후기</button>
-          <button className={`detail-tab ${tab === "qna" ? "active" : ""}`} onClick={() => setTab("qna")}>상품 Q&A</button>
+          <button
+            type="button"
+            className={`detail-tab ${tab === "desc" ? "active" : ""}`}
+            onClick={() => setTab("desc")}
+          >
+            상품 설명
+          </button>
+          <button
+            type="button"
+            className={`detail-tab ${tab === "review" ? "active" : ""}`}
+            onClick={() => setTab("review")}
+          >
+            상품 후기
+          </button>
+          <button
+            type="button"
+            className={`detail-tab ${tab === "qna" ? "active" : ""}`}
+            onClick={() => setTab("qna")}
+          >
+            상품 Q&A
+          </button>
         </div>
+
         <div className="detail-tab-contents">
           {tab === "desc" && <ProductDescription product={product} />}
-          {tab === "review" && <ProductReview />}
-          {tab === "qna" && <ProductQna />}
+          {tab === "review" && <ProductReview productId={product.id} />}
+          {tab === "qna" && <ProductQna productId={product.id} />}
         </div>
       </section>
     </main>
   );
 };
 
-// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default DetailPage;
