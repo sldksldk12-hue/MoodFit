@@ -142,3 +142,124 @@
     justify-content: center;
     cursor: pointer;
 }
+.chat-recommendation-group {
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.chat-recommendation-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.chat-recommendation-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: #111827;
+}
+
+.chat-recommendation-reason {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.chat-recommendation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chat-recommendation-summary span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.chat-recommendation-preview {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chat-recommendation-preview-item {
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f3f4f6;
+}
+
+.chat-recommendation-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-recommendation-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #111827;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-recommendation-button:hover {
+  background: #374151;
+}
+
+.recommendation-reason-box {
+  margin-bottom: 30px;
+  padding: 26px 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #f9fafb;
+}
+
+.recommendation-reason-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.recommendation-reason-box h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.recommendation-reason-box p {
+  margin: 0;
+  max-width: 900px;
+  line-height: 1.75;
+  color: #4b5563;
+}
+
+.recommendation-product-count {
+  display: block;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.recommendation-empty {
+  padding: 80px 20px;
+  text-align: center;
+}
