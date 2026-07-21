@@ -14,15 +14,19 @@
  * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles, Ruler, Weight, Palette, Shirt } from "lucide-react";
 import "../assets/styles/pages/preference/PreferencePage.css";
+import { getMe, updatePreference } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 /**
  * PreferencePage 컴포넌트
  * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
  */
 const PreferencePage = () => {
+    const navigate = useNavigate();
+
     // prefs: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [prefs, setPrefs] = useState({
         gender: "",
@@ -33,6 +37,26 @@ const PreferencePage = () => {
         liked_colors: [],
         disliked_colors: [],
     });
+
+    // 유저의 기존 취향 정보를 마운트 시 조회하여 폼에 자동 입력해 줍니다.
+    useEffect(() => {
+        getMe()
+            .then((response) => {
+                const data = response.data;
+                setPrefs({
+                    gender: data.gender || "",
+                    height: data.user_height !== null && data.user_height !== undefined ? String(data.user_height) : "",
+                    weight: data.user_weight !== null && data.user_weight !== undefined ? String(data.user_weight) : "",
+                    body_form: data.body_form || "",
+                    preferred_styles: data.preferred_styles ? data.preferred_styles.split(",") : [],
+                    liked_colors: data.liked_colors ? data.liked_colors.split(",") : [],
+                    disliked_colors: data.disliked_colors ? data.disliked_colors.split(",") : [],
+                });
+            })
+            .catch((err) => {
+                console.error("기존 취향 정보를 불러오는 데 실패했습니다:", err);
+            });
+    }, []);
 
     const styles = ["캐주얼", "미니멀", "스트릿", "러블리", "스포티", "댄디", "오피스룩"];
     const colors = ["블랙", "화이트", "그레이", "네이비", "베이지", "브라운", "블루", "핑크"];
@@ -56,20 +80,27 @@ const PreferencePage = () => {
     };
 
     // submitPrefs: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
-    const submitPrefs = (e) => {
+    const submitPrefs = async (e) => {
         e.preventDefault();
 
         const requestData = {
-            ...prefs,
-            height: Number(prefs.height),
-            weight: Number(prefs.weight),
+            gender: prefs.gender,
+            height: prefs.height ? Number(prefs.height) : null,
+            weight: prefs.weight ? Number(prefs.weight) : null,
+            body_form: prefs.body_form,
             preferred_styles: prefs.preferred_styles.join(","),
             liked_colors: prefs.liked_colors.join(","),
             disliked_colors: prefs.disliked_colors.join(","),
         };
 
-        console.log(requestData);
-        alert("취향등록이 완료되었습니다.");
+        try {
+            await updatePreference(requestData);
+            alert("취향 저장에 성공하였습니다.");
+            navigate("/"); // 저장 성공 시 메인 화면으로 리다이렉트
+        } catch (err) {
+            console.error("취향 정보 저장 실패:", err);
+            alert("취향 저장 중 오류가 발생했습니다.");
+        }
     };
 
     // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.

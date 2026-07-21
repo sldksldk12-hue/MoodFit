@@ -149,6 +149,17 @@ export const register = async (userData) => {
   return response.data;
 }
 
+// 취향 정보 수정
+export const updatePreference = async (preferenceData) => {
+  const token = localStorage.getItem("token");
+  const response = await api.put("/moodfit/preference", preferenceData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
 // ===========================
 // 좋아요(찜) 기능
 // ===========================
