@@ -200,6 +200,7 @@ const PreferencePage = () => {
                                     key={color}
                                     className={prefs.liked_colors.includes(color) ? "chip selected" : "chip"}
                                     onClick={() => toggleArrayValue("liked_colors", color)}
+                                    disabled={prefs.disliked_colors.includes(color)}
                                 >
                                     {color}
                                 </button>
@@ -216,6 +217,7 @@ const PreferencePage = () => {
                                     key={color}
                                     className={prefs.disliked_colors.includes(color) ? "chip danger" : "chip"}
                                     onClick={() => toggleArrayValue("disliked_colors", color)}
+                                    disabled={prefs.liked_colors.includes(color)}
                                 >
                                     {color}
                                 </button>
