@@ -26,32 +26,6 @@ import '../assets/styles/main/MainPage.css';
 import { getList } from '../services/api';
 import { closeMainChat } from '../store/slices/chatSlice';
 
-// const products = [
-//     {
-//         id: 1,
-//         name: '오버핏 블랙 후드티',
-//         category: 'NEW',
-//         desc: '편안한 꾸안꾸 데일리룩',
-//         price: 39000,
-//         image: '/images/product01.jpg',
-//     },
-//     {
-//         id: 2,
-//         name: '베이지 트렌치코트',
-//         category: 'BEST',
-//         desc: '비 오는 날에도 잘 어울리는 아우터',
-//         price: 89000,
-//         image: '/images/product02.jpg',
-//     },
-//     {
-//         id: 3,
-//         name: '와이드 데님 팬츠',
-//         category: 'BEST',
-//         desc: '어떤 상의와도 잘 맞는 기본템',
-//         price: 49000,
-//         image: '/images/product03.jpg',
-//     },
-// ];
 
 const banners = [
     { title: 'WEEKLY EVENT', desc: '이번 주 특별 할인', image: '/images/banner01.jpg' },

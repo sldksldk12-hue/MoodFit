@@ -1,10 +1,5 @@
 /**
  * 파일: src/components/common/layout/Header.jsx
- *
- * 역할
- * - 모든 페이지에서 공통으로 사용하는 상단 내비게이션입니다.
- * - 로그인 상태와 사용자 정보를 표시합니다.
- * - 백엔드 DB에서 장바구니 정보를 조회해 장바구니 개수를 표시합니다.
  */
 
 import {
@@ -14,32 +9,24 @@ import {
   ShoppingCart,
   User,
 } from "lucide-react";
-
-import {
-  Link,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
-
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "../../../store/AuthContext";
 import { getCartItems } from "../../../services/api";
-
 import "../../../assets/styles/common/layout/Header.css";
-import ScrollToTop from "../ScrollToTop";
+
+const CATEGORY = {
+  TOP: "101,102,103,104,105,106",
+  BOTTOM: "201,202,203,204,205,206,207,208",
+  OUTER: "301,302,303,304,305,306,307",
+  ACC: "401,402,403,404,405,406,407,408,409",
+};
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /*
-   * AuthContext에서 로그인 정보를 가져옵니다.
-   */
   const {
     user,
     isLogin,
@@ -47,46 +34,32 @@ const Header = () => {
     loading: authLoading,
   } = useAuth();
 
-  /*
-   * 백엔드 장바구니에 들어 있는 전체 상품 수량입니다.
-   *
-   * 예:
-   * 상품 A 2개
-   * 상품 B 3개
-   *
-   * cartCount는 5가 됩니다.
-   */
+  const userId = user?.id;
+  const userName = user?.user_name;
+
   const [cartCount, setCartCount] = useState(0);
 
-  /*
-   * 관리자 페이지 이동
-   */
-  const chkAdmin = (userName) => {
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  };
+
+  const movePage = (path) => {
+    navigate(path);
+    scrollToTop();
+  };
+
+  const chkAdmin = () => {
     if (userName === "admin1") {
-      navigate("/moodfit/admin");
+      movePage("/moodfit/admin");
     }
   };
 
-  /*
-   * 백엔드 DB에서 현재 사용자의 장바구니를 조회합니다.
-   *
-   * useCallback을 사용한 이유:
-   * useEffect와 이벤트 리스너에서 같은 함수를 안정적으로
-   * 사용할 수 있도록 하기 위해서입니다.
-   */
   const fetchCartCount = useCallback(async () => {
-    /*
-     * 로그인 정보 확인 중에는 API를 호출하지 않습니다.
-     */
-    if (authLoading) {
-      return;
-    }
-
-    /*
-     * 로그인하지 않았거나 사용자 ID가 없으면
-     * 장바구니 숫자를 0으로 설정합니다.
-     */
-    const userId = user?.id;
+    if (authLoading) return;
 
     if (!isLogin || !userId) {
       setCartCount(0);
@@ -94,213 +67,125 @@ const Header = () => {
     }
 
     try {
-      /*
-       * GET /api/cart/{userId}
-       */
       const items = await getCartItems(userId);
 
-      /*
-       * 안전하게 배열 여부를 확인합니다.
-       */
       if (!Array.isArray(items)) {
-        console.error(
-          "장바구니 응답이 배열이 아닙니다:",
-          items
-        );
-
+        console.error("장바구니 응답이 배열이 아닙니다:", items);
         setCartCount(0);
         return;
       }
 
-      /*
-       * 각 장바구니 상품의 quantity를 모두 더합니다.
-       */
       const totalQuantity = items.reduce(
-        (sum, item) => {
-          return (
-            sum + (Number(item.quantity) || 0)
-          );
-        },
+        (sum, item) => sum + (Number(item.quantity) || 0),
         0
       );
 
       setCartCount(totalQuantity);
-    } catch (err) {
-      console.error(
-        "헤더 장바구니 개수 조회 실패:",
-        err
-      );
-
-      console.error(
-        "서버 응답:",
-        err.response?.data
-      );
-
+    } catch (error) {
+      console.error("헤더 장바구니 개수 조회 실패:", error);
+      console.error("서버 응답:", error.response?.data);
       setCartCount(0);
     }
-  }, [
-    authLoading,
-    isLogin,
-    user?.id,
-  ]);
+  }, [authLoading, isLogin, userId]);
 
-  /*
-   * 로그인 상태가 바뀌거나 페이지가 이동할 때
-   * 장바구니 숫자를 다시 조회합니다.
-   */
   useEffect(() => {
     fetchCartCount();
-  }, [
-    fetchCartCount,
-    location.pathname,
-  ]);
+  }, [fetchCartCount, location.pathname, location.search]);
 
-  /*
-   * api.js에서 장바구니 추가·수정·삭제가 성공하면
-   * cart-updated 이벤트가 발생합니다.
-   *
-   * Header는 이 이벤트를 감지해 DB 장바구니를 다시 조회합니다.
-   */
   useEffect(() => {
     const handleCartUpdated = () => {
       fetchCartCount();
     };
 
-    window.addEventListener(
-      "cart-updated",
-      handleCartUpdated
-    );
+    window.addEventListener("cart-updated", handleCartUpdated);
 
-    /*
-     * Header가 사라질 때 이벤트를 제거합니다.
-     */
     return () => {
-      window.removeEventListener(
-        "cart-updated",
-        handleCartUpdated
-      );
+      window.removeEventListener("cart-updated", handleCartUpdated);
     };
   }, [fetchCartCount]);
 
-  /*
-   * 검색창 표시 및 숨김
-   */
   const toggleSearch = () => {
-    const searchContainer =
-      document.querySelector(
-        ".search-container"
-      );
+    const searchContainer = document.querySelector(".search-container");
+    if (!searchContainer) return;
 
-    if (!searchContainer) {
-      return;
-    }
+    searchContainer.classList.toggle("display-none");
 
-    searchContainer.classList.toggle(
-      "display-none"
-    );
-
-    if (
-      !searchContainer.classList.contains(
-        "display-none"
-      )
-    ) {
-      const searchInput =
-        searchContainer.querySelector(
-          ".search-input"
-        );
-
-      searchInput?.focus();
+    if (!searchContainer.classList.contains("display-none")) {
+      searchContainer.querySelector(".search-input")?.focus();
     }
   };
 
-  /*
-   * 상품 검색
-   */
   const handleSearch = () => {
-    const searchInput =
-      document.querySelector(
-        ".search-input"
-      );
+    const searchInput = document.querySelector(".search-input");
+    if (!searchInput) return;
 
-    if (!searchInput) {
-      return;
-    }
+    const query = searchInput.value.trim();
+    if (!query) return;
 
-    const query =
-      searchInput.value.trim();
-
-    if (!query) {
-      return;
-    }
-
-    navigate(
-      `/moodfit/list?category=${encodeURIComponent(
-        query
-      )}`
+    movePage(
+      `/moodfit/list?group=${encodeURIComponent(query)}&category=${encodeURIComponent(query)}`
     );
   };
 
-  /*
-   * 엔터키 검색
-   */
   const handleSearchKeyDown = (event) => {
     if (event.key === "Enter") {
       handleSearch();
     }
   };
 
-  /*
-   * 로그아웃 시 AuthContext의 logout을 실행합니다.
-   *
-   * isLogin이 false로 바뀌면 useEffect가 다시 실행되어
-   * cartCount도 0으로 변경됩니다.
-   */
   const handleLogout = () => {
     logout();
     setCartCount(0);
+    movePage("/moodfit");
   };
 
   return (
     <header className="site-header">
       <div className="top-banner">
-        AI가 오늘 날씨와 기분에 맞는 코디를
-        추천해드려요
+        AI가 오늘 날씨와 기분에 맞는 코디를 추천해드려요
       </div>
 
       <div className="header-inner">
-        {/* 로고 */}
         <button
           type="button"
           className="logo"
-          onClick={() =>
-            navigate("/")
-          }
+          onClick={() => movePage("/moodfit")}
         >
           <ShoppingBag size={28} />
           <span>MOOD FIT</span>
         </button>
 
-        {/* 메인 메뉴 */}
         <nav className="main-nav">
-          <Link to="/moodfit/list?category=상의" onClick={ScrollToTop}>
+          <Link
+            to={`/moodfit/list?group=${encodeURIComponent("상의")}&category=${CATEGORY.TOP}`}
+            onClick={scrollToTop}
+          >
             상의
           </Link>
 
-          <Link to="/moodfit/list?category=하의" onClick={ScrollToTop}>
+          <Link
+            to={`/moodfit/list?group=${encodeURIComponent("하의")}&category=${CATEGORY.BOTTOM}`}
+            onClick={scrollToTop}
+          >
             하의
           </Link>
 
-          <Link to="/moodfit/list?category=아우터" onClick={ScrollToTop}>
+          <Link
+            to={`/moodfit/list?group=${encodeURIComponent("아우터")}&category=${CATEGORY.OUTER}`}
+            onClick={scrollToTop}
+          >
             아우터
           </Link>
 
-          <Link to="/moodfit/list?category=악세사리/신발" onClick={ScrollToTop}>
+          <Link
+            to={`/moodfit/list?group=${encodeURIComponent("악세사리/신발")}&category=${CATEGORY.ACC}`}
+            onClick={scrollToTop}
+          >
             악세사리/신발
           </Link>
         </nav>
 
         <div className="header-actions">
-          {/* 검색 버튼 */}
           <button
             type="button"
             className="icon-button"
@@ -310,15 +195,12 @@ const Header = () => {
             <Search size={21} />
           </button>
 
-          {/* 검색 입력 영역 */}
           <div className="search-container display-none">
             <input
               type="text"
               placeholder="검색..."
               className="search-input"
-              onKeyDown={
-                handleSearchKeyDown
-              }
+              onKeyDown={handleSearchKeyDown}
             />
 
             <button
@@ -330,52 +212,40 @@ const Header = () => {
             </button>
           </div>
 
-          {/* 마이페이지 버튼 */}
           <button
             type="button"
             className="icon-button"
             aria-label="마이페이지"
-            onClick={() =>
-              navigate("/moodfit/mypage")
-            }
+            onClick={() => movePage("/moodfit/mypage")}
           >
             <Heart size={21} />
           </button>
 
-          {/* 장바구니 버튼 */}
           <button
             type="button"
             className="icon-button"
             aria-label={`장바구니 ${cartCount}개`}
-            onClick={() =>
-              navigate("/moodfit/cart")
-            }
+            onClick={() => movePage("/moodfit/cart")}
           >
             <ShoppingCart size={21} />
 
             {cartCount > 0 && (
               <span className="cart-count">
-                {cartCount > 99
-                  ? "99+"
-                  : cartCount}
+                {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
           </button>
 
-          {/* 로그인 사용자 메뉴 */}
           {isLogin ? (
             <div className="user-menu">
-              <span
+              <button
+                type="button"
                 className="user-name"
-                onClick={() =>
-                  chkAdmin(
-                    user?.user_name
-                  )
-                }
+                onClick={chkAdmin}
               >
                 <User size={18} />
-                {user?.user_name}님
-              </span>
+                {userName}님
+              </button>
 
               <button
                 type="button"
@@ -390,11 +260,7 @@ const Header = () => {
               type="button"
               className="icon-button"
               aria-label="로그인"
-              onClick={() =>
-                navigate(
-                  "/moodfit/login"
-                )
-              }
+              onClick={() => movePage("/moodfit/login")}
             >
               <User size={21} />
             </button>
