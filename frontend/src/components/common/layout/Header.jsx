@@ -31,6 +31,7 @@ import { useAuth } from "../../../store/AuthContext";
 import { getCartItems } from "../../../services/api";
 
 import "../../../assets/styles/common/layout/Header.css";
+import ScrollToTop from "../ScrollToTop";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -85,7 +86,9 @@ const Header = () => {
      * 로그인하지 않았거나 사용자 ID가 없으면
      * 장바구니 숫자를 0으로 설정합니다.
      */
-    if (!isLogin || !user?.id) {
+    const userId = user?.id;
+
+    if (!isLogin || !userId) {
       setCartCount(0);
       return;
     }
@@ -94,7 +97,7 @@ const Header = () => {
       /*
        * GET /api/cart/{userId}
        */
-      const items = await getCartItems(user.id);
+      const items = await getCartItems(userId);
 
       /*
        * 안전하게 배열 여부를 확인합니다.
@@ -279,19 +282,19 @@ const Header = () => {
 
         {/* 메인 메뉴 */}
         <nav className="main-nav">
-          <Link to="/moodfit/list?category=상의">
+          <Link to="/moodfit/list?category=상의" onClick={ScrollToTop}>
             상의
           </Link>
 
-          <Link to="/moodfit/list?category=하의">
+          <Link to="/moodfit/list?category=하의" onClick={ScrollToTop}>
             하의
           </Link>
 
-          <Link to="/moodfit/list?category=아우터">
+          <Link to="/moodfit/list?category=아우터" onClick={ScrollToTop}>
             아우터
           </Link>
 
-          <Link to="/moodfit/list?category=악세사리/신발">
+          <Link to="/moodfit/list?category=악세사리/신발" onClick={ScrollToTop}>
             악세사리/신발
           </Link>
         </nav>

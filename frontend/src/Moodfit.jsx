@@ -33,7 +33,7 @@ import AdminPage from "./pages/AdminPage";
 import { AuthProvider } from "./store/AuthContext";
 import ProtectedRoute from "./components/common/route/ProtectedRoute";
 import WeatherBackground from "./components/weather/WeatherBackground";
-import ScrollToTop from "./assets/styles/common/ScrollToTop";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 /**
  * Moodfit 컴포넌트

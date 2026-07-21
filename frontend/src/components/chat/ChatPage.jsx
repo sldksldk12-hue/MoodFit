@@ -161,7 +161,7 @@ const ChatPage = ({ mode = "full", closeChat }) => {
                             `${product.title}-${index}`
                           }
                           className="chat-product-card"
-                          href={product.link}
+                          href={"moodfit/detail/"+product.id}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
