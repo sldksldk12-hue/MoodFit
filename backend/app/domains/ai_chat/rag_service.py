@@ -44,24 +44,59 @@ class RagsFashionService:
         
         self.chain = self.prompt_template | self.llm | StrOutputParser()
 
-    def get_real_weather(self) -> dict:
-        city = "Seoul"
+    def get_real_weather(self, map_y: Optional[float] = None, map_x: Optional[float] = None, city_name: Optional[str] = "Seoul") -> dict:
         try:
-            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={self.weather_api_key}&units=metric&lang=kr"
-            response = requests.get(url)
+            if map_y is not None and map_x is not None:
+                # 위도/경도가 제공된 경우
+                url = f"http://api.openweathermap.org/data/2.5/weather?lat={map_y}&lon={map_x}&appid={self.weather_api_key}&units=metric&lang=kr"
+            else:
+                # 디폴트 서울 (Seoul)
+                url = f"http://api.openweathermap.org/data/2.5/weather?q=Seoul&appid={self.weather_api_key}&units=metric&lang=kr"
+                city_name = "Seoul"
+                
+            response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                return {"temp": data["main"]["temp"], "desc": data["weather"][0]["description"], "region": city}
+                return {
+                    "temp": data["main"]["temp"],
+                    "desc": data["weather"][0]["description"],
+                    "region": city_name
+                }
         except Exception as e:
             print(f"[Error] 날씨 API 에러: {e}")
-        return {"temp": 22.0, "desc": "맑음(기본값)", "region": "Seoul"}
+        return {"temp": 22.0, "desc": "맑음(기본값)", "region": city_name}
 
-    def generate_fashion_recommendation(self, db: Session, user_id: int, emotion: str, confidence: float, user_message: str, session_id: int = None) -> str:
+    def generate_fashion_recommendation(self, db: Session, user_id: int, emotion: str, confidence: float, user_message: str, session_id: int = None) -> tuple[str, Optional[int]]:
+        # 0. 관광 목적지 정보 (TPO) 조회 및 프롬프트 반영 준비
+        latest_tour = None
+        tour_info_text = ""
+        if session_id:
+            try:
+                latest_tour = db.query(TourLog).filter(
+                    TourLog.session_id == session_id
+                ).order_by(TourLog.created_at.desc()).first()
+                if latest_tour:
+                    tour_info_text = (
+                        f"\n[유저 나들이 목적지 (TPO)]\n"
+                        f"- 방문 목적지: {latest_tour.title}\n"
+                        f"- 카테고리: {latest_tour.content_type}\n"
+                        f"- 위치/주소: {latest_tour.addr or '정보 없음'}\n"
+                        f"- 해당 목적지의 분위기 및 상황적 제약조건(예: 야외활동 여부, 장소의 격식 등)에 맞게 패션 아이템 및 가이드를 제공하세요."
+                    )
+            except Exception as e:
+                print(f"[Error] 관광지 정보 조회 실패: {e}")
+
+        # 1. 날씨 조회 (관광지 좌표 우선, 없으면 서울 디폴트)
+        map_x, map_y, city_name = None, None, "Seoul"
+        if latest_tour and latest_tour.map_x is not None and latest_tour.map_y is not None:
+            map_x = float(latest_tour.map_x)
+            map_y = float(latest_tour.map_y)
+            city_name = latest_tour.title
+            
+        weather_data = self.get_real_weather(map_y=map_y, map_x=map_x, city_name=city_name)
+        current_weather = f"섭씨 {weather_data['temp']}도, {weather_data['desc']} ({weather_data['region']})"
         
-        weather_data = self.get_real_weather()
-        current_weather = f"섭씨 {weather_data['temp']}도, {weather_data['desc']}"
-        
-        # 1. DB에서 이전 대화(기억) 긁어오기
+        # 1.5. DB에서 이전 대화(기억) 긁어오기
         chat_history = []
         if session_id:
             try:
@@ -79,7 +114,8 @@ class RagsFashionService:
             except Exception as e:
                 print(f"[Error] 대화 기록 불러오기 실패: {e}")
 
-        # 2. 날씨 기록
+        # 2. 날씨 기록 (현지 날씨 저장)
+        weather_log_id = None
         try:
             if session_id:
                 new_weather_log = WeatherLog(
@@ -88,8 +124,11 @@ class RagsFashionService:
                 )
                 db.add(new_weather_log)
                 db.commit()
+                db.refresh(new_weather_log)
+                weather_log_id = new_weather_log.id
         except Exception as e:
             db.rollback()
+            print(f"[Error] 날씨 DB 저장 실패: {e}")
 
         # 3. 취향 조회
         preferred_style, disliked_colors = "캐주얼(Casual)", "없음"
@@ -100,24 +139,6 @@ class RagsFashionService:
                 disliked_colors = user_info.disliked_colors or disliked_colors
         except Exception:
             pass
-
-        # 3.5. 관광 목적지 정보 (TPO) 조회 및 프롬프트 반영
-        tour_info_text = ""
-        if session_id:
-            try:
-                latest_tour = db.query(TourLog).filter(
-                    TourLog.session_id == session_id
-                ).order_by(TourLog.created_at.desc()).first()
-                if latest_tour:
-                    tour_info_text = (
-                        f"\n[유저 나들이 목적지 (TPO)]\n"
-                        f"- 방문 목적지: {latest_tour.title}\n"
-                        f"- 카테고리: {latest_tour.content_type}\n"
-                        f"- 위치/주소: {latest_tour.addr or '정보 없음'}\n"
-                        f"- 해당 목적지의 분위기 및 상황적 제약조건(예: 야외활동 여부, 장소의 격식 등)에 맞게 패션 아이템 및 가이드를 제공하세요."
-                    )
-            except Exception as e:
-                print(f"[Error] 관광지 정보 프롬프트 반영 실패: {e}")
 
         # 4. 프롬프트에 chat_history 주입!
         response = self.chain.invoke({
@@ -131,4 +152,4 @@ class RagsFashionService:
             "user_message": user_message
         })
 
-        return response
+        return response, weather_log_id

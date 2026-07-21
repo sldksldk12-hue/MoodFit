@@ -66,10 +66,6 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         db.add(new_emotion_log)
         db.commit()
 
-        new_weather_log = WeatherLog(session_id=current_session_id, region_name="Seoul", temperature=25.0, condition_code="Clear")
-        db.add(new_weather_log)
-        db.commit()
-        
         # 🌟 관광 목적지 정보 추출 및 수집 자동화
         tour_log_id = None
         extracted_dest = extract_destination(req.message)
@@ -78,7 +74,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 db=db, session_id=current_session_id, destination_info=extracted_dest
             )
             
-        ai_recommendation = rag_service.generate_fashion_recommendation(
+        ai_recommendation, weather_log_id = rag_service.generate_fashion_recommendation(
             db=db, user_id=req.user_id, emotion=predicted_emotion, confidence=emotion_score, user_message=req.message, session_id=current_session_id
         )
         
@@ -147,7 +143,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     user_id=req.user_id,
                     chat_session_id=current_session_id,
                     emotion_log_id=new_emotion_log.id,
-                    weather_log_id=new_weather_log.id,
+                    weather_log_id=weather_log_id,
                     tour_log_id=tour_log_id
                 )
                 db.add(new_rec_session)
