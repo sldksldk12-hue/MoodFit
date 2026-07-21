@@ -24,3 +24,8 @@ class CartItemResponse(CartItemBase):
     # SQLAlchemy 모델 객체를 Pydantic 모델로 자동 변환하기 위한 설정
     class Config:
         from_attributes = True
+
+# 장바구니 수량 수정 요청
+class CartItemQuantityUpdate(BaseModel):
+    user_id: int
+    quantity: int

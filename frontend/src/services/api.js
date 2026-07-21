@@ -80,6 +80,46 @@ export const getDetail = async (id) => {
   const response = await api.get(`/api/products/${id}`);
   return response.data;
 };
+const notifyCartUpdated = () => {
+  window.dispatchEvent(
+    new CustomEvent("cart-updated")
+  );
+};
+
+//장바구니 조회
+export const getCartItems = async (userId) => {
+  const response = await api.get(`/api/cart/${userId}`);
+  return response.data;
+};
+//장바구니 추가
+export const addCartItem = async (data) => {
+  const response = await api.post("/api/cart/", data);
+  notifyCartUpdated();
+  return response.data;
+};
+//장바구니 수정
+export const updateCartItemQuantity = async (
+  cartItemId,
+  userId,
+  quantity
+) => {
+  const response = await api.put(`/api/cart/${cartItemId}`, {
+    user_id: Number(userId),
+    quantity: Number(quantity),
+  });
+  notifyCartUpdated();
+
+  return response.data;
+};
+//장바구니 삭제
+export const deleteCartItem = async (cartItemId, userId) => {
+  const response = await api.delete(`/api/cart/${cartItemId}`, {
+    params: { user_id: userId },
+  });
+  notifyCartUpdated();
+
+  return response.data;
+};
 // 로그인
 export const login = (username, password) => {
   const params = new URLSearchParams();
