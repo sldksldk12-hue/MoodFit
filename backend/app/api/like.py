@@ -28,12 +28,16 @@ def toggle_like(req: ProductLikeCreate, db: Session = Depends(get_db)):
         if existing_like:
             # 이미 찜한 상태라면 삭제 (취소)
             db.delete(existing_like)
+            product.like_count -= 1
+            if product.like_count < 0:
+                product = 0
             db.commit()
             return {"message": "찜하기가 취소되었습니다.", "status": "removed"}
         else:
             # 찜 내역이 없다면 새로 추가
             new_like = ProductLike(user_id=req.user_id, product_id=req.product_id)
             db.add(new_like)
+            product.like_count += 1
             db.commit()
             return {"message": "상품을 찜했습니다.", "status": "added"}
             

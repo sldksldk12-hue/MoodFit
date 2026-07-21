@@ -213,3 +213,6 @@
         transform: translateY(0);
     }
 }
+.like-btn.active {
+  color: #ef4444;
+}

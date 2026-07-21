@@ -21,6 +21,8 @@ import ProductQna from "../components/detail/ProductQna";
 import {
   addCartItem,
   getDetail,
+  getUserLikes,
+  toggleLike,
 } from "../services/api";
 
 import { useAuth } from "../store/AuthContext";
@@ -69,6 +71,8 @@ const DetailPage = () => {
 
   const [error, setError] =
     useState("");
+  const [liked, setLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   /*
    * 상품 상세 조회
@@ -136,8 +140,8 @@ const DetailPage = () => {
 
         setError(
           err.response?.data?.detail ||
-            err.message ||
-            "상품 정보를 불러오는 중 오류가 발생했습니다."
+          err.message ||
+          "상품 정보를 불러오는 중 오류가 발생했습니다."
         );
       } finally {
         setLoading(false);
@@ -146,7 +150,59 @@ const DetailPage = () => {
 
     fetchProduct();
   }, [id]);
+  useEffect(() => {
+    const checkLike = async () => {
+      if (!user?.id || !product.id) return;
 
+      try {
+        const likes = await getUserLikes(user.id);
+
+        setLiked(
+          likes.some(
+            (item) =>
+              Number(item.product_id) === Number(product.id)
+          )
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    checkLike();
+  }, [user?.id, product.id]);
+  const handleLike = async () => {
+    if (!user?.id) {
+      alert("로그인이 필요합니다.");
+      navigate("/moodfit/login");
+      return;
+    }
+
+    if (likeLoading) return;
+
+    try {
+      setLikeLoading(true);
+
+      const result = await toggleLike(user.id, product.id);
+
+      if (result.status === "added") {
+        setLiked(true);
+
+        setProduct((prev) => ({
+          ...prev,
+          like_count: prev.like_count + 1,
+        }));
+      } else {
+        setLiked(false);
+
+        setProduct((prev) => ({
+          ...prev,
+          like_count: Math.max(0, prev.like_count - 1),
+        }));
+      }
+    } finally {
+      setLikeLoading(false);
+    }
+  };
   /*
    * 대표 이미지
    */
@@ -265,7 +321,7 @@ const DetailPage = () => {
 
       alert(
         err.response?.data?.detail ||
-          "장바구니에 상품을 담지 못했습니다."
+        "장바구니에 상품을 담지 못했습니다."
       );
 
       return false;
@@ -360,11 +416,11 @@ const DetailPage = () => {
 
           {product.original_price >
             salePrice && (
-            <div className="detail-original-price">
-              {product.original_price.toLocaleString()}
-              원
-            </div>
-          )}
+              <div className="detail-original-price">
+                {product.original_price.toLocaleString()}
+                원
+              </div>
+            )}
 
           <div className="detail-price">
             {salePrice.toLocaleString()}원
@@ -462,10 +518,15 @@ const DetailPage = () => {
 
             <button
               type="button"
-              className="like-btn"
+              className={`like-btn ${liked ? "active" : ""}`}
               aria-label="좋아요"
+              onClick={handleLike}
+              disabled={likeLoading}
             >
-              <Heart size={22} />
+              <Heart
+                size={22}
+                fill={liked ? "currentColor" : "none"}
+              />
             </button>
           </div>
 
@@ -492,11 +553,10 @@ const DetailPage = () => {
         <div className="detail-tabs">
           <button
             type="button"
-            className={`detail-tab ${
-              tab === "desc"
-                ? "active"
-                : ""
-            }`}
+            className={`detail-tab ${tab === "desc"
+              ? "active"
+              : ""
+              }`}
             onClick={() =>
               setTab("desc")
             }
@@ -506,11 +566,10 @@ const DetailPage = () => {
 
           <button
             type="button"
-            className={`detail-tab ${
-              tab === "review"
-                ? "active"
-                : ""
-            }`}
+            className={`detail-tab ${tab === "review"
+              ? "active"
+              : ""
+              }`}
             onClick={() =>
               setTab("review")
             }
@@ -520,11 +579,10 @@ const DetailPage = () => {
 
           <button
             type="button"
-            className={`detail-tab ${
-              tab === "qna"
-                ? "active"
-                : ""
-            }`}
+            className={`detail-tab ${tab === "qna"
+              ? "active"
+              : ""
+              }`}
             onClick={() =>
               setTab("qna")
             }

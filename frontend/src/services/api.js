@@ -149,5 +149,23 @@ export const register = async (userData) => {
   return response.data;
 }
 
-// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
-export default api; 
+// ===========================
+// 좋아요(찜) 기능
+// ===========================
+
+// 상품 찜하기 / 찜 취소
+export const toggleLike = async (userId, productId) => {
+  const response = await api.post("/api/likes/", {
+    user_id: Number(userId),
+    product_id: Number(productId),
+  });
+
+  return response.data;
+};
+
+// 내가 찜한 상품 목록 조회
+export const getUserLikes = async (userId) => {
+  const response = await api.get(`/api/likes/${userId}`);
+
+  return response.data;
+};

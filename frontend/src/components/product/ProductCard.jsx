@@ -1,44 +1,179 @@
-/**
- * 파일: src/components/product/ProductCard.jsx
- * 분류: 상품 공통 컴포넌트
- *
- * 역할
- * - 상품 하나의 이미지·가격·좋아요·장바구니 동작을 재사용 가능한 카드로 제공합니다.
- *
- * 사용 기술
- * - props, Redux dispatch, React Router Link
- *
- * 이 구조를 사용한 이유
- * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
- * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
- * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
- */
-// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { Heart, ShoppingCart } from 'lucide-react';
-import '../../assets/styles/product/ProductCard.css';
+import { useEffect, useState } from "react";
+import { Heart, ShoppingCart } from "lucide-react";
+import { Link } from "react-router-dom";
 
-/**
- * ProductCard 컴포넌트
- * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
- */
+import { getUserLikes, toggleLike } from "../../services/api";
+import { useAuth } from "../../store/AuthContext";
+
+import "../../assets/styles/product/ProductCard.css";
+
 const ProductCard = ({ product }) => {
-  // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
+  const { user } = useAuth();
+
+  // 현재 사용자가 이 상품을 찜했는지 여부
+  const [liked, setLiked] = useState(false);
+
+  // 카드에 표시할 좋아요 개수
+  const [likeCount, setLikeCount] = useState(
+    Number(product.like_count ?? 0)
+  );
+
+  // 좋아요 처리 중 중복 클릭 방지
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  // 상품이 바뀌면 서버에서 받은 좋아요 개수로 다시 맞춤
+  useEffect(() => {
+    setLikeCount(Number(product.like_count ?? 0));
+  }, [product.id, product.like_count]);
+
+  useEffect(() => {
+    const checkLikedProduct = async () => {
+      // 로그인하지 않은 경우 찜 상태를 false로 초기화
+      if (!user?.id) {
+        setLiked(false);
+        return;
+      }
+
+      try {
+        // 기존 백엔드 API에서 사용자의 전체 찜 목록을 받아옴
+        const likes = await getUserLikes(user.id);
+
+        // 응답 배열에서 현재 상품의 product_id가 존재하는지 확인
+        const isLiked = likes.some(
+          (like) => Number(like.product_id) === Number(product.id)
+        );
+
+        setLiked(isLiked);
+      } catch (error) {
+        console.error("찜 상태 조회 실패:", error);
+        setLiked(false);
+      }
+    };
+
+    checkLikedProduct();
+  }, [user?.id, product.id]);
+
+  const handleLike = async (event) => {
+    // Link의 상세페이지 이동을 막고 좋아요만 처리
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!user?.id) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (likeLoading) {
+      return;
+    }
+
+    try {
+      setLikeLoading(true);
+
+      const result = await toggleLike(user.id, product.id);
+
+      if (result.status === "added") {
+        setLiked(true);
+        setLikeCount((prev) => prev + 1);
+      }
+
+      if (result.status === "removed") {
+        setLiked(false);
+        setLikeCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("찜하기 처리 실패:", error);
+
+      const message =
+        error.response?.data?.detail ??
+        "찜하기 처리 중 오류가 발생했습니다.";
+
+      alert(message);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handleCart = (event) => {
+    // 장바구니 버튼 클릭 시 상세페이지로 이동하지 않도록 방지
+    event.preventDefault();
+    event.stopPropagation();
+
+    // TODO: 장바구니 추가 기능 연결
+  };
+
+  const detailPath = `/moodfit/detail/${product.id}`;
+  const linkStyle = {
+    color: "inherit",
+    textDecoration: "none",
+  };
+
   return (
     <article className="product-card">
       <div className="product-image-wrap">
-        <img src={product.image_url || null} alt={product.product_name} className="product-image" />
-        <button type="button" className="heart-button" aria-label="좋아요">
-          <Heart size={18} />
+        {/* 상품 이미지를 누르면 상세페이지로 이동 */}
+        <Link
+          to={detailPath}
+          className="product-card-image-link"
+          style={linkStyle}
+        >
+          <img
+            src={product.image_url || null}
+            alt={product.product_name}
+            className="product-image"
+          />
+        </Link>
+
+        {/* 하트 버튼은 Link 밖에 두어 버튼 중첩을 방지 */}
+        <button
+          type="button"
+          className={`heart-button ${liked ? "active" : ""}`}
+          aria-label={liked ? "찜 취소" : "찜하기"}
+          aria-pressed={liked}
+          onClick={handleLike}
+          disabled={likeLoading}
+        >
+          <Heart size={18} fill={liked ? "currentColor" : "none"} />
         </button>
       </div>
 
       <div className="product-info">
-        <p className="product-category">{product.category}</p>
-        <h3>{product.product_name}</h3>
-        <p className="product-desc">{product.desc}</p>
+        {/* 상품 설명 영역을 누르면 상세페이지로 이동 */}
+        <Link
+          to={detailPath}
+          className="product-card-info-link"
+          style={linkStyle}
+        >
+          <p className="product-category">{product.category}</p>
+          <h3>{product.product_name}</h3>
+          <p className="product-desc">{product.desc}</p>
+        </Link>
+
         <div className="product-bottom">
-          <strong>{product.price.toLocaleString()}원</strong>
-          <button type="button" className="cart-mini">
+          {/* 가격을 눌러도 상세페이지로 이동 */}
+          <Link
+            to={detailPath}
+            className="product-card-price-link"
+            style={linkStyle}
+          >
+            <strong>
+              {Number(product.price ?? 0).toLocaleString()}원
+            </strong>
+          </Link>
+
+          <span className={`like-count ${liked ? "active" : ""}`}>
+            <Heart
+              size={14}
+              fill={liked ? "currentColor" : "none"}
+            />
+            {likeCount}
+          </span>
+
+          <button
+            type="button"
+            className="cart-mini"
+            onClick={handleCart}
+          >
             <ShoppingCart size={16} />
           </button>
         </div>
@@ -47,5 +182,4 @@ const ProductCard = ({ product }) => {
   );
 };
 
-// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default ProductCard;
