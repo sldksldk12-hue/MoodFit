@@ -23,6 +23,8 @@ import {
   sendChatMessage,
 } from "../../store/slices/chatSlice";
 import "../../assets/styles/chat/ChatPage.css";
+import { useNavigate } from "react-router-dom";
+import { setRecommendationGroup } from "../../store/slices/recommendationSlice";
 
 const toMessageText = (value) => {
   if (typeof value === "string") return value;
@@ -38,6 +40,7 @@ const toMessageText = (value) => {
 const ChatPage = ({ mode = "full", closeChat }) => {
   // Redux Store에 상태 변경 명령(action)을 전달하기 위한 dispatch 함수입니다.
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   // 여러 컴포넌트가 공유하는 Redux 상태에서 현재 화면에 필요한 값만 선택합니다.
   const { messages, loading, heroInput } = useSelector((state) => state.chat);
   // message: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
@@ -80,6 +83,43 @@ const ChatPage = ({ mode = "full", closeChat }) => {
       event.preventDefault();
       sendMessage();
     }
+  };
+  const handleOpenRecommendation = (msg) => {
+    const products = Array.isArray(msg.products)
+      ? msg.products
+      : [];
+
+    if (products.length === 0) {
+      return;
+    }
+
+    const searchKeyword =
+      toMessageText(msg.searchKeyword) ||
+      "맞춤 코디";
+
+    const recommendationTitle =
+      `${searchKeyword} 추천 상품`;
+
+    dispatch(
+      setRecommendationGroup({
+        title: recommendationTitle,
+
+        // AI 답변 전체를 해당 상품들의 공통 추천 이유로 사용
+        reason: toMessageText(msg.text),
+
+        searchKeyword,
+
+        products,
+      })
+    );
+
+    navigate("/moodfit/ailist");
+
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
   };
 
   // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
@@ -148,60 +188,84 @@ const ChatPage = ({ mode = "full", closeChat }) => {
                     </strong>
                   </p>
                 )}
-
-                {/* 네이버 쇼핑 추천 상품 목록 */}
+                {/* AI 추천 상품 그룹 */}
                 {!isUser &&
                   Array.isArray(msg.products) &&
                   msg.products.length > 0 && (
-                    <div className="chat-product-list">
-                      {msg.products.map((product, index) => (
-                        <a
-                          key={
-                            product.link ??
-                            `${product.title}-${index}`
-                          }
-                          className="chat-product-card"
-                          href={"moodfit/detail/"+product.id}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {/* 상품 이미지가 있을 때만 표시 */}
-                          {product.image && (
-                            <img
-                              src={product.image}
-                              alt={
-                                product.title ??
-                                "추천 상품"
-                              }
-                              className="chat-product-image"
-                              loading="lazy"
-                            />
+                    <div className="chat-recommendation-group">
+                      <div className="chat-recommendation-content">
+                        <span className="chat-recommendation-label">
+                          MOODFIT AI 추천
+                        </span>
+
+                        <h3 className="chat-recommendation-title">
+                          {toMessageText(msg.searchKeyword) ||
+                            "맞춤 코디 추천"}
+                        </h3>
+
+                        <p className="chat-recommendation-reason">
+                          지금 말씀해주신 기분과 날씨, 취향을
+                          바탕으로 어울리는 상품을 모았어요.
+                        </p>
+
+                        <div className="chat-recommendation-summary">
+                          <span>
+                            추천 상품 {msg.products.length}개
+                          </span>
+
+                          {msg.searchKeyword && (
+                            <span>
+                              검색 기준:{" "}
+                              {toMessageText(msg.searchKeyword)}
+                            </span>
                           )}
+                        </div>
 
-                          {/* 상품명과 가격 */}
-                          <div className="chat-product-info">
-                            <strong className="chat-product-title">
-                              {toMessageText(
-                                product.title ??
-                                "상품명 없음"
-                              )}
-                            </strong>
+                        {/* 상품 이미지를 일부만 미리보기 */}
+                        <div className="chat-recommendation-preview">
+                          {msg.products
+                            .slice(0, 4)
+                            .map((product, index) => (
+                              <div
+                                className="chat-recommendation-preview-item"
+                                key={
+                                  product.id ??
+                                  product.link ??
+                                  `${product.title}-${index}`
+                                }
+                              >
+                                {(product.image ||
+                                  product.image_url) && (
+                                    <img
+                                      src={
+                                        product.image ??
+                                        product.image_url
+                                      }
+                                      alt={
+                                        product.title ??
+                                        product.product_name ??
+                                        "추천 상품"
+                                      }
+                                      loading="lazy"
+                                    />
+                                  )}
+                              </div>
+                            ))}
+                        </div>
 
-                            <span className="chat-product-price">
-                              {Number(
-                                product.lprice ?? 0
-                              ).toLocaleString()}
-                              원
-                            </span>
-
-                            <span className="chat-product-link">
-                              네이버 쇼핑에서 보기
-                            </span>
-                          </div>
-                        </a>
-                      ))}
+                        <button
+                          type="button"
+                          className="chat-recommendation-button"
+                          onClick={() =>
+                            handleOpenRecommendation(msg)
+                          }
+                        >
+                          추천 리스트 보기
+                        </button>
+                      </div>
                     </div>
                   )}
+
 
                 {/* 검색은 했지만 상품 결과가 없을 때 */}
                 {!isUser &&
