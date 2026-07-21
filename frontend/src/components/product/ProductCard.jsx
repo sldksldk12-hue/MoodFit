@@ -26,6 +26,34 @@ const ProductCard = ({ product }) => {
     setLikeCount(Number(product.like_count ?? 0));
   }, [product.id, product.like_count]);
 
+
+  // 같은 상품이 여러 영역에 표시될 때 찜 상태와 개수를 즉시 동기화
+  useEffect(() => {
+    const handleProductLikeChanged = (event) => {
+      const { productId, liked: nextLiked, likeCount: nextLikeCount } =
+        event.detail ?? {};
+
+      if (Number(productId) !== Number(product.id)) {
+        return;
+      }
+
+      setLiked(Boolean(nextLiked));
+      setLikeCount(Number(nextLikeCount ?? 0));
+    };
+
+    window.addEventListener(
+      "product-like-changed",
+      handleProductLikeChanged
+    );
+
+    return () => {
+      window.removeEventListener(
+        "product-like-changed",
+        handleProductLikeChanged
+      );
+    };
+  }, [product.id]);
+
   useEffect(() => {
     const checkLikedProduct = async () => {
       // 로그인하지 않은 경우 찜 상태를 false로 초기화
@@ -72,15 +100,24 @@ const ProductCard = ({ product }) => {
 
       const result = await toggleLike(user.id, product.id);
 
-      if (result.status === "added") {
-        setLiked(true);
-        setLikeCount((prev) => prev + 1);
-      }
+      const nextLiked = result.status === "added";
+      const nextLikeCount = nextLiked
+        ? likeCount + 1
+        : Math.max(0, likeCount - 1);
 
-      if (result.status === "removed") {
-        setLiked(false);
-        setLikeCount((prev) => Math.max(0, prev - 1));
-      }
+      setLiked(nextLiked);
+      setLikeCount(nextLikeCount);
+
+      // 현재 카드뿐 아니라 같은 상품을 표시하는 다른 ProductCard도 즉시 갱신
+      window.dispatchEvent(
+        new CustomEvent("product-like-changed", {
+          detail: {
+            productId: product.id,
+            liked: nextLiked,
+            likeCount: nextLikeCount,
+          },
+        })
+      );
     } catch (error) {
       console.error("찜하기 처리 실패:", error);
 
