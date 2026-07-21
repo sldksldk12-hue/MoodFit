@@ -33,6 +33,7 @@ import AdminPage from "./pages/AdminPage";
 import { AuthProvider } from "./store/AuthContext";
 import ProtectedRoute from "./components/common/route/ProtectedRoute";
 import WeatherBackground from "./components/weather/WeatherBackground";
+import ScrollToTop from "./assets/styles/common/ScrollToTop";
 
 /**
  * Moodfit 컴포넌트
@@ -43,7 +44,7 @@ const Moodfit = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <WeatherBackground theme="rain">
+          <ScrollToTop />
           <Header />
 
           <Routes>
@@ -69,7 +70,6 @@ const Moodfit = () => {
 
           <ChatBot />
           <Footer />
-        </WeatherBackground>
       </BrowserRouter>
     </AuthProvider>
   );
