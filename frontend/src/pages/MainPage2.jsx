@@ -81,6 +81,8 @@ const MainPage2 = () => {
             desc: "상품 목록을 불러오고 있습니다..."
         }
     ])
+    const bestProducts = [...product]
+        .sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
 
     // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {
@@ -111,7 +113,7 @@ const MainPage2 = () => {
     // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
     return (
         <>
-            
+
             <main>
 
                 {!isChatOpen && (
@@ -161,9 +163,18 @@ const MainPage2 = () => {
                     </div>
 
                     <div className="product-grid">
-                        {product.map((product) => (
-                            <ProductCard product={product} key={product.id} />
-                        ))}
+                        {[...product]
+                            .sort(
+                                (a, b) =>
+                                    new Date(b.created_at) -
+                                    new Date(a.created_at)
+                            )
+                            .map((product) => (
+                                <ProductCard
+                                    product={product}
+                                    key={product.id}
+                                />
+                            ))}
                     </div>
                 </section>
 
@@ -188,8 +199,11 @@ const MainPage2 = () => {
                         </div>
                     </div>
                     <div className="product-grid">
-                        {product.concat(product).map((product, index) => (
-                            <ProductCard product={{ ...product, id: index + 10 }} key={index} />
+                        {bestProducts.concat(bestProducts).map((product, index) => (
+                            <ProductCard
+                                product={{ ...product, id: index + 10 }}
+                                key={index}
+                            />
                         ))}
                     </div>
                 </section>
