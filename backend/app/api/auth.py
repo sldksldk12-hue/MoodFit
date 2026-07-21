@@ -60,6 +60,16 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
 
+# 취향 정보 수정 스키마
+class PreferenceUpdate(BaseModel):
+    gender: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    body_form: Optional[str] = None
+    preferred_styles: Optional[str] = None
+    liked_colors: Optional[str] = None
+    disliked_colors: Optional[str] = None
+
 # 회원가입 API
 @router.post("/register")
 async def register_user(req: UserRegister, db: Session = Depends(get_db)):
@@ -158,3 +168,52 @@ async def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depen
         "liked_colors": user.liked_colors,
         "disliked_colors": user.disliked_colors
     }
+
+# 취향 정보 수정 API
+@router.put("/preference")
+async def update_user_preference(req: PreferenceUpdate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # 1. 토큰 해독
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="유효하지 않거나 만료된 토큰입니다."
+        )
+    
+    # 2. 사용자 조회
+    user_id = payload.get("id")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="존재하지 않는 회원 정보입니다."
+        )
+    
+    # 3. 정보 업데이트
+    try:
+        # 클라이언트가 명시적으로 전달한 필드만 추출 (null 값 포함)
+        update_data = req.dict(exclude_unset=True)
+        
+        if "gender" in update_data:
+            user.gender = update_data["gender"]
+        if "height" in update_data:
+            user.user_height = update_data["height"]
+        if "weight" in update_data:
+            user.user_weight = update_data["weight"]
+        if "body_form" in update_data:
+            user.body_form = update_data["body_form"]
+        if "preferred_styles" in update_data:
+            user.preferred_styles = update_data["preferred_styles"]
+        if "liked_colors" in update_data:
+            user.liked_colors = update_data["liked_colors"]
+        if "disliked_colors" in update_data:
+            user.disliked_colors = update_data["disliked_colors"]
+            
+        db.commit()
+        return {"status": "success", "message": "취향 정보가 성공적으로 저장되었습니다."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"취향 정보 저장 중 오류가 발생했습니다: {str(e)}"
+        )

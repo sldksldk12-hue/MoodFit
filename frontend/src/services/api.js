@@ -149,5 +149,16 @@ export const register = async (userData) => {
   return response.data;
 }
 
+// 취향 정보 수정
+export const updatePreference = async (preferenceData) => {
+  const token = localStorage.getItem("token");
+  const response = await api.put("/moodfit/preference", preferenceData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
 // 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default api; 
