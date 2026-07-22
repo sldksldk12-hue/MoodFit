@@ -7,9 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import ProductCard from "../components/product/ProductCard";
-import ProductGridSkeleton from "../components/common/loading/ProductGridSkeleton";
 import { getList } from "../services/api";
-import useLikedProductIds from "../hooks/useLikedProductIds";
 import "../assets/styles/product/ProductListPage.css";
 
 const ProductList = () => {
@@ -17,7 +15,6 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [sortType, setSortType] = useState("추천순");
   const [loading, setLoading] = useState(true);
-  const { likedProductIds } = useLikedProductIds();
 
   // Header가 화면에 보여줄 한글 이름을 group으로 전달합니다.
   const group = searchParams.get("group") || "상품";
@@ -106,15 +103,11 @@ const ProductList = () => {
       </section>
 
       {loading ? (
-        <ProductGridSkeleton count={8} />
+        <p className="product-list-message">상품을 불러오는 중입니다.</p>
       ) : filteredProducts.length > 0 ? (
         <section className="product-grid">
           {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              initialLiked={likedProductIds.has(Number(product.id))}
-            />
+            <ProductCard key={product.id} product={product} />
           ))}
         </section>
       ) : (

@@ -15,17 +15,15 @@
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { PlayCircle } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import ProductCard from '../components/product/ProductCard';
-import ProductGridSkeleton from '../components/common/loading/ProductGridSkeleton';
 import ChatPage from '../components/chat/ChatPage';
 import HeroContent from '../components/main/HeroContent';
 import WeatherCard from '../components/main/WeatherCard';
 import '../assets/styles/global.css';
 import '../assets/styles/main/MainPage.css';
 import { getList } from '../services/api';
-import useLikedProductIds from '../hooks/useLikedProductIds';
 import { closeMainChat } from '../store/slices/chatSlice';
 
 
@@ -47,42 +45,28 @@ const MainPage2 = () => {
     // chatMode: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [chatMode, setChatMode] = useState("full");
     // product: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [product, setProduct] = useState([]);
-    const [productsLoading, setProductsLoading] = useState(true);
-    const { likedProductIds } = useLikedProductIds();
-
-    // 정렬 결과는 상품이 바뀔 때만 다시 계산합니다.
-    const newestProducts = useMemo(
-        () => [...product].sort(
-            (a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)
-        ),
-        [product]
-    );
-
-    const bestProducts = useMemo(
-        () => [...product].sort(
-            (a, b) => Number(b.like_count ?? 0) - Number(a.like_count ?? 0)
-        ),
-        [product]
-    );
+    const [product, setProduct] = useState([
+        {
+            id: "mock-1",
+            product_name: "추천 패션 상품",
+            price: 29000,
+            image_url: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500&auto=format&fit=crop&q=60",
+            category: "로딩 중",
+            desc: "상품 목록을 불러오고 있습니다..."
+        }
+    ])
+    const bestProducts = [...product]
+        .sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
 
     // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {
-        let cancelled = false;
-
-        // getList 내부 캐시 덕분에 다른 페이지에서 이미 받은 상품은 즉시 재사용합니다.
         getList()
-            .then((data) => {
-                if (!cancelled) {
-                    setProduct(Array.isArray(data) ? data : []);
-                }
-            })
-            .catch((error) => {
-                console.error("메인 상품 조회 실패:", error);
-            })
-            .finally(() => {
-                if (!cancelled) setProductsLoading(false);
-            });
+            .then(data => {
+                console.log(data)
+                setProduct(data);
+            }
+            )
+        console.log(product)
         // handleScroll: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
         const handleScroll = () => {
             if (window.scrollY > 250) {
@@ -95,7 +79,6 @@ const MainPage2 = () => {
         window.addEventListener("scroll", handleScroll);
 
         return () => {
-            cancelled = true;
             window.removeEventListener("scroll", handleScroll);
         };
     }, []);
@@ -134,7 +117,7 @@ const MainPage2 = () => {
                     <div className="banner-grid">
                         {banners.map((banner) => (
                             <a href="#" className="event-banner" key={banner.title}>
-                                <img src={banner.image} alt={banner.title} loading="lazy" decoding="async" />
+                                <img src={banner.image} alt={banner.title} />
                                 <div>
                                     <h3>{banner.title}</h3>
                                     <p>{banner.desc}</p>
@@ -153,19 +136,22 @@ const MainPage2 = () => {
                         <a href="#">전체보기</a>
                     </div>
 
-                    {productsLoading ? (
-                        <ProductGridSkeleton count={8} />
-                    ) : (
-                        <div className="product-grid">
-                            {newestProducts.map((product) => (
-                                <ProductCard
-                                    product={product}
-                                    initialLiked={likedProductIds.has(Number(product.id))}
-                                    key={product.id}
-                                />
-                            ))}
-                        </div>
-                    )}
+                    <div className="product-grid">
+
+
+                            {[...product]
+                                .sort(
+                                    (a, b) =>
+                                        new Date(b.created_at) -
+                                        new Date(a.created_at)
+                                )
+                                .map((product) => (
+                                    <ProductCard
+                                        product={product}
+                                        key={product.id}
+                                    />
+                                ))}
+                    </div>
 
                 </section>
 
@@ -189,19 +175,14 @@ const MainPage2 = () => {
                             <p>금주의 베스트 아이템</p>
                         </div>
                     </div>
-                    {productsLoading ? (
-                        <ProductGridSkeleton count={8} />
-                    ) : (
-                        <div className="product-grid">
-                            {bestProducts.map((product) => (
-                                <ProductCard
-                                    product={product}
-                                    initialLiked={likedProductIds.has(Number(product.id))}
-                                    key={`best-${product.id}`}
-                                />
-                            ))}
-                        </div>
-                    )}
+                    <div className="product-grid">
+                        {bestProducts.map((product) => (
+                            <ProductCard
+                                product={product}
+                                key={`best-${product.id}`}
+                            />
+                        ))}
+                    </div>
                 </section>
 
                 <section className="trend-banner" id="sale">
