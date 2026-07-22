@@ -72,7 +72,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 def generate_gpt_product_options(product_name: str, category_name: str, brand: str) -> dict:
-    """GPT-4o-mini를 활용하여 상품에 딱 맞는 1:1 맞춤형 사이즈, 색상, 실측치수 JSON을 생성합니다."""
+    """GPT-4o-mini를 활용하여 상품에 딱 맞는 1:1 맞춤형 사이즈, 색상, 실측치수 및 상세스펙(소재, 핏, 계절, 제조국) JSON을 생성합니다."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
@@ -86,7 +86,7 @@ def generate_gpt_product_options(product_name: str, category_name: str, brand: s
         )
         
         system_prompt = """당신은 전문 패션 브랜드 MD입니다.
-주어진 상품명, 카테고리, 브랜드 정보를 분석하여 해당 상품에 가장 어울리는 현실적이고 고유한 상품 옵션을 JSON으로 생성하세요.
+주어진 상품명, 카테고리, 브랜드 정보를 분석하여 해당 상품에 가장 어울리는 현실적이고 고유한 상품 옵션 및 상세 스펙을 JSON으로 생성하세요.
 
 [요구 규칙]
 1. `sizes`: 해당 상품의 카테고리/특성에 부합하는 선택 가능한 사이즈 목록 (배열)
@@ -101,6 +101,11 @@ def generate_gpt_product_options(product_name: str, category_name: str, brand: s
    - 신발 키값: size, foot_length (발길이), foot_width (발볼), heel_height (굽높이)
    - 모자/액세서리 키값: size, head_circumference (둘레), depth (깊이), brim_length (챙길이)
    - 상품의 핏(오버핏, 크롭, 와이드, 슬림) 특성을 수치에 자연스럽게 반영하세요.
+4. `specs`: 해당 상품의 상세 정보 4가지 항목 (객체)
+   - `material`: 소재 (예: "나일론 100%, 고어텍스 방수 원단", "면 100%, 20수 싱글원단", "데님, 면 98% 스판 2%")
+   - `fit`: 핏 (예: "오버핏", "레귤러 핏", "슬림 핏", "와이드 핏", "크롭 핏")
+   - `season`: 계절 (예: "봄 / 가을", "여름", "겨울", "사계절")
+   - `country`: 제조국 (예: "대한민국", "베트남", "중국", "인도네시아")
 
 JSON 출력 형식:
 {
@@ -108,7 +113,13 @@ JSON 출력 형식:
   "colors": ["..."],
   "measurements": [
     { ... }
-  ]
+  ],
+  "specs": {
+    "material": "...",
+    "fit": "...",
+    "season": "...",
+    "country": "..."
+  }
 }
 """
 
@@ -127,7 +138,7 @@ JSON 출력 형식:
 
 
 def seed_initial_product_options(db: Session, force_reseed: bool = False):
-    """모든 상품에 대해 GPT-4o-mini로 1:1 맞춤형 고유 옵션(사이즈, 색상, 실측치수)을 생성하여 적재합니다."""
+    """모든 상품에 대해 GPT-4o-mini로 1:1 맞춤형 고유 옵션(사이즈, 색상, 실측치수, 상세스펙)을 생성하여 적재합니다."""
     try:
         if force_reseed:
             db.query(ProductOption).delete()
@@ -145,19 +156,21 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False):
                     if cat:
                         category_name = cat.category_name
                 
-                # 1. GPT 1:1 옵션 생성 시도
+                # 1. GPT 1:1 옵션 및 상세스펙 생성 시도
                 gpt_data = generate_gpt_product_options(
                     product_name=product.product_name,
                     category_name=category_name,
                     brand=product.brand
                 )
                 
+                specs = None
                 if gpt_data and "sizes" in gpt_data and "colors" in gpt_data and "measurements" in gpt_data:
                     sizes = gpt_data["sizes"]
                     colors = gpt_data["colors"]
                     measurements = gpt_data["measurements"]
+                    specs = gpt_data.get("specs")
                 else:
-                    # Fallback rules if GPT is unavailable
+                    # 데이터 생성 실패 시, 카테고리 기반 기본 옵션 생성
                     cat_id = product.category_id or 0
                     name = product.product_name.lower()
                     is_shoes = cat_id in [405, 406, 407, 408, 409] or any(k in name for k in ["스니커즈", "구두", "부츠", "신발", "운동화", "샌들", "슬리퍼", "단화", "로퍼", "워커"])
@@ -168,18 +181,25 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False):
                         sizes = ["250", "255", "260", "265", "270", "275", "280"]
                         colors = ["블랙", "화이트", "아이보리", "믹스"]
                         measurements = [{"size": "260", "foot_length": 26.0, "foot_width": 9.8, "heel_height": 3.5}]
+                        specs = {"material": "천연가죽, 합성고무", "fit": "레귤러 핏", "season": "사계절", "country": "베트남"}
                     elif is_hat:
                         sizes = ["FREE"]
                         colors = ["블랙", "네이비", "베이지", "카키", "화이트"]
                         measurements = [{"size": "FREE", "head_circumference": 58, "depth": 16, "brim_length": 7.5}]
+                        specs = {"material": "면 100%", "fit": "FREE 핏", "season": "사계절", "country": "대한민국"}
                     elif is_pants:
                         sizes = ["28(S)", "30(M)", "32(L)", "34(XL)"]
                         colors = ["중청", "연청", "진청", "블랙", "크림"]
                         measurements = [{"size": "30(M)", "waist": 38.5, "rise": 27, "thigh": 29.5, "length": 100}]
+                        specs = {"material": "데님, 면 98% 스판 2%", "fit": "와이드 핏", "season": "봄 / 가을", "country": "대한민국"}
                     else:
                         sizes = ["95(S)", "100(M)", "105(L)", "110(XL)"]
                         colors = ["블랙", "화이트", "그레이", "네이비", "베이지"]
                         measurements = [{"size": "100(M)", "shoulder": 48, "chest": 53, "sleeve": 62, "length": 69}]
+                        specs = {"material": "면 100%", "fit": "오버핏", "season": "봄 / 가을", "country": "대한민국"}
+
+                if not specs:
+                    specs = {"material": "상세설명 참조", "fit": "레귤러 핏", "season": "사계절", "country": "대한민국"}
 
                 size_option = ProductOption(
                     product_id=product.id,
@@ -199,8 +219,14 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False):
                     option_values=measurements,
                     is_required=0
                 )
-                db.add_all([size_option, color_option, measurement_option])
-                created_count += 3
+                spec_option = ProductOption(
+                    product_id=product.id,
+                    option_name="상세스펙",
+                    option_values=specs,
+                    is_required=0
+                )
+                db.add_all([size_option, color_option, measurement_option, spec_option])
+                created_count += 4
                 
         if created_count > 0 or force_reseed:
             db.commit()

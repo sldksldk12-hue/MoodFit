@@ -30,6 +30,11 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
         safe_content = product.product_content if product.product_content else fallback_content
         
         options_data = []
+        material = "상세설명 참조"
+        fit = "레귤러 핏"
+        season = "사계절"
+        country = "대한민국"
+
         if not product.options:
             from app.domains.product.service import seed_initial_product_options
             seed_initial_product_options(db)
@@ -37,12 +42,18 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
 
         if product.options:
             for opt in product.options:
-                options_data.append({
-                    "id": opt.id,
-                    "option_name": opt.option_name,
-                    "option_values": opt.option_values,
-                    "is_required": opt.is_required
-                })
+                if opt.option_name == "상세스펙" and isinstance(opt.option_values, dict):
+                    material = opt.option_values.get("material", material)
+                    fit = opt.option_values.get("fit", fit)
+                    season = opt.option_values.get("season", season)
+                    country = opt.option_values.get("country", country)
+                else:
+                    options_data.append({
+                        "id": opt.id,
+                        "option_name": opt.option_name,
+                        "option_values": opt.option_values,
+                        "is_required": opt.is_required
+                    })
         
         return {
             "status": "success",
@@ -57,6 +68,10 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
                 "images": product.image_url if isinstance(product.image_url, list) else [product.image_url],
                 "purchase_link": product.purchase_link,
                 "product_content": safe_content,  # UI에 직접 삽입 가능한 안전한 데이터 추가
+                "material": material,
+                "fit": fit,
+                "season": season,
+                "country": country,
                 "gender_target": product.gender_target,
                 "inventory": product.inventory,
                 "average_rating": float(product.average_rating),
