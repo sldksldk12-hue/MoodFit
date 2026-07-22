@@ -34,7 +34,7 @@ const LoginPage = () => {
   const { login } = useAuth();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || "/";
+  const from = location.state?.from?.pathname || "/moodfit";
 
 
 

@@ -96,7 +96,7 @@ const PreferencePage = () => {
         try {
             await updatePreference(requestData);
             alert("취향 저장에 성공하였습니다.");
-            navigate("/"); // 저장 성공 시 메인 화면으로 리다이렉트
+            navigate("/moodfit"); // 저장 성공 시 메인 화면으로 리다이렉트
         } catch (err) {
             console.error("취향 정보 저장 실패:", err);
             alert("취향 저장 중 오류가 발생했습니다.");
