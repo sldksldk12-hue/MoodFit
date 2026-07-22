@@ -7,9 +7,14 @@ from dotenv import load_dotenv
 # 분리한 라우터들을 가져오기
 from app.api import chat, product, external, cart, auth, tour, like, order, history, inquiry, review
 from app.domains.ai_chat.rag_service import RagsFashionService
-from app.models.models import ProductCategory
+# Base와 DB engine 임포트 추가 (모든 모델을 인식하도록 models 자체를 가져오는 것이 안전)
+from app.models import models 
+from app.db.database import engine, SessionLocal
 
 load_dotenv()
+
+# DB 테이블 자동 생성 코드 추가: 누락된 테이블을 서버 구동 시 자동 생성
+models.Base.metadata.create_all(bind=engine)
 
 ml_models = {}
 rag_service = None 
@@ -28,7 +33,6 @@ async def lifespan(app: FastAPI):
         print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
         
         # 카테고리 자동 적재 (Service 모듈의 함수 호출)
-        from app.db.database import SessionLocal
         from app.domains.product.service import seed_initial_categories
         db = SessionLocal()
         try:
