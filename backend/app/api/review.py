@@ -78,3 +78,59 @@ def get_product_reviews(product_id: int, db: Session = Depends(get_db)):
         return reviews
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"리뷰 목록 조회 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/user/{user_id}")
+def get_user_reviews(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    특정 사용자가 작성한 리뷰를 최신순으로 조회합니다.
+    상품 정보를 함께 반환하여 마이페이지에서 사용할 수 있게 합니다.
+    """
+    try:
+        results = (
+            db.query(ProductReview, Product)
+            .join(
+                OrderItem,
+                OrderItem.id == ProductReview.order_item_id
+            )
+            .join(
+                Product,
+                Product.id == OrderItem.product_id
+            )
+            .filter(
+                ProductReview.user_id == user_id
+            )
+            .order_by(
+                ProductReview.created_at.desc()
+            )
+            .all()
+        )
+
+        review_list = []
+
+        for review, product in results:
+            review_list.append({
+                "id": review.id,
+                "user_id": review.user_id,
+                "product_id": product.id,
+
+                "order_item_id": review.order_item_id,
+                "rating": review.rating,
+                "content": review.content,
+                "image_url": review.image_url,
+                "created_at": review.created_at,
+
+                # 상품 정보
+                "product_name": product.product_name,
+                "brand": product.brand,
+            })
+
+        return review_list
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"내 리뷰 조회 중 오류가 발생했습니다: {str(e)}"
+        )

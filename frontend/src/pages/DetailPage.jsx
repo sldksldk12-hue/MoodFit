@@ -18,12 +18,14 @@ import ProductDescription from "../components/detail/ProductDescription";
 import ProductReview from "../components/detail/ProductReview";
 import ProductQna from "../components/detail/ProductQna";
 
-import { getDetail } from "../services/api";
+import { getDetail, addProductHistory } from "../services/api";
 
 import useAddToCart from "../hooks/useAddToCart";
 import useProductLike from "../hooks/useProductLike";
 
 import "../assets/styles/detail/DetailPage.css";
+import { useAuth } from "../store/AuthContext";
+
 
 const initialProduct = {
   id: null,
@@ -44,6 +46,7 @@ const initialProduct = {
 const DetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [tab, setTab] = useState("desc");
   const [size, setSize] = useState("M");
@@ -135,6 +138,27 @@ const DetailPage = () => {
 
     fetchProduct();
   }, [id]);
+  /*
+ * 최근 본 상품 기록
+ *
+ * 로그인한 사용자가 상품 상세페이지에 들어오면
+ * 해당 상품을 최근 본 상품 목록에 저장합니다.
+ */
+  useEffect(() => {
+    if (!user?.id || !id) return;
+
+    const saveProductHistory = async () => {
+      try {
+        await addProductHistory(user.id, id);
+      } catch (err) {
+        // 최근 본 상품 저장 실패가 상세페이지 이용을 막으면 안 되므로
+        // 화면에는 오류를 표시하지 않고 콘솔에만 기록합니다.
+        console.error("최근 본 상품 기록 실패:", err);
+      }
+    };
+
+    saveProductHistory();
+  }, [user?.id, id]);
   const {
     liked,
     likeCount,
@@ -206,19 +230,50 @@ const DetailPage = () => {
    * 장바구니 DB 저장에 성공한 경우에만
    * 장바구니 페이지로 이동합니다.
    */
-  const handleBuyNow = async () => {
-    if (product.inventory <= 0) {
-      alert("품절된 상품입니다.");
-      return;
-    }
+const handleBuyNow = () => {
+  if (!user?.id) {
+    navigate("/moodfit/login", {
+      state: {
+        from: `/moodfit/detail/${product.id}`,
+      },
+    });
+    return;
+  }
 
-    const success =
-      await handleAddCart();
+  if (product.inventory <= 0) {
+    alert("품절된 상품입니다.");
+    return;
+  }
 
-    if (success) {
-      navigate("/moodfit/cart");
-    }
+  /*
+   * 결제페이지에 필요한 상품 정보를 상세페이지에서 직접 전달합니다.
+   * 새 결제 진입마다 새로운 checkoutId가 생성되므로
+   * 이전에 결제하지 않은 상품 정보와 섞이지 않습니다.
+   */
+  const checkoutData = {
+    checkoutId: crypto.randomUUID(),
+    checkoutType: "direct",
+    returnPath: `/moodfit/detail/${product.id}`,
+    checkoutItems: [
+      {
+        source: "direct",
+        cartItemId: null,
+        productId: product.id,
+        name: product.name,
+        image: mainImage,
+        price: Number(salePrice),
+        quantity: Number(quantity),
+        inventory: Number(product.inventory ?? 0),
+        selectedSize: size,
+        selectedColor: "기본",
+      },
+    ],
   };
+
+  navigate("/moodfit/payment", {
+    state: checkoutData,
+  });
+};
 
   if (loading) {
     return (
@@ -473,6 +528,7 @@ const DetailPage = () => {
           {tab === "review" && (
             <ProductReview
               productId={product.id}
+              userId={user?.id}
             />
           )}
 

@@ -536,19 +536,26 @@ const CartPage = () => {
                 disabled={
                   cartItems.length === 0
                 }
-                onClick={() =>
-                  navigate(
-                    "/moodfit/payment",
-                    {
-                      state: {
-                        cartItems,
-                        totalPrice,
-                        deliveryFee,
-                        finalPrice,
-                      },
-                    }
-                  )
-                }
+                onClick={() => {
+                  /*
+                   * 장바구니의 현재 모든 상품을 결제페이지로 전달합니다.
+                   * 결제페이지에서 수량을 바꾸거나 상품을 빼더라도
+                   * 실제 장바구니 DB는 주문 완료 전까지 변경하지 않습니다.
+                   */
+                  const checkoutData = {
+                    checkoutId: crypto.randomUUID(),
+                    checkoutType: "cart",
+                    returnPath: "/moodfit/cart",
+                    checkoutItems: cartItems.map((item) => ({
+                      ...item,
+                      source: "cart",
+                    })),
+                  };
+
+                  navigate("/moodfit/payment", {
+                    state: checkoutData,
+                  });
+                }}
               >
                 주문하기
               </button>

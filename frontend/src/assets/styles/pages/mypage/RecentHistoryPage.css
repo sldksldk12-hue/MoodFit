@@ -1,0 +1,121 @@
+.recent-history-page {
+  min-height: 100vh;
+  padding: 60px 24px 100px;
+  background: #f7f8fa;
+}
+
+.recent-history-container {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.recent-history-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 32px;
+  padding: 26px 28px;
+  border: 1px solid #eaecf0;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.recent-history-back {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: #272b33;
+  border: 1px solid #e3e5e9;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.recent-history-back:hover {
+  background: #f3f4f6;
+  transform: translateX(-2px);
+}
+
+.recent-history-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.recent-history-title h1 {
+  margin: 0;
+  color: #171a20;
+  font-size: 28px;
+}
+
+.recent-history-header p {
+  margin: 8px 0 0;
+  color: #858b96;
+  font-size: 14px;
+}
+
+.recent-history-count {
+  padding: 8px 13px;
+  color: #555c68;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #f1f3f5;
+}
+
+.recent-history-status {
+  width: min(600px, 100%);
+  margin: 80px auto;
+  padding: 55px 30px;
+  text-align: center;
+  color: #737985;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  background: #fff;
+}
+
+.recent-history-status h1 {
+  margin: 0 0 12px;
+  color: #1f232b;
+}
+
+.recent-history-status button {
+  margin-top: 20px;
+  padding: 12px 20px;
+  color: #fff;
+  font-weight: 700;
+  border: 0;
+  border-radius: 12px;
+  background: #111827;
+  cursor: pointer;
+}
+
+.recent-history-error {
+  color: #d14343;
+}
+
+@media (max-width: 720px) {
+  .recent-history-page {
+    padding: 30px 16px 70px;
+  }
+
+  .recent-history-header {
+    grid-template-columns: auto 1fr;
+    padding: 20px;
+  }
+
+  .recent-history-count {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .recent-history-title h1 {
+    font-size: 23px;
+  }
+}

@@ -30,10 +30,12 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const MyPage = lazy(() => import("./pages/MyPage"));
 const PreferencePage = lazy(() => import("./pages/PreferencePage"));
 const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const OrderHistoryPage = lazy(() => import("./pages/OrderHistoryPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 import { AuthProvider } from "./store/AuthContext";
 import ProtectedRoute from "./components/common/route/ProtectedRoute";
 import ScrollToTop from "./components/common/ScrollToTop";
+import RecentHistoryPage from "./pages/RecentHistoryPage";
 
 /**
  * Moodfit 컴포넌트
@@ -44,11 +46,11 @@ const Moodfit = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-          <ScrollToTop />
-          <Header />
+        <ScrollToTop />
+        <Header />
 
-          {/* 페이지 코드는 해당 경로에 처음 방문할 때만 다운로드합니다. */}
-          <Suspense fallback={<main style={{ minHeight: "60vh", padding: "80px", textAlign: "center" }}>페이지를 불러오는 중입니다.</main>}>
+        {/* 페이지 코드는 해당 경로에 처음 방문할 때만 다운로드합니다. */}
+        <Suspense fallback={<main style={{ minHeight: "60vh", padding: "80px", textAlign: "center" }}>페이지를 불러오는 중입니다.</main>}>
           <Routes>
             <Route path="/moodfit" element={<MainPage2 />} />
             <Route path="/moodfit/detail/:id" element={<DetailPage />} />
@@ -67,12 +69,22 @@ const Moodfit = () => {
             />
             <Route path="/moodfit/preference" element={<PreferencePage />} />
             <Route path="/moodfit/payment" element={<PaymentPage />} />
+            <Route
+              path="/moodfit/orders"
+              element={
+                <ProtectedRoute>
+                  <OrderHistoryPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/moodfit/admin" element={<AdminPage />} />
+            <Route path="/moodfit/history" element={<RecentHistoryPage />}
+            />
           </Routes>
-          </Suspense>
+        </Suspense>
 
-          <ChatBot />
-          <Footer />
+        <ChatBot />
+        <Footer />
       </BrowserRouter>
     </AuthProvider>
   );

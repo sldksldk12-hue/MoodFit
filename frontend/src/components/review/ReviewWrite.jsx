@@ -1,83 +1,156 @@
-/**
- * 파일: src/components/review/ReviewWrite.jsx
- * 분류: 리뷰 기능 컴포넌트
- *
- * 역할
- * - 별점·본문·이미지를 조합해 리뷰 작성 폼을 구성합니다.
- *
- * 사용 기술
- * - 폼 상태 관리, 하위 컴포넌트 조합
- *
- * 이 구조를 사용한 이유
- * - 페이지에서 반복되는 UI와 상태 로직을 파일 단위로 분리해 수정 범위를 줄입니다.
- * - 기능별 하위 폴더와 동일한 CSS 구조를 사용해 관련 파일을 쉽게 찾을 수 있습니다.
- * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
- */
-// 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { useState } from "react";
-import RatingStars from "../review/RatingStars";
-import ReviewTextarea from "../review/ReviewTextarea";
-import ReviewImageUpload from "../review/ReviewImageUpload";
+import { useEffect, useState } from "react";
+import RatingStars from "./RatingStars";
 import "../../assets/styles/review/ReviewWrite.css";
 
-/**
- * ReviewWrite 컴포넌트
- * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
- */
-const ReviewWrite = ({ onSubmit }) => {
-    // rating: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [rating, setRating] = useState(5);
-    // content: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [content, setContent] = useState("");
-    // image: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [image, setImage] = useState(null);
+const ReviewWrite = ({
+  userId,
+  productId,
+  initialOrderItemId = "",
+  submitting = false,
+  onSubmit,
+  onCancel,
+}) => {
+  const [rating, setRating] = useState(5);
+  const [content, setContent] = useState("");
+  const [orderItemId, setOrderItemId] =
+    useState(initialOrderItemId);
+  const [imageUrl, setImageUrl] =
+    useState("");
 
-    // submitReview: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
-    const submitReview = (e) => {
-        e.preventDefault();
+  useEffect(() => {
+    setOrderItemId(initialOrderItemId || "");
+  }, [initialOrderItemId]);
 
-        if (content.trim() === "") {
-            alert("리뷰를 작성해주세요.");
-            return;
-        }
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-        const reviewData = {
-            rating,
-            content,
-            image,
-        };
+    if (!userId || !productId) {
+      alert("로그인과 상품 정보가 필요합니다.");
+      return;
+    }
 
-        onSubmit?.(reviewData);
+    if (
+      !orderItemId ||
+      Number(orderItemId) <= 0
+    ) {
+      alert(
+        "구매 이력을 확인할 수 없습니다."
+      );
+      return;
+    }
 
-        alert("리뷰가 등록되었습니다.");
-    };
+    if (!content.trim()) {
+      alert("리뷰 내용을 입력해주세요.");
+      return;
+    }
 
-    // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
-    return (
-        <form className="review-write" onSubmit={submitReview}>
-            <h2>리뷰 작성</h2>
+    const success = await onSubmit?.({
+      userId,
+      productId,
+      orderItemId,
+      rating,
+      content,
+      imageUrl,
+    });
 
-            <RatingStars
-                rating={rating}
-                setRating={setRating}
-            />
+    if (success) {
+      setRating(5);
+      setContent("");
+      setImageUrl("");
+    }
+  };
 
-            <ReviewTextarea
-                content={content}
-                setContent={setContent}
-            />
+  return (
+    <form
+      className="review-write"
+      onSubmit={handleSubmit}
+    >
+      <div className="review-write-heading">
+        <div>
+          <span>WRITE A REVIEW</span>
+          <h3>리뷰 작성</h3>
+        </div>
 
-            <ReviewImageUpload
-                image={image}
-                setImage={setImage}
-            />
+        <p>
+          구매한 상품에 대한 경험을
+          남겨주세요.
+        </p>
+      </div>
 
-            <button type="submit" className="review-submit-btn">
-                리뷰 등록
-            </button>
-        </form>
-    );
+      <div className="review-field">
+        <label>별점</label>
+        <RatingStars
+          rating={rating}
+          onChange={setRating}
+        />
+      </div>
+
+      <div className="review-purchase-confirmed">
+        구매 이력이 확인되었습니다.
+      </div>
+
+      <div className="review-field">
+        <label htmlFor="review-content">
+          리뷰 내용
+        </label>
+
+        <textarea
+          id="review-content"
+          className="review-textarea"
+          value={content}
+          onChange={(event) =>
+            setContent(event.target.value)
+          }
+          placeholder="상품은 어떠셨나요?"
+          maxLength={1000}
+          disabled={submitting}
+        />
+
+        <span className="review-character-count">
+          {content.length}/1000
+        </span>
+      </div>
+
+      <div className="review-field">
+        <label htmlFor="review-image-url">
+          이미지 URL
+          <small> 선택사항</small>
+        </label>
+
+        <input
+          id="review-image-url"
+          type="url"
+          value={imageUrl}
+          onChange={(event) =>
+            setImageUrl(event.target.value)
+          }
+          placeholder="https://example.com/image.jpg"
+          disabled={submitting}
+        />
+      </div>
+
+      <div className="review-write-actions">
+        <button
+          type="button"
+          className="review-cancel-btn"
+          onClick={onCancel}
+          disabled={submitting}
+        >
+          취소
+        </button>
+
+        <button
+          type="submit"
+          className="review-submit-btn"
+          disabled={submitting}
+        >
+          {submitting
+            ? "등록 중..."
+            : "리뷰 등록"}
+        </button>
+      </div>
+    </form>
+  );
 };
 
-// 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
 export default ReviewWrite;

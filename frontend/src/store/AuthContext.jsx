@@ -59,7 +59,9 @@ export const AuthProvider = ({ children }) => {
 
   // 로그인 확인이 끝났는지 나타내는 상태
   // 초기값 true인 이유는 앱 시작 직후 토큰 검사를 진행하기 때문이다.
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() =>
+    Boolean(localStorage.getItem("token"))
+  );
 
   /*
     저장된 토큰으로 로그인 상태 확인
@@ -103,9 +105,37 @@ export const AuthProvider = ({ children }) => {
     빈 배열 []을 넣었기 때문에 최초 렌더링 이후 한 번만 실행된다.
     새로고침을 해도 localStorage 토큰으로 로그인 상태를 복구한다.
   */
-  // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
+  // 앱이 처음 실행될 때 저장된 토큰이 있는 경우에만 로그인 정보를 복구합니다.
+  // 상태 변경은 Promise 콜백에서 처리하여 effect 본문에서 동기적으로 setState를 호출하지 않습니다.
   useEffect(() => {
-    checkLogin();
+    const token = localStorage.getItem("token");
+
+    if (!token) return undefined;
+
+    let isCancelled = false;
+
+    getMe()
+      .then((response) => {
+        if (!isCancelled) {
+          setUser(response.data);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+
+        if (!isCancelled) {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   /*

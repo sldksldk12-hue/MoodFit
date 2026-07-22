@@ -250,3 +250,84 @@ export const createReview = async (reviewData) => {
 
   return response.data;
 };
+
+// ===========================
+// 배송지
+// ===========================
+
+// 사용자의 저장된 배송지 목록 조회
+export const getUserAddresses = async (userId) => {
+  const response = await api.get(`/api/addresses/user/${userId}`);
+  return response.data;
+};
+
+// 배송지 추가
+export const createAddress = async (addressData) => {
+  const response = await api.post("/api/addresses/", {
+    user_id: Number(addressData.userId),
+    receiver_name: addressData.receiverName.trim(),
+    call_number: addressData.callNumber.trim(),
+    user_address: addressData.userAddress.trim(),
+    zip_code: addressData.zipCode.trim(),
+    address_detail: addressData.addressDetail.trim(),
+    delivery_request: addressData.deliveryRequest?.trim() || null,
+    is_default: Boolean(addressData.isDefault),
+  });
+
+  return response.data;
+};
+
+// ===========================
+// 주문
+// ===========================
+
+// 주문 생성
+export const createOrder = async ({
+  userId,
+  addressId,
+  addressInfo,
+  selectedOrder,
+  items,
+}) => {
+  const payload = {
+    user_id: Number(userId),
+    address_id: addressId ? Number(addressId) : null,
+    address_info: addressId
+      ? null
+      : {
+          receiver_name: addressInfo.receiverName.trim(),
+          call_number: addressInfo.callNumber.trim(),
+          user_address: addressInfo.userAddress.trim(),
+          zip_code: addressInfo.zipCode.trim(),
+          address_detail: addressInfo.addressDetail.trim(),
+          delivery_request:
+            addressInfo.deliveryRequest?.trim() || null,
+        },
+    selected_order: selectedOrder,
+    items: items.map((item) => ({
+      product_id: Number(item.productId),
+      quantity: Number(item.quantity),
+      selected_size: item.selectedSize || "FREE",
+      selected_color: item.selectedColor || "기본",
+    })),
+  };
+
+  const response = await api.post("/api/orders/", payload);
+
+  invalidateRequestCache(`cart:${userId}`);
+  invalidateRequestCache(`orders:${userId}`);
+
+  return response.data;
+};
+
+// 사용자 주문 목록 조회
+export const getUserOrders = async (userId) => {
+  const response = await api.get(`/api/orders/user/${userId}`);
+  return response.data;
+};
+
+// 단일 주문 상세 조회
+export const getOrderDetail = async (orderId) => {
+  const response = await api.get(`/api/orders/${orderId}`);
+  return response.data;
+};

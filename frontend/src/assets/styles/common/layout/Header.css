@@ -208,3 +208,50 @@
   line-height: 18px;
   text-align: center;
 }
+.main-nav {
+  display: flex;
+  gap: 28px;
+  font-weight: 600;
+}
+
+/* 기본 링크 스타일 */
+.main-nav a {
+  position: relative;
+  color: #222;
+  text-decoration: none;
+  outline: none;
+  transition: color 0.2s ease;
+}
+
+/* 이미 방문했던 링크도 기본 색 유지 */
+.main-nav a:visited {
+  color: #222;
+  text-decoration: none;
+}
+
+/* 마우스를 올렸을 때 */
+.main-nav a:hover {
+  color: #2d8cff;
+  text-decoration: none;
+}
+
+/* 클릭하는 순간 */
+.main-nav a:active {
+  color: #2d8cff;
+  text-decoration: none;
+}
+
+/* 키보드나 마우스로 포커스됐을 때 */
+.main-nav a:focus {
+  color: #222;
+  text-decoration: none;
+  outline: none;
+}
+
+/* 키보드 접근성용 포커스 표시 */
+.main-nav a:focus-visible {
+  color: #2d8cff;
+  outline: 2px solid rgba(45, 140, 255, 0.35);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
