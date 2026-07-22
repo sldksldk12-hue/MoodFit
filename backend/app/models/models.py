@@ -484,6 +484,9 @@ class ProductReview(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="리뷰 작성 일시"
     )
+    product_id: Mapped[int] = mapped_column(Integer,ForeignKey("products.id", ondelete="CASCADE"),nullable=False,
+    comment="상품 일련번호"
+)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="reviews")
