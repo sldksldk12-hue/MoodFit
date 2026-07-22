@@ -43,7 +43,7 @@ const ProductDescription = ({ product }) => {
             key={index}
             src={img}
             alt={product.product_name}
-          />
+           loading="lazy" decoding="async" />
         ))}
 
       </div>

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -69,6 +70,8 @@ const ProductCard = ({ product }) => {
             src={product.image_url || null}
             alt={product.product_name}
             className="product-image"
+            loading="lazy"
+            decoding="async"
           />
         </Link>
 
@@ -128,4 +131,5 @@ const ProductCard = ({ product }) => {
   );
 };
 
-export default ProductCard;
+// 같은 props라면 카드 전체가 불필요하게 다시 렌더링되지 않습니다.
+export default memo(ProductCard);

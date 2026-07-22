@@ -14,22 +14,23 @@
  * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import LoginPage from "./pages/LoginPage";
-import MainPage2 from "./pages/MainPage2";
-import DetailPage from "./pages/DetailPage";
-import CartPage from "./pages/CartPage";
-import ProductListPage from "./pages/ProductList";
-import RecomendList from "./pages/RecomendList";
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const MainPage2 = lazy(() => import("./pages/MainPage2"));
+const DetailPage = lazy(() => import("./pages/DetailPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const ProductListPage = lazy(() => import("./pages/ProductList"));
+const RecomendList = lazy(() => import("./pages/RecomendList"));
 import ChatBot from "./components/chat/ChatBot";
 import Header from "./components/common/layout/header/Header";
 import Footer from "./components/common/layout/Footer";
-import RegisterPage from "./pages/RegisterPage";
-import MyPage from "./pages/MyPage";
-import PreferencePage from "./pages/PreferencePage";
-import PaymentPage from "./pages/PaymentPage";
-import AdminPage from "./pages/AdminPage";
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const MyPage = lazy(() => import("./pages/MyPage"));
+const PreferencePage = lazy(() => import("./pages/PreferencePage"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 import { AuthProvider } from "./store/AuthContext";
 import ProtectedRoute from "./components/common/route/ProtectedRoute";
 import ScrollToTop from "./components/common/ScrollToTop";
@@ -46,6 +47,8 @@ const Moodfit = () => {
           <ScrollToTop />
           <Header />
 
+          {/* 페이지 코드는 해당 경로에 처음 방문할 때만 다운로드합니다. */}
+          <Suspense fallback={<main style={{ minHeight: "60vh", padding: "80px", textAlign: "center" }}>페이지를 불러오는 중입니다.</main>}>
           <Routes>
             <Route path="/moodfit" element={<MainPage2 />} />
             <Route path="/moodfit/detail/:id" element={<DetailPage />} />
@@ -66,6 +69,7 @@ const Moodfit = () => {
             <Route path="/moodfit/payment" element={<PaymentPage />} />
             <Route path="/moodfit/admin" element={<AdminPage />} />
           </Routes>
+          </Suspense>
 
           <ChatBot />
           <Footer />

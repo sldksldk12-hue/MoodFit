@@ -15,6 +15,7 @@
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import axios from "axios";
+import { getCachedRequest, invalidateRequestCache } from "./requestCache";
 
 const BASE_URL = "http://127.0.0.1:8000";
 
@@ -24,17 +25,12 @@ const api = axios.create({
     "Content-Type": "application/json;charset=utf-8",
   },
 });
-export const getFestival = async () => {
-  const response = await api.get("/api/festival");
-
-  console.log("백엔드 응답 전체:", response.data);
-
-  if (response.data.error) {
-    throw new Error(response.data.error);
-  }
-
-  return response.data.data ?? [];
-};
+export const getFestival = () =>
+  getCachedRequest("festival", async () => {
+    const response = await api.get("/api/festival");
+    if (response.data.error) throw new Error(response.data.error);
+    return response.data.data ?? [];
+  }, 30 * 60 * 1000);
 //chat
 // chat
 export const chatStart = async ({
@@ -66,20 +62,23 @@ export const chatStart = async ({
   return response.data;
 };
 //날씨
-export const getWeather = async () => {
-  const response = await api.get("/api/weather");
-  return response.data;
-};
+export const getWeather = () =>
+  getCachedRequest("weather", async () => {
+    const response = await api.get("/api/weather");
+    return response.data;
+  }, 10 * 60 * 1000);
 
-export const getList = async () => {
-  const response = await api.get("/api/products");
-  return response.data;
-};
+export const getList = () =>
+  getCachedRequest("products:list", async () => {
+    const response = await api.get("/api/products");
+    return response.data;
+  }, 5 * 60 * 1000);
 //상세페이지
-export const getDetail = async (id) => {
-  const response = await api.get(`/api/products/${id}`);
-  return response.data;
-};
+export const getDetail = (id) =>
+  getCachedRequest(`products:detail:${id}`, async () => {
+    const response = await api.get(`/api/products/${id}`);
+    return response.data;
+  }, 5 * 60 * 1000);
 const notifyCartUpdated = () => {
   window.dispatchEvent(
     new CustomEvent("cart-updated")
@@ -87,13 +86,15 @@ const notifyCartUpdated = () => {
 };
 
 //장바구니 조회
-export const getCartItems = async (userId) => {
-  const response = await api.get(`/api/cart/${userId}`);
-  return response.data;
-};
+export const getCartItems = (userId) =>
+  getCachedRequest(`cart:${userId}`, async () => {
+    const response = await api.get(`/api/cart/${userId}`);
+    return response.data;
+  }, 30 * 1000);
 //장바구니 추가
 export const addCartItem = async (data) => {
   const response = await api.post("/api/cart/", data);
+  invalidateRequestCache("cart:");
   notifyCartUpdated();
   return response.data;
 };
@@ -107,6 +108,7 @@ export const updateCartItemQuantity = async (
     user_id: Number(userId),
     quantity: Number(quantity),
   });
+  invalidateRequestCache("cart:");
   notifyCartUpdated();
 
   return response.data;
@@ -116,6 +118,7 @@ export const deleteCartItem = async (cartItemId, userId) => {
   const response = await api.delete(`/api/cart/${cartItemId}`, {
     params: { user_id: userId },
   });
+  invalidateRequestCache("cart:");
   notifyCartUpdated();
 
   return response.data;
@@ -170,13 +173,15 @@ export const toggleLike = async (userId, productId) => {
     user_id: Number(userId),
     product_id: Number(productId),
   });
-
+  invalidateRequestCache(`likes:${userId}`);
+  invalidateRequestCache(`products:detail:${productId}`);
+  invalidateRequestCache("products:list");
   return response.data;
 };
 
 // 내가 찜한 상품 목록 조회
-export const getUserLikes = async (userId) => {
-  const response = await api.get(`/api/likes/${userId}`);
-
-  return response.data;
-};
+export const getUserLikes = (userId) =>
+  getCachedRequest(`likes:${userId}`, async () => {
+    const response = await api.get(`/api/likes/${userId}`);
+    return response.data;
+  }, 5 * 60 * 1000);

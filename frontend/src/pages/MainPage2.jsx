@@ -15,9 +15,10 @@
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { PlayCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import ProductCard from '../components/product/ProductCard';
+import ProductGridSkeleton from '../components/product/ProductGridSkeleton';
 import ChatPage from '../components/chat/ChatPage';
 import HeroContent from '../components/main/HeroContent';
 import WeatherCard from '../components/main/WeatherCard';
@@ -45,28 +46,23 @@ const MainPage2 = () => {
     // chatMode: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [chatMode, setChatMode] = useState("full");
     // product: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
-    const [product, setProduct] = useState([
-        {
-            id: "mock-1",
-            product_name: "추천 패션 상품",
-            price: 29000,
-            image_url: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=500&auto=format&fit=crop&q=60",
-            category: "로딩 중",
-            desc: "상품 목록을 불러오고 있습니다..."
-        }
-    ])
-    const bestProducts = [...product]
-        .sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+    const [product, setProduct] = useState([]);
+    const [productLoading, setProductLoading] = useState(true);
+
+    // 상품 데이터가 바뀔 때만 정렬하여 렌더링마다 sort가 반복되지 않게 합니다.
+    const newestProducts = useMemo(() => [...product].sort(
+        (a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)
+    ), [product]);
+    const bestProducts = useMemo(() => [...product].sort(
+        (a, b) => Number(b.like_count ?? 0) - Number(a.like_count ?? 0)
+    ), [product]);
 
     // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {
         getList()
-            .then(data => {
-                console.log(data)
-                setProduct(data);
-            }
-            )
-        console.log(product)
+            .then((data) => setProduct(Array.isArray(data) ? data : []))
+            .catch((error) => console.error("상품 목록 조회 실패:", error))
+            .finally(() => setProductLoading(false));
         // handleScroll: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
         const handleScroll = () => {
             if (window.scrollY > 250) {
@@ -117,7 +113,7 @@ const MainPage2 = () => {
                     <div className="banner-grid">
                         {banners.map((banner) => (
                             <a href="#" className="event-banner" key={banner.title}>
-                                <img src={banner.image} alt={banner.title} />
+                                <img src={banner.image} alt={banner.title} loading="lazy" decoding="async" />
                                 <div>
                                     <h3>{banner.title}</h3>
                                     <p>{banner.desc}</p>
@@ -137,15 +133,7 @@ const MainPage2 = () => {
                     </div>
 
                     <div className="product-grid">
-
-
-                            {[...product]
-                                .sort(
-                                    (a, b) =>
-                                        new Date(b.created_at) -
-                                        new Date(a.created_at)
-                                )
-                                .map((product) => (
+                            {productLoading ? <ProductGridSkeleton count={4} /> : newestProducts.map((product) => (
                                     <ProductCard
                                         product={product}
                                         key={product.id}
@@ -176,7 +164,7 @@ const MainPage2 = () => {
                         </div>
                     </div>
                     <div className="product-grid">
-                        {bestProducts.map((product) => (
+                        {productLoading ? <ProductGridSkeleton count={4} /> : bestProducts.map((product) => (
                             <ProductCard
                                 product={product}
                                 key={`best-${product.id}`}

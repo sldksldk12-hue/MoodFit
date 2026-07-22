@@ -68,7 +68,7 @@ const PaymentPage = () => {
 
                             {orderItems.map(item => (
                                 <div className="payment-item" key={item.id}>
-                                    <img src={item.image} alt={item.name} />
+                                    <img src={item.image} alt={item.name}  loading="lazy" decoding="async" />
 
                                     <div>
                                         <h3>{item.name}</h3>

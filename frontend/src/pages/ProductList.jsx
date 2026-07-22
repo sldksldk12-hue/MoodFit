@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import ProductCard from "../components/product/ProductCard";
+import ProductGridSkeleton from "../components/product/ProductGridSkeleton";
 import { getList } from "../services/api";
 import "../assets/styles/product/ProductListPage.css";
 
@@ -103,7 +104,7 @@ const ProductList = () => {
       </section>
 
       {loading ? (
-        <p className="product-list-message">상품을 불러오는 중입니다.</p>
+        <ProductGridSkeleton count={8} />
       ) : filteredProducts.length > 0 ? (
         <section className="product-grid">
           {filteredProducts.map((product) => (
