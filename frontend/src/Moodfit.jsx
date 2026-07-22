@@ -23,7 +23,7 @@ import CartPage from "./pages/CartPage";
 import ProductListPage from "./pages/ProductList";
 import RecomendList from "./pages/RecomendList";
 import ChatBot from "./components/chat/ChatBot";
-import Header from "./components/common/layout/Header";
+import Header from "./components/common/layout/header/Header";
 import Footer from "./components/common/layout/Footer";
 import RegisterPage from "./pages/RegisterPage";
 import MyPage from "./pages/MyPage";
@@ -32,7 +32,6 @@ import PaymentPage from "./pages/PaymentPage";
 import AdminPage from "./pages/AdminPage";
 import { AuthProvider } from "./store/AuthContext";
 import ProtectedRoute from "./components/common/route/ProtectedRoute";
-import WeatherBackground from "./components/weather/WeatherBackground";
 import ScrollToTop from "./components/common/ScrollToTop";
 
 /**
