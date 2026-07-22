@@ -5,7 +5,7 @@ from transformers import pipeline
 from dotenv import load_dotenv
 
 # 분리한 라우터들을 가져오기
-from app.api import chat, product, external, cart, auth, tour, like, order, history, inquiry
+from app.api import chat, product, external, cart, auth, tour, like, order, history, inquiry, review
 from app.domains.ai_chat.rag_service import RagsFashionService
 from app.models.models import ProductCategory
 
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
         ml_models["emotion_classifier"] = pipeline("text-classification", model="Jinuuuu/KoELECTRA_fine_tunning_emotion")
         rag_service = RagsFashionService()
         
-        # 🌟 라우터(chat.py 등)에서 꺼내 쓸 수 있도록 app.state에 모델을 담아줍니다!
+        # 라우터(chat.py 등)에서 꺼내 쓸 수 있도록 app.state에 모델을 저장
         app.state.ml_models = ml_models
         app.state.rag_service = rag_service
         print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
@@ -59,6 +59,7 @@ app.include_router(like.router)
 app.include_router(order.router, prefix="/api/orders", tags=["Order"])
 app.include_router(history.router)
 app.include_router(inquiry.router)
+app.include_router(review.router)
 
 @app.get("/")
 async def root():
