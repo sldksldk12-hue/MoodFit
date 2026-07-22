@@ -412,6 +412,8 @@ const CartPage = () => {
                           "/images/product-placeholder.png"
                         }
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={(event) => {
                           event.currentTarget.src =
                             "/images/product-placeholder.png";

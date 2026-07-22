@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 
 import ProductCard from "../components/product/ProductCard";
+import useLikedProductIds from "../hooks/useLikedProductIds";
 import "../assets/styles/product/ProductListPage.css";
 
 const RecomendList = () => {
@@ -23,6 +24,7 @@ const RecomendList = () => {
 
   const [sortType, setSortType] =
     useState("추천순");
+  const { likedProductIds } = useLikedProductIds();
 
   const sortedProducts = useMemo(() => {
     const copiedProducts = [
@@ -158,6 +160,7 @@ const RecomendList = () => {
                     index
                   }
                   product={normalizedProduct}
+                  initialLiked={likedProductIds.has(Number(normalizedProduct.id))}
                 />
               );
             }

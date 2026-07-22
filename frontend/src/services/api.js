@@ -15,6 +15,10 @@
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import axios from "axios";
+import {
+  getCachedRequest,
+  invalidateRequestCache,
+} from "./requestCache";
 
 const BASE_URL = "http://127.0.0.1:8000";
 
@@ -24,17 +28,20 @@ const api = axios.create({
     "Content-Type": "application/json;charset=utf-8",
   },
 });
-export const getFestival = async () => {
-  const response = await api.get("/api/festival");
+export const getFestival = () =>
+  getCachedRequest(
+    "festival",
+    async () => {
+      const response = await api.get("/api/festival");
 
-  console.log("백엔드 응답 전체:", response.data);
+      if (response.data.error) {
+        throw new Error(response.data.error);
+      }
 
-  if (response.data.error) {
-    throw new Error(response.data.error);
-  }
-
-  return response.data.data ?? [];
-};
+      return response.data.data ?? [];
+    },
+    1000 * 60 * 30
+  );
 //chat
 // chat
 export const chatStart = async ({
@@ -66,20 +73,37 @@ export const chatStart = async ({
   return response.data;
 };
 //날씨
-export const getWeather = async () => {
-  const response = await api.get("/api/weather");
-  return response.data;
-};
+export const getWeather = () =>
+  getCachedRequest(
+    "weather",
+    async () => {
+      const response = await api.get("/api/weather");
+      return response.data;
+    },
+    1000 * 60 * 10
+  );
 
-export const getList = async () => {
-  const response = await api.get("/api/products");
-  return response.data;
-};
-//상세페이지
-export const getDetail = async (id) => {
-  const response = await api.get(`/api/products/${id}`);
-  return response.data;
-};
+// 상품 목록은 여러 페이지에서 반복 사용하므로 5분 동안 캐시합니다.
+export const getList = () =>
+  getCachedRequest(
+    "products:list",
+    async () => {
+      const response = await api.get("/api/products");
+      return response.data;
+    },
+    1000 * 60 * 5
+  );
+
+// 같은 상품 상세페이지를 다시 열면 캐시된 응답을 즉시 사용합니다.
+export const getDetail = (id) =>
+  getCachedRequest(
+    `products:detail:${id}`,
+    async () => {
+      const response = await api.get(`/api/products/${id}`);
+      return response.data;
+    },
+    1000 * 60 * 5
+  );
 const notifyCartUpdated = () => {
   window.dispatchEvent(
     new CustomEvent("cart-updated")
@@ -171,12 +195,18 @@ export const toggleLike = async (userId, productId) => {
     product_id: Number(productId),
   });
 
+  // 좋아요 변경 후 해당 사용자의 캐시만 무효화합니다.
+  invalidateRequestCache(`likes:${userId}`);
   return response.data;
 };
 
-// 내가 찜한 상품 목록 조회
-export const getUserLikes = async (userId) => {
-  const response = await api.get(`/api/likes/${userId}`);
-
-  return response.data;
-};
+// 한 화면의 ProductCard마다 호출하지 않고 사용자당 한 번만 요청합니다.
+export const getUserLikes = (userId) =>
+  getCachedRequest(
+    `likes:${userId}`,
+    async () => {
+      const response = await api.get(`/api/likes/${userId}`);
+      return response.data;
+    },
+    1000 * 60 * 5
+  );
