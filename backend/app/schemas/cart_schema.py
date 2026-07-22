@@ -3,29 +3,25 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
-# 공통 속성 정의
 class CartItemBase(BaseModel):
     product_id: int
     quantity: int = 1
     selected_size: Optional[str] = None
     selected_color: Optional[str] = None
 
-# 클라이언트 -> 서버 (장바구니 담기 요청 시)
 class CartItemCreate(CartItemBase):
     user_id: int
 
-# 서버 -> 클라이언트 (장바구니 목록 조회/응답 시)
 class CartItemResponse(CartItemBase):
     id: int
     user_id: int
-    created_at: datetime
-    updated_at: datetime
+    # Null 데이터에 의해 FastAPI가 500 에러를 뱉는 것을 방지하기 위해 Optional 처리
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    # SQLAlchemy 모델 객체를 Pydantic 모델로 자동 변환하기 위한 설정
     class Config:
         from_attributes = True
 
-# 장바구니 수량 수정 요청
 class CartItemQuantityUpdate(BaseModel):
     user_id: int
     quantity: int
