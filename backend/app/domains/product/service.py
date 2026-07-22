@@ -3,7 +3,7 @@ import requests
 from urllib.parse import quote
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
-from app.models.models import Product, ProductCategory
+from app.models.models import Product, ProductCategory, ProductOption
 
 def seed_initial_categories(db: Session):
     """3자리 단축 코드 기반의 카테고리 시드 데이터를 자동으로 데이터베이스에 적재합니다."""
@@ -65,6 +65,149 @@ def seed_initial_categories(db: Session):
     except Exception as seeder_err:
         db.rollback()
         print(f"⚠️ 카테고리 자동 적재 중 오류 발생: {seeder_err}")
+
+
+import json
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+
+def generate_gpt_product_options(product_name: str, category_name: str, brand: str) -> dict:
+    """GPT-4o-mini를 활용하여 상품에 딱 맞는 1:1 맞춤형 사이즈, 색상, 실측치수 JSON을 생성합니다."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+        
+    try:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0.3,
+            model_kwargs={"response_format": {"type": "json_object"}},
+            openai_api_key=api_key
+        )
+        
+        system_prompt = """당신은 전문 패션 브랜드 MD입니다.
+주어진 상품명, 카테고리, 브랜드 정보를 분석하여 해당 상품에 가장 어울리는 현실적이고 고유한 상품 옵션을 JSON으로 생성하세요.
+
+[요구 규칙]
+1. `sizes`: 해당 상품의 카테고리/특성에 부합하는 선택 가능한 사이즈 목록 (배열)
+   - 의류 상의/아우터 예시: ["95(S)", "100(M)", "105(L)", "110(XL)"]
+   - 의류 하의 예시: ["28(S)", "30(M)", "32(L)", "34(XL)"]
+   - 신발 예시: ["250", "255", "260", "265", "270", "275", "280"]
+   - 모자/액세서리 예시: ["FREE"]
+2. `colors`: 해당 상품 디자인 및 브랜드 분위기에 어울리는 색상 목록 (배열, 3~5개)
+3. `measurements`: 사이즈별 cm 단위 실측 치수 목록 (배열).
+   - 상의/아우터 키값: size, shoulder (어깨), chest (가슴), sleeve (소매), length (총장)
+   - 하의 키값: size, waist (허리), rise (밑위), thigh (허벅지), length (총장)
+   - 신발 키값: size, foot_length (발길이), foot_width (발볼), heel_height (굽높이)
+   - 모자/액세서리 키값: size, head_circumference (둘레), depth (깊이), brim_length (챙길이)
+   - 상품의 핏(오버핏, 크롭, 와이드, 슬림) 특성을 수치에 자연스럽게 반영하세요.
+
+JSON 출력 형식:
+{
+  "sizes": ["..."],
+  "colors": ["..."],
+  "measurements": [
+    { ... }
+  ]
+}
+"""
+
+        human_message = f"상품명: {product_name}\n카테고리: {category_name}\n브랜드: {brand}"
+        
+        response = llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_message)
+        ])
+        
+        result_json = json.loads(response.content)
+        return result_json
+    except Exception as e:
+        print(f"[Error] GPT 옵션 생성 에러 ({product_name}): {e}")
+        return None
+
+
+def seed_initial_product_options(db: Session, force_reseed: bool = False):
+    """모든 상품에 대해 GPT-4o-mini로 1:1 맞춤형 고유 옵션(사이즈, 색상, 실측치수)을 생성하여 적재합니다."""
+    try:
+        if force_reseed:
+            db.query(ProductOption).delete()
+            db.flush()
+
+        products = db.query(Product).all()
+        created_count = 0
+        
+        for product in products:
+            existing_options = db.query(ProductOption).filter(ProductOption.product_id == product.id).count()
+            if existing_options == 0:
+                category_name = "미분류"
+                if product.category_id:
+                    cat = db.query(ProductCategory).filter(ProductCategory.id == product.category_id).first()
+                    if cat:
+                        category_name = cat.category_name
+                
+                # 1. GPT 1:1 옵션 생성 시도
+                gpt_data = generate_gpt_product_options(
+                    product_name=product.product_name,
+                    category_name=category_name,
+                    brand=product.brand
+                )
+                
+                if gpt_data and "sizes" in gpt_data and "colors" in gpt_data and "measurements" in gpt_data:
+                    sizes = gpt_data["sizes"]
+                    colors = gpt_data["colors"]
+                    measurements = gpt_data["measurements"]
+                else:
+                    # Fallback rules if GPT is unavailable
+                    cat_id = product.category_id or 0
+                    name = product.product_name.lower()
+                    is_shoes = cat_id in [405, 406, 407, 408, 409] or any(k in name for k in ["스니커즈", "구두", "부츠", "신발", "운동화", "샌들", "슬리퍼", "단화", "로퍼", "워커"])
+                    is_hat = cat_id in [401, 402, 403, 404] or any(k in name for k in ["캡", "모자", "비니", "베레모", "볼캡", "페도라"])
+                    is_pants = (200 <= cat_id < 300) or any(k in name for k in ["바지", "팬츠", "데님", "슬랙스", "조거", "청바지", "스커트", "치마", "숏팬츠", "반바지", "레깅스"])
+                    
+                    if is_shoes:
+                        sizes = ["250", "255", "260", "265", "270", "275", "280"]
+                        colors = ["블랙", "화이트", "아이보리", "믹스"]
+                        measurements = [{"size": "260", "foot_length": 26.0, "foot_width": 9.8, "heel_height": 3.5}]
+                    elif is_hat:
+                        sizes = ["FREE"]
+                        colors = ["블랙", "네이비", "베이지", "카키", "화이트"]
+                        measurements = [{"size": "FREE", "head_circumference": 58, "depth": 16, "brim_length": 7.5}]
+                    elif is_pants:
+                        sizes = ["28(S)", "30(M)", "32(L)", "34(XL)"]
+                        colors = ["중청", "연청", "진청", "블랙", "크림"]
+                        measurements = [{"size": "30(M)", "waist": 38.5, "rise": 27, "thigh": 29.5, "length": 100}]
+                    else:
+                        sizes = ["95(S)", "100(M)", "105(L)", "110(XL)"]
+                        colors = ["블랙", "화이트", "그레이", "네이비", "베이지"]
+                        measurements = [{"size": "100(M)", "shoulder": 48, "chest": 53, "sleeve": 62, "length": 69}]
+
+                size_option = ProductOption(
+                    product_id=product.id,
+                    option_name="사이즈",
+                    option_values=sizes,
+                    is_required=1
+                )
+                color_option = ProductOption(
+                    product_id=product.id,
+                    option_name="색상",
+                    option_values=colors,
+                    is_required=1
+                )
+                measurement_option = ProductOption(
+                    product_id=product.id,
+                    option_name="실측치수",
+                    option_values=measurements,
+                    is_required=0
+                )
+                db.add_all([size_option, color_option, measurement_option])
+                created_count += 3
+                
+        if created_count > 0 or force_reseed:
+            db.commit()
+            print(f"[Success] GPT 1:1 맞춤형 상품 옵션 데이터 자동 적재 완료! ({created_count}개 옵션 생성됨)")
+    except Exception as err:
+        db.rollback()
+        print(f"[Error] 상품 옵션 자동 적재 중 오류 발생: {err}")
 
 # 커스텀 카테고리 매핑 사전 정의
 CATEGORY_MAP = {
@@ -170,6 +313,8 @@ def get_or_fetch_products(db: Session, keyword: str, display: int = 3):
             if new_products:
                 db.commit()
                 print(f"🟢 수집 완료! {len(new_products)}개의 상품을 자체 DB에 영구 저장했습니다.")
+                # 새로 수집된 상품들에 대해 즉시 GPT 1:1 맞춤 옵션 자동 생성
+                seed_initial_product_options(db)
             
             final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
             if not final_products and new_products:

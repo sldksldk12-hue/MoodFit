@@ -29,6 +29,21 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
         )
         safe_content = product.product_content if product.product_content else fallback_content
         
+        options_data = []
+        if not product.options:
+            from app.domains.product.service import seed_initial_product_options
+            seed_initial_product_options(db)
+            db.refresh(product)
+
+        if product.options:
+            for opt in product.options:
+                options_data.append({
+                    "id": opt.id,
+                    "option_name": opt.option_name,
+                    "option_values": opt.option_values,
+                    "is_required": opt.is_required
+                })
+        
         return {
             "status": "success",
             "data": {
@@ -46,6 +61,7 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
                 "inventory": product.inventory,
                 "average_rating": float(product.average_rating),
                 "like_count": product.like_count,
+                "options": options_data,
             }
         }
     except Exception as e:

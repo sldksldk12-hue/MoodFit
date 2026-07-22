@@ -32,11 +32,12 @@ async def lifespan(app: FastAPI):
         app.state.rag_service = rag_service
         print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
         
-        # 카테고리 자동 적재 (Service 모듈의 함수 호출)
-        from app.domains.product.service import seed_initial_categories
+        # 카테고리 및 상품 옵션 자동 적재 (Service 모듈의 함수 호출)
+        from app.domains.product.service import seed_initial_categories, seed_initial_product_options
         db = SessionLocal()
         try:
             seed_initial_categories(db)
+            seed_initial_product_options(db)
         finally:
             db.close()
     except Exception as e:
