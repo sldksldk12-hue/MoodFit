@@ -90,19 +90,21 @@ async def register_user(req: UserRegister, db: Session = Depends(get_db)):
         )
     
     try:
-        # 3. 비밀번호 해싱 및 새 회원 추가
+        # 3. 비밀번호 해싱 및 새 회원 추가 (admin1 계정은 ADMIN 권한 부여)
         hashed_password = get_password_hash(req.password)
+        assigned_role = "ADMIN" if req.user_name.strip().lower() == "admin1" else "USER"
+        
         new_user = User(
             user_account=req.user_name,
             email=req.email,
             password_hash=hashed_password,
-            admin_role="USER"
+            admin_role=assigned_role
         )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         
-        return {"status": "success", "message": "회원가입이 정상적으로 완료되었습니다."}
+        return {"status": "success", "message": "회원가입이 정상적으로 완료되었습니다.", "role": assigned_role}
         
     except Exception as e:
         db.rollback()
