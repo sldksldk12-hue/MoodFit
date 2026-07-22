@@ -14,7 +14,7 @@
  * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { Link, PlayCircle } from 'lucide-react';
+import { PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import ProductCard from '../components/product/ProductCard';

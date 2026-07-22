@@ -18,14 +18,10 @@ import ProductDescription from "../components/detail/ProductDescription";
 import ProductReview from "../components/detail/ProductReview";
 import ProductQna from "../components/detail/ProductQna";
 
-import {
-  addCartItem,
-  getDetail,
-  getUserLikes,
-  toggleLike,
-} from "../services/api";
+import { getDetail } from "../services/api";
 
-import { useAuth } from "../store/AuthContext";
+import useAddToCart from "../hooks/useAddToCart";
+import useProductLike from "../hooks/useProductLike";
 
 import "../assets/styles/detail/DetailPage.css";
 
@@ -49,15 +45,6 @@ const DetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  /*
-   * AuthContext에서 로그인 사용자 정보를 가져옵니다.
-   */
-  const {
-    user,
-    isLogin,
-    loading: authLoading,
-  } = useAuth();
-
   const [tab, setTab] = useState("desc");
   const [size, setSize] = useState("M");
   const [quantity, setQuantity] =
@@ -71,8 +58,6 @@ const DetailPage = () => {
 
   const [error, setError] =
     useState("");
-  const [liked, setLiked] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
 
   /*
    * 상품 상세 조회
@@ -150,59 +135,22 @@ const DetailPage = () => {
 
     fetchProduct();
   }, [id]);
-  useEffect(() => {
-    const checkLike = async () => {
-      if (!user?.id || !product.id) return;
+  const {
+    liked,
+    likeCount,
+    likeLoading,
+    toggleProductLike,
+  } = useProductLike({
+    productId: product.id,
+    initialLikeCount: product.like_count,
+  });
 
-      try {
-        const likes = await getUserLikes(user.id);
+  const { cartLoading, addProductToCart } = useAddToCart();
 
-        setLiked(
-          likes.some(
-            (item) =>
-              Number(item.product_id) === Number(product.id)
-          )
-        );
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    checkLike();
-  }, [user?.id, product.id]);
-  const handleLike = async () => {
-    if (!user?.id) {
-      alert("로그인이 필요합니다.");
-      navigate("/moodfit/login");
-      return;
-    }
-
-    if (likeLoading) return;
-
-    try {
-      setLikeLoading(true);
-
-      const result = await toggleLike(user.id, product.id);
-
-      if (result.status === "added") {
-        setLiked(true);
-
-        setProduct((prev) => ({
-          ...prev,
-          like_count: prev.like_count + 1,
-        }));
-      } else {
-        setLiked(false);
-
-        setProduct((prev) => ({
-          ...prev,
-          like_count: Math.max(0, prev.like_count - 1),
-        }));
-      }
-    } finally {
-      setLikeLoading(false);
-    }
+  const handleLike = () => {
+    toggleProductLike({ redirectToLogin: true });
   };
+
   /*
    * 대표 이미지
    */
@@ -236,96 +184,20 @@ const DetailPage = () => {
    * 장바구니 DB 저장
    */
   const handleAddCart = async () => {
-    if (!product.id) {
-      alert(
-        "상품 정보가 올바르지 않습니다."
-      );
-      return false;
+    const success = await addProductToCart({
+      productId: product.id,
+      inventory: product.inventory,
+      quantity,
+      selectedSize: size,
+      selectedColor: "기본",
+      loginReturnPath: `/moodfit/detail/${product.id}`,
+    });
+
+    if (success) {
+      alert("장바구니에 상품을 담았습니다.");
     }
 
-    if (product.inventory <= 0) {
-      alert("품절된 상품입니다.");
-      return false;
-    }
-
-    /*
-     * 로그인 상태 확인이 끝나지 않았다면
-     * 잠시 기다리도록 처리합니다.
-     */
-    if (authLoading) {
-      alert(
-        "로그인 정보를 확인하고 있습니다."
-      );
-      return false;
-    }
-
-    /*
-     * 로그인하지 않은 경우 로그인 페이지로 이동합니다.
-     */
-    if (!isLogin || !user?.id) {
-      alert(
-        "로그인이 필요한 기능입니다."
-      );
-
-      navigate("/moodfit/login", {
-        state: {
-          from: {
-            pathname: `/moodfit/detail/${product.id}`,
-          },
-        },
-      });
-
-      return false;
-    }
-
-    try {
-      /*
-       * 백엔드 CartItemCreate 구조에 맞춰 전송합니다.
-       */
-      const requestData = {
-        user_id: Number(user.id),
-        product_id: Number(product.id),
-        quantity: Number(quantity),
-        selected_size: size,
-        selected_color: "기본",
-      };
-
-      console.log(
-        "장바구니 저장 요청:",
-        requestData
-      );
-
-      const response =
-        await addCartItem(requestData);
-
-      console.log(
-        "장바구니 저장 결과:",
-        response
-      );
-
-      alert(
-        "장바구니에 상품을 담았습니다."
-      );
-
-      return true;
-    } catch (err) {
-      console.error(
-        "장바구니 저장 실패:",
-        err
-      );
-
-      console.error(
-        "장바구니 서버 응답:",
-        err.response?.data
-      );
-
-      alert(
-        err.response?.data?.detail ||
-        "장바구니에 상품을 담지 못했습니다."
-      );
-
-      return false;
-    }
+    return success;
   };
 
   /*
@@ -411,7 +283,7 @@ const DetailPage = () => {
               1
             )}
             {" · "}
-            좋아요 {product.like_count}
+            좋아요 {likeCount}
           </div>
 
           {product.original_price >
@@ -460,7 +332,7 @@ const DetailPage = () => {
               id="product-quantity"
               value={quantity}
               disabled={
-                product.inventory <= 0
+                cartLoading || product.inventory <= 0
               }
               onChange={(event) =>
                 setQuantity(
@@ -498,7 +370,7 @@ const DetailPage = () => {
               className="cart-btn"
               onClick={handleAddCart}
               disabled={
-                product.inventory <= 0
+                cartLoading || product.inventory <= 0
               }
             >
               <ShoppingCart size={20} />
@@ -510,7 +382,7 @@ const DetailPage = () => {
               className="buy-btn"
               onClick={handleBuyNow}
               disabled={
-                product.inventory <= 0
+                cartLoading || product.inventory <= 0
               }
             >
               바로 구매
