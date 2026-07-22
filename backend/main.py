@@ -5,7 +5,7 @@ from transformers import pipeline
 from dotenv import load_dotenv
 
 # 분리한 라우터들을 가져오기
-from app.api import chat, product, external, cart, auth, tour, like, order
+from app.api import chat, product, external, cart, auth, tour, like, order, history
 from app.domains.ai_chat.rag_service import RagsFashionService
 from app.models.models import ProductCategory
 
@@ -57,6 +57,7 @@ app.include_router(cart.router)
 app.include_router(auth.router, prefix="/moodfit")
 app.include_router(like.router)
 app.include_router(order.router, prefix="/api/orders", tags=["Order"])
+app.include_router(history.router)
 
 @app.get("/")
 async def root():
