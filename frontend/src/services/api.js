@@ -76,7 +76,7 @@ export const getList = () =>
 //상세페이지
 export const getDetail = (id) =>
   getCachedRequest(`products:detail:${id}`, async () => {
-    const response = await api.get(`/api/products/${id}/`);
+    const response = await api.get(`/api/products/${id}`);
     return response.data;
   }, 5 * 60 * 1000);
 const notifyCartUpdated = () => {
@@ -185,3 +185,68 @@ export const getUserLikes = (userId) =>
     const response = await api.get(`/api/likes/${userId}`);
     return response.data;
   }, 5 * 60 * 1000);
+  // ===========================
+// 최근 본 상품
+// ===========================
+
+// 상품 상세페이지를 조회했을 때 기록 저장
+export const addProductHistory = async (userId, productId) => {
+  const response = await api.post("/api/history/", {
+    user_id: Number(userId),
+    product_id: Number(productId),
+  });
+
+  // 조회 목록 캐시를 사용할 경우 기존 캐시 제거
+  invalidateRequestCache(`history:${userId}`);
+
+  return response.data;
+};
+
+// 사용자의 최근 본 상품 목록 조회
+export const getProductHistory = (userId) =>
+  getCachedRequest(
+    `history:${userId}`,
+    async () => {
+      const response = await api.get(`/api/history/${userId}`);
+      return response.data;
+    },
+    30 * 1000
+  );
+  // ===========================
+// 리뷰
+// ===========================
+
+// 사용자가 작성한 리뷰 목록 조회
+export const getUserReviews = async (userId) => {
+  const response = await api.get(
+    `/api/reviews/user/${userId}`
+  );
+
+  return response.data;
+};
+
+// 특정 상품의 리뷰 목록 조회
+export const getProductReviews = async (productId) => {
+  const response = await api.get(
+    `/api/reviews/product/${productId}`
+  );
+
+  return response.data;
+};
+
+// 리뷰 작성
+export const createReview = async (reviewData) => {
+  const response = await api.post(
+    "/api/reviews/",
+    {
+      user_id: Number(reviewData.userId),
+      product_id: Number(reviewData.productId),
+      order_item_id: Number(reviewData.orderItemId),
+      rating: Number(reviewData.rating),
+      content: reviewData.content.trim(),
+      image_url: reviewData.imageUrl || null,
+    }
+  );
+
+  return response.data;
+};
