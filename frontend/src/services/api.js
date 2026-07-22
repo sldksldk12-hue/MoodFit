@@ -55,7 +55,7 @@ export const chatStart = async ({
   console.log("채팅 요청 payload:", payload);
 
   const response = await api.post(
-    "/api/chat/emotion",
+    "/api/chat/emotion/",
     payload
   );
 
@@ -70,13 +70,13 @@ export const getWeather = () =>
 
 export const getList = () =>
   getCachedRequest("products:list", async () => {
-    const response = await api.get("/api/products");
+    const response = await api.get("/api/products/");
     return response.data;
   }, 5 * 60 * 1000);
 //상세페이지
 export const getDetail = (id) =>
   getCachedRequest(`products:detail:${id}`, async () => {
-    const response = await api.get(`/api/products/${id}`);
+    const response = await api.get(`/api/products/${id}/`);
     return response.data;
   }, 5 * 60 * 1000);
 const notifyCartUpdated = () => {
@@ -93,7 +93,7 @@ export const getCartItems = (userId) =>
   }, 30 * 1000);
 //장바구니 추가
 export const addCartItem = async (data) => {
-  const response = await api.post("/api/cart/", data);
+  const response = await api.post("/api/cart", data);
   invalidateRequestCache("cart:");
   notifyCartUpdated();
   return response.data;
@@ -129,7 +129,7 @@ export const login = (username, password) => {
   params.append("username", username);
   params.append("password", password);
 
-  return api.post("/moodfit/login", params, {
+  return api.post("/moodfit/login/", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -148,7 +148,7 @@ export const getMe = () => {
 };
 // 회원가입
 export const register = async (userData) => {
-  const response = await api.post("/moodfit/register", userData);
+  const response = await api.post("/moodfit/register/", userData);
   return response.data;
 }
 
