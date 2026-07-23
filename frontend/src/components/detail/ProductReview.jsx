@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+
+
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createReview,
   getProductReviews,
@@ -12,127 +15,162 @@ const normalizeReview = (review) => ({
   id: review.id ?? review.review_id,
   userId: review.user_id ?? review.userId,
   productId: review.product_id ?? review.productId,
-  orderItemId:
-    review.order_item_id ?? review.orderItemId,
+  orderItemId: review.order_item_id ?? review.orderItemId,
   rating: Number(review.rating ?? 0),
   content: review.content ?? "",
-  imageUrl: review.image_url ?? review.imageUrl ?? null,
+  imageUrl: Array.isArray(review.image_url)
+    ? review.image_url[0] ?? null
+    : review.image_url ?? review.imageUrl ?? null,
   userName:
     review.user_name ??
     review.username ??
     review.writer_name ??
     "구매자",
-  createdAt:
-    review.created_at ?? review.createdAt ?? null,
+  createdAt: review.created_at ?? review.createdAt ?? null,
 });
 
 const ProductReview = ({ productId, userId }) => {
-  const [reviews, setReviews] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [reviewLoading, setReviewLoading] =
-    useState(true);
-  const [purchaseLoading, setPurchaseLoading] =
-    useState(false);
-  const [submitting, setSubmitting] =
-    useState(false);
-  const [showWriteForm, setShowWriteForm] =
-    useState(false);
-  const [error, setError] = useState("");
+  /*
+   * 요청 결과와 그 결과가 어느 productId/userId에 해당하는지
+   * 함께 저장합니다. 이렇게 하면 useEffect 시작과 동시에
+   * setState를 호출하지 않아도 로딩 상태를 계산할 수 있습니다.
+   */
+  const [reviewResult, setReviewResult] = useState({
+    productId: null,
+    reviews: [],
+    error: "",
+  });
 
-  const fetchReviews = async () => {
-    if (!productId) return [];
+  const [orderResult, setOrderResult] = useState({
+    userId: null,
+    orders: [],
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [showWriteForm, setShowWriteForm] = useState(false);
+
+  const normalizedProductId = productId == null ? null : String(productId);
+  const normalizedUserId = userId == null ? null : String(userId);
+
+  /* 현재 productId에 해당하는 리뷰만 화면에 사용합니다. */
+  const reviews = useMemo(() => {
+    if (
+      !normalizedProductId ||
+      reviewResult.productId !== normalizedProductId
+    ) {
+      return [];
+    }
+
+    return reviewResult.reviews;
+  }, [normalizedProductId, reviewResult]);
+
+  /* 현재 userId에 해당하는 주문만 화면에 사용합니다. */
+  const orders = useMemo(() => {
+    if (!normalizedUserId || orderResult.userId !== normalizedUserId) {
+      return [];
+    }
+
+    return orderResult.orders;
+  }, [normalizedUserId, orderResult]);
+
+  /*
+   * 요청한 ID와 저장된 결과의 ID가 다르면 아직 새 데이터를
+   * 받지 못한 상태이므로 로딩 중으로 판단합니다.
+   */
+  const reviewLoading = Boolean(
+    normalizedProductId &&
+      reviewResult.productId !== normalizedProductId
+  );
+
+  const purchaseLoading = Boolean(
+    normalizedUserId && orderResult.userId !== normalizedUserId
+  );
+
+  const error =
+    reviewResult.productId === normalizedProductId
+      ? reviewResult.error
+      : "";
+
+  /* 리뷰를 다시 불러오는 공통 함수입니다. */
+  const refreshReviews = useCallback(async () => {
+    if (!normalizedProductId) return [];
 
     const data = await getProductReviews(productId);
-    const list = Array.isArray(data) ? data : [];
-    const normalized = list.map(normalizeReview);
+    const normalizedReviews = Array.isArray(data)
+      ? data.map(normalizeReview)
+      : [];
 
-    setReviews(normalized);
-    return normalized;
-  };
+    setReviewResult({
+      productId: normalizedProductId,
+      reviews: normalizedReviews,
+      error: "",
+    });
 
+    return normalizedReviews;
+  }, [normalizedProductId, productId]);
+
+  /* 상품이 바뀌면 해당 상품의 리뷰를 조회합니다. */
   useEffect(() => {
+    if (!normalizedProductId) return undefined;
+
     let cancelled = false;
 
     const loadReviews = async () => {
       try {
-        setReviewLoading(true);
-        setError("");
-
-        const data =
-          await getProductReviews(productId);
-
+        const data = await getProductReviews(productId);
         if (cancelled) return;
 
-        const list = Array.isArray(data)
-          ? data.map(normalizeReview)
-          : [];
-
-        setReviews(list);
+        setReviewResult({
+          productId: normalizedProductId,
+          reviews: Array.isArray(data)
+            ? data.map(normalizeReview)
+            : [],
+          error: "",
+        });
       } catch (requestError) {
-        console.error(
-          "상품 리뷰 조회 실패:",
-          requestError
-        );
+        console.error("상품 리뷰 조회 실패:", requestError);
+        if (cancelled) return;
 
-        if (!cancelled) {
-          setReviews([]);
-          setError(
+        setReviewResult({
+          productId: normalizedProductId,
+          reviews: [],
+          error:
             requestError.response?.data?.detail ||
-              "리뷰를 불러오지 못했습니다."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setReviewLoading(false);
-        }
+            "리뷰를 불러오지 못했습니다.",
+        });
       }
     };
 
-    if (productId) {
-      loadReviews();
-    }
+    loadReviews();
 
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [normalizedProductId, productId]);
 
-  /*
-   * 로그인한 사용자의 주문을 조회해서
-   * 이 상품을 실제로 구매한 order_item_id를 찾습니다.
-   */
+  /* 로그인한 사용자의 주문 내역을 조회합니다. */
   useEffect(() => {
-    if (!userId) {
-      setOrders([]);
-      return;
-    }
+    if (!normalizedUserId) return undefined;
 
     let cancelled = false;
 
     const loadOrders = async () => {
       try {
-        setPurchaseLoading(true);
-
         const data = await getUserOrders(userId);
+        if (cancelled) return;
 
-        if (!cancelled) {
-          setOrders(
-            Array.isArray(data) ? data : []
-          );
-        }
+        setOrderResult({
+          userId: normalizedUserId,
+          orders: Array.isArray(data) ? data : [],
+        });
       } catch (requestError) {
-        console.error(
-          "리뷰 구매 이력 조회 실패:",
-          requestError
-        );
+        console.error("리뷰 구매 이력 조회 실패:", requestError);
+        if (cancelled) return;
 
-        if (!cancelled) {
-          setOrders([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setPurchaseLoading(false);
-        }
+        setOrderResult({
+          userId: normalizedUserId,
+          orders: [],
+        });
       }
     };
 
@@ -141,38 +179,28 @@ const ProductReview = ({ productId, userId }) => {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [normalizedUserId, userId]);
 
   /*
-   * 현재 상품의 구매 이력 중 아직 리뷰를 작성하지 않은
-   * 주문 상품을 리뷰 작성 대상으로 선택합니다.
+   * 현재 상품을 구매한 주문 상품 중
+   * 아직 리뷰를 작성하지 않은 첫 번째 항목을 찾습니다.
    */
   const reviewableOrderItem = useMemo(() => {
-    const purchasedItems = orders.flatMap(
-      (order) =>
-        Array.isArray(order.items)
-          ? order.items
-          : []
+    const purchasedItems = orders.flatMap((order) =>
+      Array.isArray(order.items) ? order.items : []
     );
 
     return (
       purchasedItems.find((item) => {
-        const itemProductId =
-          item.product_id ?? item.productId;
-        const itemId =
-          item.order_item_id ?? item.id;
+        const itemProductId = item.product_id ?? item.productId;
+        const itemId = item.order_item_id ?? item.id;
 
-        if (
-          Number(itemProductId) !==
-          Number(productId)
-        ) {
+        if (Number(itemProductId) !== Number(productId)) {
           return false;
         }
 
         return !reviews.some(
-          (review) =>
-            Number(review.orderItemId) ===
-            Number(itemId)
+          (review) => Number(review.orderItemId) === Number(itemId)
         );
       }) ?? null
     );
@@ -183,10 +211,8 @@ const ProductReview = ({ productId, userId }) => {
       orders.some((order) =>
         (order.items ?? []).some(
           (item) =>
-            Number(
-              item.product_id ??
-                item.productId
-            ) === Number(productId)
+            Number(item.product_id ?? item.productId) ===
+            Number(productId)
         )
       ),
     [orders, productId]
@@ -197,8 +223,7 @@ const ProductReview = ({ productId, userId }) => {
 
     return (
       reviews.reduce(
-        (sum, review) =>
-          sum + Number(review.rating),
+        (sum, review) => sum + Number(review.rating),
         0
       ) / reviews.length
     );
@@ -206,57 +231,42 @@ const ProductReview = ({ productId, userId }) => {
 
   const handleOpenReviewWrite = () => {
     if (!userId) {
-      alert(
-        "로그인 후 리뷰를 작성할 수 있습니다."
-      );
+      alert("로그인 후 리뷰를 작성할 수 있습니다.");
       return;
     }
 
     if (purchaseLoading) {
-      alert(
-        "구매 이력을 확인하고 있습니다. 잠시 후 다시 시도해주세요."
-      );
+      alert("구매 이력을 확인하고 있습니다. 잠시 후 다시 시도해주세요.");
       return;
     }
 
     if (!hasPurchasedProduct) {
-      alert(
-        "해당 상품의 구매 이력이 있어야 리뷰를 작성할 수 있습니다."
-      );
+      alert("해당 상품의 구매 이력이 있어야 리뷰를 작성할 수 있습니다.");
       return;
     }
 
     if (!reviewableOrderItem) {
-      alert(
-        "이미 이 구매 건에 대한 리뷰를 작성했습니다."
-      );
+      alert("이미 이 구매 건에 대한 리뷰를 작성했습니다.");
       return;
     }
 
     setShowWriteForm(true);
   };
 
-  const handleSubmitReview = async (
-    reviewData
-  ) => {
+  const handleSubmitReview = async (reviewData) => {
     try {
       setSubmitting(true);
 
       await createReview(reviewData);
+      await refreshReviews();
 
-      await fetchReviews();
       setShowWriteForm(false);
-
       alert("리뷰가 등록되었습니다.");
       return true;
     } catch (requestError) {
-      console.error(
-        "리뷰 작성 실패:",
-        requestError
-      );
+      console.error("리뷰 작성 실패:", requestError);
 
-      const detail =
-        requestError.response?.data?.detail;
+      const detail = requestError.response?.data?.detail;
 
       alert(
         typeof detail === "string"
@@ -274,13 +284,9 @@ const ProductReview = ({ productId, userId }) => {
     <section className="product-review">
       <div className="product-review-header">
         <div>
-          <p className="product-review-eyebrow">
-            PRODUCT REVIEWS
-          </p>
+          <p className="product-review-eyebrow">PRODUCT REVIEWS</p>
           <h2>상품 후기</h2>
-          <span>
-            구매한 고객이 작성한 리뷰입니다.
-          </span>
+          <span>구매한 고객이 작성한 리뷰입니다.</span>
         </div>
 
         <button
@@ -289,99 +295,68 @@ const ProductReview = ({ productId, userId }) => {
           onClick={handleOpenReviewWrite}
           disabled={purchaseLoading}
         >
-          {purchaseLoading
-            ? "구매 이력 확인 중"
-            : "리뷰 작성"}
+          {purchaseLoading ? "구매 이력 확인 중" : "리뷰 작성"}
         </button>
       </div>
 
       <div className="product-review-summary">
         <div>
-          <strong>
-            {averageRating.toFixed(1)}
-          </strong>
+          <strong>{averageRating.toFixed(1)}</strong>
           <span>/ 5.0</span>
         </div>
 
         <div className="product-review-summary-stars">
-          {Array.from({ length: 5 }).map(
-            (_, index) => (
-              <span
-                key={index}
-                className={
-                  index <
-                  Math.round(averageRating)
-                    ? "active"
-                    : ""
-                }
-              >
-                ★
-              </span>
-            )
-          )}
+          {Array.from({ length: 5 }).map((_, index) => (
+            <span
+              key={index}
+              className={
+                index < Math.round(averageRating) ? "active" : ""
+              }
+            >
+              ★
+            </span>
+          ))}
         </div>
 
         <p>
-          총 <strong>{reviews.length}</strong>개의
-          리뷰
+          총 <strong>{reviews.length}</strong>개의 리뷰
         </p>
       </div>
 
-      {showWriteForm &&
-        reviewableOrderItem && (
-          <ReviewWrite
-            userId={userId}
-            productId={productId}
-            initialOrderItemId={
-              reviewableOrderItem.order_item_id ??
-              reviewableOrderItem.id
-            }
-            submitting={submitting}
-            onSubmit={handleSubmitReview}
-            onCancel={() =>
-              setShowWriteForm(false)
-            }
-          />
-        )}
-
-      {error && (
-        <div className="review-status error">
-          {error}
-        </div>
+      {showWriteForm && reviewableOrderItem && (
+        <ReviewWrite
+          key={`review-write-${
+            reviewableOrderItem.order_item_id ?? reviewableOrderItem.id
+          }`}
+          userId={userId}
+          productId={productId}
+          initialOrderItemId={
+            reviewableOrderItem.order_item_id ?? reviewableOrderItem.id
+          }
+          submitting={submitting}
+          onSubmit={handleSubmitReview}
+          onCancel={() => setShowWriteForm(false)}
+        />
       )}
 
+      {error && <div className="review-status error">{error}</div>}
+
       {reviewLoading ? (
-        <div className="review-status">
-          리뷰를 불러오는 중입니다.
-        </div>
+        <div className="review-status">리뷰를 불러오는 중입니다.</div>
       ) : reviews.length === 0 ? (
-        <div className="review-status">
-          아직 작성된 리뷰가 없습니다.
-        </div>
+        <div className="review-status">아직 작성된 리뷰가 없습니다.</div>
       ) : (
         <div className="product-review-list">
           {reviews.map((review) => (
-            <article
-              className="product-review-card"
-              key={review.id}
-            >
+            <article className="product-review-card" key={review.id}>
               <div className="product-review-card-top">
                 <div>
-                  <strong>
-                    {review.userName}
-                  </strong>
+                  <strong>{review.userName}</strong>
                   <div className="review-stars">
-                    {Array.from({
-                      length: 5,
-                    }).map((_, index) => (
+                    {Array.from({ length: 5 }).map((_, index) => (
                       <span
                         key={index}
-                        className={
-                          index <
-                          review.rating
-                            ? "active"
-                            : ""
-                        }
+                        className={index < review.rating ? "active" : ""}
                       >
                         ★
                       </span>
@@ -391,18 +366,12 @@ const ProductReview = ({ productId, userId }) => {
 
                 <time>
                   {review.createdAt
-                    ? new Date(
-                        review.createdAt
-                      ).toLocaleDateString(
-                        "ko-KR"
-                      )
+                    ? new Date(review.createdAt).toLocaleDateString("ko-KR")
                     : ""}
                 </time>
               </div>
 
-              <p className="review-content">
-                {review.content}
-              </p>
+              <p className="review-content">{review.content}</p>
 
               {review.imageUrl && (
                 <img
