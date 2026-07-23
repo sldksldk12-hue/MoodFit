@@ -23,6 +23,7 @@ import {
   sendChatMessage,
 } from "../../store/slices/chatSlice";
 import "../../assets/styles/chat/ChatPage.css";
+import "../../assets/styles/product/ProductListPage.css";
 import { useNavigate } from "react-router-dom";
 import { setRecommendationGroup } from "../../store/slices/recommendationSlice";
 
