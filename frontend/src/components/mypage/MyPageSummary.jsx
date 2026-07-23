@@ -16,7 +16,7 @@ const summaryItems = [
     key: "likeCount",
     label: "찜한 상품",
     icon: Heart,
-    path: "/moodfit/likes",
+    path: "/moodfit/wishlist",
   },
   {
     key: "reviewCount",

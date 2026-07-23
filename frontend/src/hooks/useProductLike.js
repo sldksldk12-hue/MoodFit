@@ -114,14 +114,19 @@ const useProductLike = ({ productId, initialLikeCount = 0 }) => {
         })
       );
 
-      return true;
+      return {
+        success: true,
+        status: result.status,
+      };
     } catch (error) {
       console.error("찜하기 처리 실패:", error);
       alert(
         error.response?.data?.detail ??
-          "찜하기 처리 중 오류가 발생했습니다."
+        "찜하기 처리 중 오류가 발생했습니다."
       );
-      return false;
+      return {
+        success: false,
+      };
     } finally {
       setLikeLoading(false);
     }
