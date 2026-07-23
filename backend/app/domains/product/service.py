@@ -337,21 +337,26 @@ def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False):
         db.rollback()
         print(f"[Error] 상품 무드 태그 자동 적재 중 오류 발생: {err}")
 
-# 커스텀 카테고리 매핑 사전 정의
+# 커스텀 카테고리 매핑 사전 정의 (단어 오매칭 방지를 위해 구체적 신발/잡화 키워드를 아우터보다 상단에 우선 배치)
 CATEGORY_MAP = {
-    # 상의
-    "반소매": 101, "반팔": 101, "긴소매": 102, "긴팔": 102, "맨투맨": 103, "스웨트셔츠": 103,
-    "셔츠": 104, "남방": 104, "후드": 105, "니트": 106, "스웨터": 106,
-    # 하의
-    "데님": 201, "청바지": 207, "트레이닝": 202, "츄리닝": 202, "코튼": 203, "면바지": 203,
-    "숏 팬츠": 204, "반바지": 204, "핫팬츠": 204, "레깅스": 205, "조거": 206, "스커트": 208, "치마": 208,
-    # 아우터
-    "집업": 301, "슈트": 302, "수트": 302, "카디건": 303, "가디건": 303,
-    "패딩": 304, "다운": 304, "재킷": 305, "자켓": 305, "블레이저": 305, "코트": 306, "베스트": 307, "조끼": 307,
-    # 악세사리/신발
+    # 악세사리/신발 (단어 겹침 방지를 위해 "코트비전", "에어포스", "조던" 등 신발 키워드를 최우선 배치)
+    "코트비전": 405, "에어포스": 405, "조던": 405, "스니커즈": 405, "단화": 405,
+    "스포츠화": 406, "런닝화": 406, "러닝화": 406, "운동화": 406, "신발": 406,
+    "구두": 407, "로퍼": 407, "힐": 407, "부츠": 408, "워커": 408, "샌들": 409, "슬리퍼": 409,
     "캡": 401, "야구모": 401, "베레모": 402, "페도라": 403, "비니": 404,
-    "스니커즈": 405, "단화": 405, "스포츠화": 406, "런닝화": 406, "운동화": 406,
-    "구두": 407, "로퍼": 407, "힐": 407, "부츠": 408, "워커": 408, "샌들": 409, "슬리퍼": 409
+    "백팩": 410, "가방": 410, "에코백": 410, "크로스백": 410, "토트백": 410,
+
+    # 상의
+    "스웨트셔츠": 103, "반소매": 101, "반팔": 101, "긴소매": 102, "긴팔": 102, "맨투맨": 103,
+    "셔츠": 104, "남방": 104, "후드": 105, "니트": 106, "스웨터": 106,
+
+    # 하의
+    "숏 팬츠": 204, "청바지": 207, "트레이닝": 202, "츄리닝": 202, "면바지": 203,
+    "반바지": 204, "핫팬츠": 204, "레깅스": 205, "조거": 206, "스커트": 208, "치마": 208, "데님": 201, "코튼": 203,
+
+    # 아우터
+    "트렌치코트": 306, "트렌치 코트": 306, "카디건": 303, "가디건": 303, "집업": 301, "슈트": 302, "수트": 302,
+    "패딩": 304, "다운": 304, "재킷": 305, "자켓": 305, "블레이저": 305, "코트": 306, "베스트": 307, "조끼": 307
 }
 
 def get_or_create_category(db: Session, category_name: str) -> int:
@@ -367,7 +372,49 @@ def get_or_create_category(db: Session, category_name: str) -> int:
     
     print(f"📁 새로운 카테고리 생성됨: [{new_category.id}] {category_name}")
     return new_category.id
-    
+
+
+def classify_product_category(db: Session, item_meta: dict, prod_name: str, search_keyword: str) -> int:
+    """
+    네이버 API 카테고리 메타데이터(category1~4)를 1순위로 검사하여 
+    단어 부분 일치(예: "코트비전" -> "코트")로 인한 오분류를 원천 방지하는 스마트 분류 함수
+    """
+    cat1 = item_meta.get("category1", "")
+    cat2 = item_meta.get("category2", "")
+    cat3 = item_meta.get("category3", "")
+    cat4 = item_meta.get("category4", "")
+    full_meta = f"{cat1} {cat2} {cat3} {cat4}"
+
+    # 1. 네이버 API 공식 메타데이터 기반 최우선 판별 (신발/잡화/아우터/상의/하의)
+    if any(k in full_meta for k in ["신발", "운동화", "스니커즈", "구두", "부츠", "슬리퍼", "샌들", "로퍼", "워커"]):
+        if "운동화" in full_meta or "스포츠화" in full_meta:
+            return 406
+        elif "구두" in full_meta or "로퍼" in full_meta:
+            return 407
+        elif "부츠" in full_meta or "워커" in full_meta:
+            return 408
+        elif "샌들" in full_meta or "슬리퍼" in full_meta:
+            return 409
+        return 405  # 기본 스니커즈
+
+    if any(k in full_meta for k in ["가방", "백팩", "지갑", "모자", "패션잡화"]):
+        if "모자" in full_meta or "캡" in full_meta:
+            return 401
+        elif "가방" in full_meta or "백팩" in full_meta:
+            return 410
+
+    # 2. CATEGORY_MAP 기반 상품명 및 검색어 우선순위 매칭
+    for key, cat_id in CATEGORY_MAP.items():
+        if key in prod_name:
+            return cat_id
+
+    for key, cat_id in CATEGORY_MAP.items():
+        if key in search_keyword:
+            return cat_id
+
+    return get_or_create_category(db, cat1 if cat1 else "AI 추천 상품")
+
+
 def check_product_has_colors(db: Session, product: Product, color_list: List[str]) -> bool:
     """상품 제목(product_name) 또는 상품 옵션(ProductOption '색상')에 target 색상이 포함되어 있는지 검사"""
     if not color_list:
@@ -593,19 +640,7 @@ def get_or_fetch_products(
                             if skip_color:
                                 continue
                         
-                        for key, cat_id in CATEGORY_MAP.items():
-                            if key in prod_name:
-                                matched_cat_id = cat_id
-                                break
-                                
-                        if not matched_cat_id:
-                            for key, cat_id in CATEGORY_MAP.items():
-                                if key in keyword:
-                                    matched_cat_id = cat_id
-                                    break
-                        
-                        if not matched_cat_id:
-                            matched_cat_id = get_or_create_category(db, item.get("category1", "AI 추천 상품"))
+                        matched_cat_id = classify_product_category(db, item, prod_name, keyword)
                         
                         saved_gender = gender if gender in ["남성", "여성"] else "공용"
                         if "여성" in prod_name or "여자" in prod_name or "원피스" in prod_name or "스커트" in prod_name:
