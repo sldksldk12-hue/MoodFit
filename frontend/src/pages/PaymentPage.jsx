@@ -227,7 +227,7 @@ const PaymentPage = () => {
 
         setError(
           requestError.response?.data?.detail ||
-            "주문 정보를 불러오지 못했습니다."
+          "주문 정보를 불러오지 못했습니다."
         );
       } finally {
         setLoading(false);
@@ -237,7 +237,9 @@ const PaymentPage = () => {
     loadCheckout();
   }, [
     checkoutId,
+    checkoutData?.checkoutItems,
     location.key,
+    location.pathname,
     navigate,
     returnPath,
     user?.id,
@@ -290,15 +292,15 @@ const PaymentPage = () => {
     setOrderItems((previousItems) =>
       previousItems.map((item) =>
         item.productId === targetItem.productId &&
-        item.cartItemId === targetItem.cartItemId &&
-        item.selectedSize ===
+          item.cartItemId === targetItem.cartItemId &&
+          item.selectedSize ===
           targetItem.selectedSize &&
-        item.selectedColor ===
+          item.selectedColor ===
           targetItem.selectedColor
           ? {
-              ...item,
-              quantity: nextQuantity,
-            }
+            ...item,
+            quantity: nextQuantity,
+          }
           : item
       )
     );
@@ -315,13 +317,13 @@ const PaymentPage = () => {
       (item) =>
         !(
           item.productId ===
-            targetItem.productId &&
+          targetItem.productId &&
           item.cartItemId ===
-            targetItem.cartItemId &&
+          targetItem.cartItemId &&
           item.selectedSize ===
-            targetItem.selectedSize &&
+          targetItem.selectedSize &&
           item.selectedColor ===
-            targetItem.selectedColor
+          targetItem.selectedColor
         )
     );
 
@@ -544,7 +546,7 @@ const PaymentPage = () => {
             <strong>
               {Number(
                 completedOrder.total_price ??
-                  productTotal
+                productTotal
               ).toLocaleString()}
               원
             </strong>
@@ -608,7 +610,7 @@ const PaymentPage = () => {
                     key={[
                       item.source,
                       item.cartItemId ??
-                        item.productId,
+                      item.productId,
                       item.selectedSize,
                       item.selectedColor,
                     ].join("-")}
@@ -664,7 +666,7 @@ const PaymentPage = () => {
                         disabled={
                           item.inventory > 0 &&
                           item.quantity >=
-                            item.inventory
+                          item.inventory
                         }
                         onClick={() =>
                           changeQuantity(
@@ -879,7 +881,7 @@ const PaymentPage = () => {
                       key={method.id}
                       className={
                         paymentMethod ===
-                        method.id
+                          method.id
                           ? "selected"
                           : ""
                       }

@@ -22,6 +22,7 @@ const ProductList = () => {
 
   // 예: "101,102,103,104,105,106"
   const category = searchParams.get("category") || "";
+  const query = searchParams.get("query")?.trim() || "";
 
   // 쉼표 문자열을 ["101", "102", ...] 배열로 변환합니다.
   const categoryIds = useMemo(
@@ -47,45 +48,98 @@ const ProductList = () => {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    // category가 숫자 ID 묶음이면 category_id로 필터링합니다.
+    const normalizedQuery = query.toLowerCase();
+
     const filtered = products.filter((product) => {
-      if (categoryIds.length === 0) return true;
+      // 카테고리 필터
+      const categoryMatched =
+        categoryIds.length === 0 ||
+        categoryIds.includes(
+          String(product.category_id)
+        );
 
-      const productCategoryId =
-        product.category_id
-      return categoryIds.includes(String(productCategoryId));
+      if (!categoryMatched) {
+        return false;
+      }
+
+      // 검색어가 없으면 카테고리 조건만 적용
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const searchableText = [
+        product.product_name,
+        product.name,
+        product.brand_name,
+        product.brand,
+        product.category_name,
+        product.description,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedQuery);
     });
-
 
     const copied = [...filtered];
 
     switch (sortType) {
       case "낮은 가격순":
         return copied.sort(
-          (a, b) => Number(a.price ?? 0) - Number(b.price ?? 0)
+          (a, b) =>
+            Number(
+              a.discount_price ?? a.price ?? 0
+            ) -
+            Number(
+              b.discount_price ?? b.price ?? 0
+            )
         );
 
       case "높은 가격순":
         return copied.sort(
-          (a, b) => Number(b.price ?? 0) - Number(a.price ?? 0)
+          (a, b) =>
+            Number(
+              b.discount_price ?? b.price ?? 0
+            ) -
+            Number(
+              a.discount_price ?? a.price ?? 0
+            )
         );
 
       case "신상품순":
         return copied.sort(
-          (a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)
+          (a, b) =>
+            new Date(b.created_at ?? 0) -
+            new Date(a.created_at ?? 0)
         );
 
       default:
         return copied;
     }
-  }, [products, categoryIds, sortType]);
+  }, [
+    products,
+    categoryIds,
+    query,
+    sortType,
+  ]);
 
   return (
     <main className="product-list-page">
       <section className="product-list-header">
         <div>
           <span className="product-list-label">MOOD FIT</span>
-          <h1>{group} 리스트</h1>
+          <h1>
+            {query
+              ? `"${query}" 검색 결과`
+              : `${group} 리스트`}
+          </h1>
+
+          <p>
+            {query
+              ? `${filteredProducts.length}개의 상품을 찾았습니다.`
+              : "AI가 선택한 코디 상품들을 확인해보세요."}
+          </p>
           <p>AI가 선택한 코디 상품들을 확인해보세요.</p>
         </div>
 

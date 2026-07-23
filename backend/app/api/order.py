@@ -91,6 +91,15 @@ def create_order(req: OrderCreateRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"ID가 {item.product_id}인 상품을 찾을 수 없습니다."
             )
+            # 재고 부족 검사
+        if product.inventory < item.quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.product_name}의 재고가 부족합니다."
+            )
+
+        # 재고 감소
+        product.inventory -= item.quantity
         
         item_total = product.discount_price * item.quantity
         total_price += item_total

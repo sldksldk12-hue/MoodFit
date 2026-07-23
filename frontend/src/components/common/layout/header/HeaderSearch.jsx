@@ -21,6 +21,7 @@ const HeaderSearch = ({ onMovePage }) => {
     if (!trimmedKeyword) return;
 
     onMovePage(`/moodfit/list?query=${encodeURIComponent(trimmedKeyword)}`);
+    setKeyword("");
     setIsOpen(false);
   };
 
@@ -29,7 +30,7 @@ const HeaderSearch = ({ onMovePage }) => {
       handleSearch();
     }
 
-    if (event.key === "Escape") {
+    if (event.key === "Escape") { 
       setIsOpen(false);
     }
   };
