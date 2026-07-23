@@ -94,7 +94,7 @@ const ProductCard = ({ product }) => {
           style={linkStyle}
         >
           <p className="product-category">{product.category}</p>
-          <h3>{product.product_name}</h3>
+          <h3>{product.product_name}{product.category_id}</h3>
           <p className="product-desc">{product.desc}</p>
         </Link>
 
