@@ -140,7 +140,6 @@ const ProductList = () => {
               ? `${filteredProducts.length}개의 상품을 찾았습니다.`
               : "AI가 선택한 코디 상품들을 확인해보세요."}
           </p>
-          <p>AI가 선택한 코디 상품들을 확인해보세요.</p>
         </div>
 
         <select
