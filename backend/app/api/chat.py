@@ -132,6 +132,9 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                             if r_item.product_id not in exclude_ids:
                                 exclude_ids.append(r_item.product_id)
 
+                    user_liked_colors = user.liked_colors if user else None
+                    user_disliked_colors = user.disliked_colors if user else None
+
                     tour_cat = extracted_dest.get("content_type") if extracted_dest else None
                     recommended_products = get_or_fetch_products(
                         db=db,
@@ -141,7 +144,9 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         weather_desc=weather_desc,
                         tour_category=tour_cat,
                         gender=user_gender,
-                        exclude_ids=exclude_ids
+                        exclude_ids=exclude_ids,
+                        liked_colors=user_liked_colors,
+                        disliked_colors=user_disliked_colors
                     )
                     
                     latency_ms = int((time.perf_counter() - start_time) * 1000)

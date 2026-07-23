@@ -368,6 +368,23 @@ def get_or_create_category(db: Session, category_name: str) -> int:
     print(f"📁 새로운 카테고리 생성됨: [{new_category.id}] {category_name}")
     return new_category.id
     
+def check_product_has_colors(db: Session, product: Product, color_list: List[str]) -> bool:
+    """상품 제목(product_name) 또는 상품 옵션(ProductOption '색상')에 target 색상이 포함되어 있는지 검사"""
+    if not color_list:
+        return False
+    if any(c in product.product_name for c in color_list):
+        return True
+    color_opt = db.query(ProductOption).filter(
+        ProductOption.product_id == product.id,
+        ProductOption.option_name == "색상"
+    ).first()
+    if color_opt and isinstance(color_opt.option_values, list):
+        for opt_val in color_opt.option_values:
+            if any(c in str(opt_val) for c in color_list):
+                return True
+    return False
+
+
 def get_or_fetch_products(
     db: Session,
     keyword: str,
@@ -376,12 +393,17 @@ def get_or_fetch_products(
     weather_desc: Optional[str] = None,
     tour_category: Optional[str] = None,
     gender: Optional[str] = None,
-    exclude_ids: Optional[List[int]] = None
+    exclude_ids: Optional[List[int]] = None,
+    liked_colors: Optional[str] = None,
+    disliked_colors: Optional[str] = None
 ):
     """자체 DB 무드 태그 및 성별 스마트 매칭 (이전 추천 제외) -> 부족하면 네이버 API 수집 -> DB 영구 저장 -> 프론트엔드 반환"""
     try:
         if exclude_ids is None:
             exclude_ids = []
+
+        liked_list = [c.strip() for c in liked_colors.replace("/", ",").split(",") if c.strip()] if liked_colors else []
+        disliked_list = [c.strip() for c in disliked_colors.replace("/", ",").split(",") if c.strip()] if disliked_colors else []
 
         naver_keyword = keyword
         if gender in ["남성", "여성"] and gender not in keyword and ("남자" not in keyword and "여자" not in keyword):
@@ -408,10 +430,16 @@ def get_or_fetch_products(
         if not core_terms:
             core_terms = search_terms
 
-        # DB 검색 기본 제약 조건 (이전 추천 제외 + 성별 타겟 필터링)
+        # DB 검색 기본 제약 조건 (이전 추천 제외 + 성별 타겟 필터링 + 기피 색상 제외)
         base_conditions = []
         if exclude_ids:
             base_conditions.append(~Product.id.in_(exclude_ids))
+
+        # 기피 색상(disliked_colors) DB 하드 제외 조건 추가
+        if disliked_list:
+            for d_color in disliked_list:
+                if d_color not in keyword:
+                    base_conditions.append(~Product.product_name.ilike(f"%{d_color}%"))
 
         # 성별 기반 상품 필터링 (남성 유저에게 여성 전용 상품 제외)
         if gender == "남성":
@@ -505,6 +533,15 @@ def get_or_fetch_products(
             else:
                 local_products = []
         
+        # 기피 색상 하드 exclusion 및 선호 색상 최상단 다중 정렬 (ProductOption 통합 검사)
+        if disliked_list and local_products:
+            local_products = [p for p in local_products if not check_product_has_colors(db, p, disliked_list)]
+
+        if liked_list and local_products:
+            liked_prods = [p for p in local_products if check_product_has_colors(db, p, liked_list)]
+            other_prods = [p for p in local_products if p not in liked_prods]
+            local_products = liked_prods + other_prods
+
         if len(local_products) >= display:
             if matched_mood_count > 0:
                 print(f"[MoodMatch] 무드 태그 100% 매칭 연동 완료! ({matched_mood_count}개 무드 태그 일치 상품 최우선 배치)")
@@ -520,75 +557,101 @@ def get_or_fetch_products(
                 } for p in local_products[:display]
             ]
             
-        print(f"[Info] 자체 DB에 안 보여준 새로운 {gender if gender else ''} '{keyword}' 상품이 부족하여 네이버에서 [{naver_keyword}] 수집을 시작합니다...")
+        print(f"[Info] 자체 DB에 안 보여준 새로운 {gender if gender else ''} '{keyword}' 상품이 부족하여 네이버 신규 수집을 진행합니다...")
         client_id = os.getenv("NAVER_CLIENT_ID")
         client_secret = os.getenv("NAVER_CLIENT_SECRET")
         start_param = len(exclude_ids) + 1 if exclude_ids else 1
-        url = f"https://openapi.naver.com/v1/search/shop.json?query={quote(naver_keyword)}&display={display}&start={start_param}"
         headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
         
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            items = response.json().get("items", [])
-            new_products = []
+        # 유저가 설정한 선호 색상이 있으면 선호 색상별로 개별 네이버 쿼리를 순회하여 수집
+        search_queries = [f"{naver_keyword} {c}" for c in liked_list] if liked_list else [naver_keyword]
+        new_products = []
+
+        for query_str in search_queries:
+            if len(new_products) >= display:
+                break
             
-            for item in items:
-                shop_pid = item.get("productId", str(hash(item["link"])))
-                existing_p = db.query(Product).filter(Product.shop_product_id == shop_pid).first()
-                if not existing_p:
-                    matched_cat_id = None
-                    prod_name = item["title"].replace("<b>", "").replace("</b>", "")
-                    
-                    for key, cat_id in CATEGORY_MAP.items():
-                        if key in prod_name:
-                            matched_cat_id = cat_id
-                            break
-                            
-                    if not matched_cat_id:
+            url = f"https://openapi.naver.com/v1/search/shop.json?query={quote(query_str)}&display={display}&start={start_param}"
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                items = response.json().get("items", [])
+                for item in items:
+                    shop_pid = item.get("productId", str(hash(item["link"])))
+                    existing_p = db.query(Product).filter(Product.shop_product_id == shop_pid).first()
+                    if not existing_p:
+                        matched_cat_id = None
+                        prod_name = item["title"].replace("<b>", "").replace("</b>", "")
+
+                        # 기피 색상 포함 여부 하드 검사
+                        if disliked_list:
+                            skip_color = False
+                            for d_color in disliked_list:
+                                if d_color in prod_name:
+                                    skip_color = True
+                                    break
+                            if skip_color:
+                                continue
+                        
                         for key, cat_id in CATEGORY_MAP.items():
-                            if key in keyword:
+                            if key in prod_name:
                                 matched_cat_id = cat_id
                                 break
-                    
-                    if not matched_cat_id:
-                        matched_cat_id = get_or_create_category(db, item.get("category1", "AI 추천 상품"))
-                    
-                    saved_gender = gender if gender in ["남성", "여성"] else "공용"
-                    if "여성" in prod_name or "여자" in prod_name or "원피스" in prod_name or "스커트" in prod_name:
-                        saved_gender = "여성"
-                    elif "남성" in prod_name or "남자" in prod_name:
-                        saved_gender = "남성"
+                                
+                        if not matched_cat_id:
+                            for key, cat_id in CATEGORY_MAP.items():
+                                if key in keyword:
+                                    matched_cat_id = cat_id
+                                    break
+                        
+                        if not matched_cat_id:
+                            matched_cat_id = get_or_create_category(db, item.get("category1", "AI 추천 상품"))
+                        
+                        saved_gender = gender if gender in ["남성", "여성"] else "공용"
+                        if "여성" in prod_name or "여자" in prod_name or "원피스" in prod_name or "스커트" in prod_name:
+                            saved_gender = "여성"
+                        elif "남성" in prod_name or "남자" in prod_name:
+                            saved_gender = "남성"
 
-                    new_p = Product(
-                        category_id=matched_cat_id,
-                        shop_product_id=shop_pid,
-                        product_name=prod_name,
-                        original_price=int(item["lprice"]),
-                        discount_price=int(item["lprice"]),
-                        image_url=[item["image"]],
-                        purchase_link=item["link"],
-                        brand=item.get("mallName", "제휴 쇼핑몰"),
-                        gender_target=saved_gender,
-                        inventory=100
-                    )
-                    db.add(new_p)
-                    new_products.append(new_p)
-            
-            if new_products:
-                db.commit()
-                print(f"[Success] 수집 완료! {len(new_products)}개의 신규 상품을 자체 DB에 영구 저장했습니다.")
-                # 새로 수집된 상품들에 대해 즉시 GPT 1:1 맞춤 옵션 및 무드 태그 자동 생성
-                seed_initial_product_options(db)
-                seed_initial_product_mood_tags(db)
-                return [
-                    {
-                        "id": p.id,
-                        "title": p.product_name,
-                        "link": f"/product/{p.id}",
-                        "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
-                        "lprice": p.discount_price
-                    } for p in new_products[:display]
-                ]
+                        new_p = Product(
+                            category_id=matched_cat_id,
+                            shop_product_id=shop_pid,
+                            product_name=prod_name,
+                            original_price=int(item["lprice"]),
+                            discount_price=int(item["lprice"]),
+                            image_url=[item["image"]],
+                            purchase_link=item["link"],
+                            brand=item.get("mallName", "제휴 쇼핑몰"),
+                            gender_target=saved_gender,
+                            inventory=100
+                        )
+                        db.add(new_p)
+                        new_products.append(new_p)
+                        if len(new_products) >= display:
+                            break
+
+        if new_products:
+            db.commit()
+            print(f"[Success] 수집 완료! {len(new_products)}개의 취향 맞춤 신규 상품을 자체 DB에 영구 저장했습니다.")
+            # 새로 수집된 상품들에 대해 즉시 GPT 1:1 맞춤 옵션 및 무드 태그 자동 생성
+            seed_initial_product_options(db)
+            seed_initial_product_mood_tags(db)
+
+            # 신규 수집 상품 중 선호 색상 다중 정렬 (ProductOption 스펙 포함 검사)
+            if liked_list:
+                liked_new = [p for p in new_products if check_product_has_colors(db, p, liked_list)]
+                other_new = [p for p in new_products if p not in liked_new]
+                new_products = liked_new + other_new
+
+            return [
+                {
+                    "id": p.id,
+                    "title": p.product_name,
+                    "link": f"/product/{p.id}",
+                    "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
+                    "lprice": p.discount_price
+                } for p in new_products[:display]
+            ]
             
             final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
             if len(final_products) < display and len(search_terms) > 1:
