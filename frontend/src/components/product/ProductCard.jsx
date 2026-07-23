@@ -8,7 +8,7 @@ import { formatPrice } from "../../utils/formatPrice";
 
 import "../../assets/styles/product/ProductCard.css";
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onUnlike }) => {
   const navigate = useNavigate();
 
   const {
@@ -26,7 +26,10 @@ const ProductCard = ({ product }) => {
   const handleLike = async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    await toggleProductLike();
+    const result = await toggleProductLike();
+    if (result?.status === "removed") {
+      onUnlike?.(product.id);
+    } 
   };
 
   const handleCart = async (event) => {

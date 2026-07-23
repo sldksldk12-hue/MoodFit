@@ -22,3 +22,5 @@ env/
 .idea/
 
 recreate_db.py
+
+main_admin.py

@@ -22,6 +22,9 @@ const OrderHistoryPage = lazy(() => import("./pages/OrderHistoryPage"));
 const RecentHistoryPage = lazy(() => import("./pages/RecentHistoryPage"));
 const AddressManagementPage = lazy(() => import("./pages/AddressManagementPage"));
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const WishlistPage = lazy(
+  () => import("./pages/WishlistPage")
+);
 
 const Moodfit = () => {
   return (
@@ -123,6 +126,14 @@ const Moodfit = () => {
               element={
                 <ProtectedRoute>
                   <AdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/moodfit/wishlist"
+              element={
+                <ProtectedRoute>
+                  <WishlistPage />
                 </ProtectedRoute>
               }
             />
