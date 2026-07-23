@@ -17,7 +17,7 @@ const menuItems = [
     label: "배송지 관리",
     description: "기본 배송지와 추가 배송지를 관리합니다.",
     icon: MapPin,
-    path: "/moodfit/address",
+    path: "/moodfit/addresses",
   },
   {
     label: "취향 관리",

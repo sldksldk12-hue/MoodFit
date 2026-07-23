@@ -343,3 +343,32 @@ export const getOrderDetail = async (orderId) => {
   const response = await api.get(`/api/orders/${orderId}`);
   return response.data;
 };
+export const updateAddress = async (
+  addressId,
+  addressData
+) => {
+  const response = await api.put(
+    `/api/addresses/${addressId}`,
+    {
+      receiver_name: addressData.receiverName.trim(),
+      call_number: addressData.callNumber.trim(),
+      user_address: addressData.userAddress.trim(),
+      zip_code: addressData.zipCode.trim(),
+      address_detail:
+        addressData.addressDetail.trim(),
+      delivery_request:
+        addressData.deliveryRequest?.trim() || null,
+      is_default: Boolean(addressData.isDefault),
+    }
+  );
+
+  return response.data;
+};
+
+export const deleteAddress = async (addressId) => {
+  const response = await api.delete(
+    `/api/addresses/${addressId}`
+  );
+
+  return response.data;
+};

@@ -15,6 +15,7 @@ import {
 } from "react-router-dom";
 
 import {
+  createAddress,
   createOrder,
   deleteCartItem,
   getUserAddresses,
@@ -136,6 +137,8 @@ const PaymentPage = () => {
     useState(false);
   const [addressForm, setAddressForm] =
     useState(EMPTY_ADDRESS);
+  const [saveAsDefaultAddress, setSaveAsDefaultAddress] =
+    useState(false);
   const [paymentMethod, setPaymentMethod] =
     useState("card");
 
@@ -209,10 +212,12 @@ const PaymentPage = () => {
             addressToForm(defaultAddress)
           );
           setUseNewAddress(false);
+          setSaveAsDefaultAddress(false);
         } else {
           setSelectedAddressId("");
           setAddressForm(EMPTY_ADDRESS);
           setUseNewAddress(true);
+          setSaveAsDefaultAddress(true);
         }
       } catch (requestError) {
         console.error(
@@ -341,8 +346,13 @@ const PaymentPage = () => {
 
     if (value === "new") {
       setAddressForm(EMPTY_ADDRESS);
+
+      // 저장된 배송지가 하나도 없다면 첫 배송지는 자동으로 기본 배송지가 됩니다.
+      setSaveAsDefaultAddress(addresses.length === 0);
       return;
     }
+
+    setSaveAsDefaultAddress(false);
 
     const selected = addresses.find(
       (address) =>
@@ -424,13 +434,34 @@ const PaymentPage = () => {
       setSubmitting(true);
       setError("");
 
+      let orderAddressId =
+        !useNewAddress && selectedAddressId
+          ? selectedAddressId
+          : null;
+
+      /*
+       * 새 배송지를 기본 배송지로 등록하기로 한 경우,
+       * 이미 존재하는 배송지 API를 이용해 먼저 저장합니다.
+       *
+       * 백엔드는 is_default=true가 전달되면 기존 기본 배송지를
+       * 자동으로 해제하고 새 배송지를 기본 배송지로 지정합니다.
+       */
+      if (useNewAddress && saveAsDefaultAddress) {
+        const savedAddress = await createAddress({
+          userId: user.id,
+          ...addressForm,
+          isDefault: true,
+        });
+
+        orderAddressId = savedAddress.id;
+      }
+
       const result = await createOrder({
         userId: user.id,
-        addressId:
-          !useNewAddress && selectedAddressId
-            ? selectedAddressId
-            : null,
-        addressInfo: addressForm,
+        addressId: orderAddressId,
+        addressInfo: orderAddressId
+          ? null
+          : addressForm,
         selectedOrder:
           selectedPayment.serverValue,
         items: orderItems,
@@ -805,6 +836,33 @@ const PaymentPage = () => {
                   }
                 />
               </div>
+
+              {useNewAddress && (
+                <label className="payment-default-address">
+                  <input
+                    type="checkbox"
+                    checked={saveAsDefaultAddress}
+                    onChange={(event) =>
+                      setSaveAsDefaultAddress(
+                        event.target.checked
+                      )
+                    }
+                    disabled={
+                      addresses.length === 0
+                    }
+                  />
+
+                  <span>
+                    기본 배송지로 등록하기
+                  </span>
+
+                  {addresses.length === 0 && (
+                    <small>
+                      첫 배송지는 자동으로 기본 배송지로 등록됩니다.
+                    </small>
+                  )}
+                </label>
+              )}
             </section>
 
             <section className="payment-box">
