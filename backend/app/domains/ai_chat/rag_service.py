@@ -29,15 +29,22 @@ class RagsFashionService:
 - 현재 날씨 및 기온: {weather}
 - 관광지 정보: {tour_info}
 
-[유저 패션 프로필]
+[유저 패션 및 신체 프로필]
+- 유저 성별: {gender}
+- 유저 키: {user_height}cm
+- 유저 몸무게: {user_weight}kg
+- 유저 체형: {body_form}
 - 선호하는 스타일: {preferred_style}
+- 선호 색상: {liked_colors}
 - ⚠️ 절대 추천하면 안 되는 기피 색상 (하드 필터링 제약 조건): {disliked_colors}
 
 [답변 작성 가이드]
 1. 유저의 현재 감정에 깊이 공감해주며, 오늘 날씨에 적합한 활동적인 멘트로 시작하세요.
 2. 이전 대화 문맥(chat_history)을 완벽히 파악하고, 유저가 변경을 원한다면 이전 코디를 바탕으로 수정해서 제안하세요.
-3. **매우 중요**: 유저가 기피하는 색상({disliked_colors})은 옷, 신발, 액세서리 등 추천 목록의 그 어떤 곳에도 절대 포함되어서는 안 됩니다.
-4. 친근하면서도 전문적인 톤앤매너(해요체)를 유지하세요."""),
+3. **선호 스타일 최우선 반영**: 유저가 설정한 선호 스타일({preferred_style}) 감성(예: 스트릿, 미니멀, 캐주얼, 아메카지, 스포티, 모던 등)을 중심으로 전체 코디 분위기와 실루엣을 제안하세요.
+4. **선호/기피 색상 반영**: 유저가 좋아하는 색상({liked_colors})을 매칭에 우선 반영하고, **기피하는 색상({disliked_colors})은 옷, 신발, 액세서리 등 추천 목록 그 어디에도 절대 포함시키지 마세요.**
+5. **신체 핏 가이드**: 유저의 키({user_height}cm), 몸무게({user_weight}kg), 체형({body_form})에 맞는 핏 팁(오버핏, 레귤러핏 등)을 친절하게 제시하세요.
+6. 친근하면서도 전문적인 톤앤매너(해요체)를 유지하세요."""),
             MessagesPlaceholder(variable_name="chat_history"), # 이전 대화가 들어가는 자리
             ("human", "{user_message}")
         ])
@@ -104,13 +111,17 @@ class RagsFashionService:
                     ChatMessage.session_id == session_id
                 ).order_by(ChatMessage.created_at.asc()).all()
                 
+                # 방금 DB에 등록된 제일 마지막 유저 메시지는 human 인자로 넘어가므로 chat_history에서 제외
+                if past_messages and past_messages[-1].sender_type == "USER" and past_messages[-1].message_text == user_message:
+                    past_messages = past_messages[:-1]
+                
                 for msg in past_messages:
                     if msg.sender_type == "USER":
-                        # 단, 방금 유저가 보낸 메시지는 빼야 합니다. (아래 human에 들어가니까)
-                        if msg.message_text != user_message: 
-                            chat_history.append(HumanMessage(content=msg.message_text))
+                        chat_history.append(HumanMessage(content=msg.message_text))
                     elif msg.sender_type == "AI":
                         chat_history.append(AIMessage(content=msg.message_text))
+                        
+                print(f"[Memory] 세션 ID({session_id})의 이전 대화 {len(chat_history)}건이 RAG 메모리에 로드되었습니다.")
             except Exception as e:
                 print(f"[Error] 대화 기록 불러오기 실패: {e}")
 
@@ -130,25 +141,42 @@ class RagsFashionService:
             db.rollback()
             print(f"[Error] 날씨 DB 저장 실패: {e}")
 
-        # 3. 취향 조회
-        preferred_style, disliked_colors = "캐주얼(Casual)", "없음"
+        # 3. 유저 신체 스펙 및 패션 취향 정보 조회
+        gender = "정보 없음"
+        user_height = "정보 없음"
+        user_weight = "정보 없음"
+        body_form = "정보 없음"
+        preferred_style = "캐주얼(Casual)"
+        liked_colors = "없음"
+        disliked_colors = "없음"
+
         try:
             user_info = db.query(User).filter(User.id == user_id).first()
             if user_info:
+                gender = user_info.gender or gender
+                user_height = str(user_info.user_height) if user_info.user_height else user_height
+                user_weight = str(user_info.user_weight) if user_info.user_weight else user_weight
+                body_form = user_info.body_form or body_form
                 preferred_style = user_info.preferred_styles or preferred_style
+                liked_colors = user_info.liked_colors or liked_colors
                 disliked_colors = user_info.disliked_colors or disliked_colors
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[Error] 유저 취향 정보 조회 실패: {e}")
 
-        # 4. 프롬프트에 chat_history 주입!
+        # 4. 프롬프트에 모든 유저 취향/신체 정보 및 chat_history 주입!
         response = self.chain.invoke({
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",
             "weather": current_weather,
             "tour_info": tour_info_text,
+            "gender": gender,
+            "user_height": user_height,
+            "user_weight": user_weight,
+            "body_form": body_form,
             "preferred_style": preferred_style,
+            "liked_colors": liked_colors,
             "disliked_colors": disliked_colors,
-            "chat_history": chat_history, # 히스토리 저장
+            "chat_history": chat_history,
             "user_message": user_message
         })
 
