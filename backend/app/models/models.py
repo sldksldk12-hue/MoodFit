@@ -468,6 +468,7 @@ class ProductReview(Base):
     __tablename__ = "product_reviews"
     __table_args__ = (
         UniqueConstraint("user_id", "order_item_id", name="uq_user_order_item_review"),
+        Index("idx_prod_created", "product_id", "created_at"),
         {"comment": "상품 리뷰"}
     )
 
