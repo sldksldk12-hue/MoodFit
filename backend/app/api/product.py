@@ -40,6 +40,11 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
             seed_initial_product_options(db)
             db.refresh(product)
 
+        if not product.mood_tags:
+            from app.domains.product.service import seed_initial_product_mood_tags
+            seed_initial_product_mood_tags(db)
+            db.refresh(product)
+
         if product.options:
             for opt in product.options:
                 if opt.option_name == "상세스펙" and isinstance(opt.option_values, dict):
@@ -54,6 +59,16 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
                         "option_values": opt.option_values,
                         "is_required": opt.is_required
                     })
+        
+        mood_tags_data = {}
+        if product.mood_tags:
+            tag_obj = product.mood_tags[0] if isinstance(product.mood_tags, list) and len(product.mood_tags) > 0 else product.mood_tags
+            mood_tags_data = {
+                "mood_tag": tag_obj.mood_tag,
+                "weather_tag": tag_obj.weather_tag,
+                "season_tag": tag_obj.season_tag,
+                "tour_tag": tag_obj.tour_tag
+            }
         
         return {
             "status": "success",
@@ -77,6 +92,7 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
                 "average_rating": float(product.average_rating),
                 "like_count": product.like_count,
                 "options": options_data,
+                "mood_tags": mood_tags_data
             }
         }
     except Exception as e:
