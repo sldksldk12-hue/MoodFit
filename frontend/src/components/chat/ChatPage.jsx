@@ -16,6 +16,7 @@
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useAuth } from "../../store/AuthContext";
 
 import {
   addUserMessage,
@@ -41,6 +42,7 @@ const ChatPage = ({ mode = "full", closeChat }) => {
   // Redux Store에 상태 변경 명령(action)을 전달하기 위한 dispatch 함수입니다.
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useAuth();
   // 여러 컴포넌트가 공유하는 Redux 상태에서 현재 화면에 필요한 값만 선택합니다.
   const { messages, loading, heroInput } = useSelector((state) => state.chat);
   // message: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
@@ -55,8 +57,10 @@ const ChatPage = ({ mode = "full", closeChat }) => {
     const trimmedMessage = String(messageToSend ?? "").trim();
     if (!trimmedMessage || loading) return;
 
+    const currentUserId = user?.id ? Number(user.id) : 1;
+
     dispatch(addUserMessage(trimmedMessage));
-    dispatch(sendChatMessage({ message: trimmedMessage, userId: 1 }));
+    dispatch(sendChatMessage({ message: trimmedMessage, userId: currentUserId }));
     setMessage("");
   };
 
