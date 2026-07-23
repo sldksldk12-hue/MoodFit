@@ -85,26 +85,66 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         if os.getenv("OPENAI_API_KEY"):
             start_time = time.perf_counter()
             try:
+                user_gender = user.gender if user else "공용"
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
-                # 프롬프트 내용 업그레이드 (우선순위 조건 추가)
                 keyword_prompt = ChatPromptTemplate.from_template(
                     "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류 쇼핑 키워드 딱 1개'를 추출해줘.\n"
-                    "[주의사항 1]: '화려한', '시원한', '편안한' 같은 형용사는 절대 포함하지 말고, 오직 상품의 종류만 추출할 것.\n"
-                    "[주의사항 2]: 만약 날씨나 상황에 맞춘 겉옷(바람막이, 패딩, 코트 등)이나 포인트 아이템이 새롭게 강조되었다면, 이너웨어(티셔츠)보다 그 핵심 아이템을 우선적으로 단일 키워드로 뽑아줄 것!\n\n"
+                    "현재 유저 성별: {user_gender}\n"
+                    "[주의사항 1]: '오버핏', '레인', '시원한', '편안한', '무지', '슬림', '루즈핏' 같은 수식어/형용사는 가급적 제외하고, 오직 의류/잡화의 명확한 카테고리/품목명(예: '가디건', '백팩', '니트', '코트', '슬랙스', '바람막이', '티셔츠' 등)을 최우선 핵심 키워드로 추출할 것!\n"
+                    "[주의사항 2]: 만약 날씨나 상황에 맞춘 겉옷(바람막이, 패딩, 코트 등)이나 특정 포인트 아이템이 새롭게 강조되었다면, 이너웨어(티셔츠)보다 그 핵심 품목명을 우선적으로 뽑아줄 것!\n"
+                    "[주의사항 3]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 성별 단어('여성', '남자', '원피스', '스커트' 등)를 절대 추출 키워드에 포함시키지 마세요.\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
                 )
                 keyword_chain = keyword_prompt | keyword_llm | parser
                 
                 with get_openai_callback() as cb:
                     parsed_result = keyword_chain.invoke({
-                        "recommendation": ai_recommendation, "format_instructions": parser.get_format_instructions()
+                        "recommendation": ai_recommendation,
+                        "user_gender": user_gender,
+                        "format_instructions": parser.get_format_instructions()
                     })
                     
-                    latency_ms = int((time.perf_counter() - start_time) * 1000)
                     search_keyword = parsed_result.search_keyword
-                    recommended_products = get_or_fetch_products(db, search_keyword, display=3)
+                    if user_gender == "남성":
+                        search_keyword = search_keyword.replace("여성", "").replace("여자", "").replace("여성용", "").strip()
+                        if "남성" not in search_keyword and "남자" not in search_keyword:
+                            search_keyword = f"남성 {search_keyword}"
+                    elif user_gender == "여성":
+                        search_keyword = search_keyword.replace("남성", "").replace("남자", "").replace("남성용", "").strip()
+                        if "여성" not in search_keyword and "여자" not in search_keyword:
+                            search_keyword = f"여성 {search_keyword}"
+
+                    weather_desc = None
+                    if weather_log_id:
+                        w_log = db.query(WeatherLog).filter(WeatherLog.id == weather_log_id).first()
+                        if w_log:
+                            weather_desc = w_log.condition_code
+
+                    # 이전 대화에서 이미 추천되었던 모든 상품 ID 수집 (중복/반복 추천 방지)
+                    past_rec_sessions = db.query(RecommendationSession).filter(
+                        RecommendationSession.chat_session_id == current_session_id
+                    ).all()
                     
+                    exclude_ids = []
+                    for rs in past_rec_sessions:
+                        for r_item in rs.items:
+                            if r_item.product_id not in exclude_ids:
+                                exclude_ids.append(r_item.product_id)
+
+                    tour_cat = extracted_dest.get("content_type") if extracted_dest else None
+                    recommended_products = get_or_fetch_products(
+                        db=db,
+                        keyword=search_keyword,
+                        display=3,
+                        emotion=predicted_emotion,
+                        weather_desc=weather_desc,
+                        tour_category=tour_cat,
+                        gender=user_gender,
+                        exclude_ids=exclude_ids
+                    )
+                    
+                    latency_ms = int((time.perf_counter() - start_time) * 1000)
                     new_ai_log = AiCallLog(
                         chat_session_id=current_session_id,
                         model_name="gpt-4o-mini",
