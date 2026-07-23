@@ -120,6 +120,7 @@ async def get_product_list(db: Session = Depends(get_db)):
                 "id": product.id,
                 "shop_product_id": product.shop_product_id,
                 "category": category_name,
+                "category_id": product.category_id,
                 "brand": product.brand,
                 "name": product.product_name,
                 "product_name": product.product_name,

@@ -52,12 +52,10 @@ const ProductList = () => {
       if (categoryIds.length === 0) return true;
 
       const productCategoryId =
-        product.category_id ??
-        product.categoryId ??
-        product.category;
-
+        product.category_id
       return categoryIds.includes(String(productCategoryId));
     });
+
 
     const copied = [...filtered];
 

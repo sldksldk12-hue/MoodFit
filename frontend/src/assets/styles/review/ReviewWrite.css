@@ -168,3 +168,54 @@
   font-weight: 750;
   cursor: pointer;
 }
+.review-image-upload {
+  display: grid;
+  gap: 12px;
+}
+
+.review-upload {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px dashed #b8b8b8;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.review-image-preview-wrap {
+  max-width: 320px;
+}
+
+.review-image-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.image-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-image-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.review-image-preview {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 12px;
+}

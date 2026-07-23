@@ -236,19 +236,31 @@ export const getProductReviews = async (productId) => {
 
 // 리뷰 작성
 export const createReview = async (reviewData) => {
-  const response = await api.post(
-    "/api/reviews/",
-    {
+  try {
+    const payload = {
       user_id: Number(reviewData.userId),
       product_id: Number(reviewData.productId),
       order_item_id: Number(reviewData.orderItemId),
       rating: Number(reviewData.rating),
       content: reviewData.content.trim(),
-      image_url: reviewData.imageUrl || null,
-    }
-  );
 
-  return response.data;
+      // 이미지가 있으면 배열 형태로 전달하고,
+      // 이미지가 없으면 null을 전달합니다.
+      image_url: reviewData.imageUrl
+        ? [reviewData.imageUrl]
+        : null,
+    };
+
+    const response = await api.post(
+      "/api/reviews/",
+      payload
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("리뷰 등록 API 오류:", error);
+    throw error;
+  }
 };
 
 // ===========================
@@ -329,5 +341,34 @@ export const getUserOrders = async (userId) => {
 // 단일 주문 상세 조회
 export const getOrderDetail = async (orderId) => {
   const response = await api.get(`/api/orders/${orderId}`);
+  return response.data;
+};
+export const updateAddress = async (
+  addressId,
+  addressData
+) => {
+  const response = await api.put(
+    `/api/addresses/${addressId}`,
+    {
+      receiver_name: addressData.receiverName.trim(),
+      call_number: addressData.callNumber.trim(),
+      user_address: addressData.userAddress.trim(),
+      zip_code: addressData.zipCode.trim(),
+      address_detail:
+        addressData.addressDetail.trim(),
+      delivery_request:
+        addressData.deliveryRequest?.trim() || null,
+      is_default: Boolean(addressData.isDefault),
+    }
+  );
+
+  return response.data;
+};
+
+export const deleteAddress = async (addressId) => {
+  const response = await api.delete(
+    `/api/addresses/${addressId}`
+  );
+
   return response.data;
 };

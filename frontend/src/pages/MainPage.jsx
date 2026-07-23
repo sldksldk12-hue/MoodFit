@@ -38,7 +38,7 @@ const banners = [
  * MainPage2 컴포넌트
  * 부모에게 받은 props와 전역 상태를 조합해 화면을 렌더링합니다.
  */
-const MainPage2 = () => {
+const MainPage = () => {
     // Redux Store에 상태 변경 명령(action)을 전달하기 위한 dispatch 함수입니다.
     const dispatch = useDispatch();
     // 여러 컴포넌트가 공유하는 Redux 상태에서 현재 화면에 필요한 값만 선택합니다.
@@ -185,4 +185,4 @@ const MainPage2 = () => {
 };
 
 // 다른 파일에서 이 모듈을 기본 import할 수 있도록 내보냅니다.
-export default MainPage2;
+export default MainPage;

@@ -109,3 +109,11 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+.product-detail-page {
+  cursor: default;
+}
+
+.product-detail-page input,
+.product-detail-page textarea {
+  cursor: text;
+}
