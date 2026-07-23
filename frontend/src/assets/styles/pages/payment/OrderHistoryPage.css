@@ -440,3 +440,19 @@
     justify-content: space-between;
   }
 }
+
+/* STEP 3 premium purchase experience refinements */
+.order-card { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+.order-card:hover { transform: translateY(-3px); border-color:#d9dce3; box-shadow:0 22px 50px rgba(28,34,48,.09); }
+.order-preview img { transition: transform .4s ease; }
+.order-preview:hover img { transform: scale(1.035); }
+.order-expand-button { cursor:pointer; transition:background .2s ease,color .2s ease; }
+.order-expand-button:hover { background:#f3f4f6; color:#20242c; }
+@media (max-width:720px){
+  .order-history-page{padding:104px 14px 64px}
+  .order-history-summary{grid-template-columns:1fr}
+  .order-preview{grid-template-columns:82px minmax(0,1fr);padding:16px;gap:14px}
+  .order-preview img{width:82px;height:102px}
+  .order-preview>strong{grid-column:2;font-size:17px}
+  .order-card-meta{grid-template-columns:1fr;margin:0 16px 16px}
+}

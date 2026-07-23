@@ -1,9 +1,9 @@
 /**
- * 파일: src/pages/ProductList.jsx
- * 역할: URL의 group과 category 값을 이용해 상품 목록을 출력합니다.
+ * URL의 group/category/query 값을 이용해 상품 목록을 출력합니다.
+ * 기존 API 구조는 유지하고 UI 상태만 프론트에서 처리합니다.
  */
-
 import { useEffect, useMemo, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import ProductCard from "../components/product/ProductCard";
@@ -17,16 +17,12 @@ const ProductList = () => {
   const [sortType, setSortType] = useState("추천순");
   const [loading, setLoading] = useState(true);
 
-  // Header가 화면에 보여줄 한글 이름을 group으로 전달합니다.
-  const group = searchParams.get("group") || "상품";
-
-  // 예: "101,102,103,104,105,106"
+  const group = searchParams.get("group") || "전체 상품";
   const category = searchParams.get("category") || "";
   const query = searchParams.get("query")?.trim() || "";
 
-  // 쉼표 문자열을 ["101", "102", ...] 배열로 변환합니다.
   const categoryIds = useMemo(
-    () => category.split(",").map((id) => id.trim()).filter(Boolean),
+    () => category.split(",").map((item) => item.trim()).filter(Boolean),
     [category]
   );
 
@@ -43,31 +39,18 @@ const ProductList = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.toLowerCase();
-
     const filtered = products.filter((product) => {
-      // 카테고리 필터
       const categoryMatched =
-        categoryIds.length === 0 ||
-        categoryIds.includes(
-          String(product.category_id)
-        );
+        categoryIds.length === 0 || categoryIds.includes(String(product.category_id));
+      if (!categoryMatched) return false;
+      if (!normalizedQuery) return true;
 
-      if (!categoryMatched) {
-        return false;
-      }
-
-      // 검색어가 없으면 카테고리 조건만 적용
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const searchableText = [
+      return [
         product.product_name,
         product.name,
         product.brand_name,
@@ -77,95 +60,65 @@ const ProductList = () => {
       ]
         .filter(Boolean)
         .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(normalizedQuery);
+        .toLowerCase()
+        .includes(normalizedQuery);
     });
 
     const copied = [...filtered];
-
-    switch (sortType) {
-      case "낮은 가격순":
-        return copied.sort(
-          (a, b) =>
-            Number(
-              a.discount_price ?? a.price ?? 0
-            ) -
-            Number(
-              b.discount_price ?? b.price ?? 0
-            )
-        );
-
-      case "높은 가격순":
-        return copied.sort(
-          (a, b) =>
-            Number(
-              b.discount_price ?? b.price ?? 0
-            ) -
-            Number(
-              a.discount_price ?? a.price ?? 0
-            )
-        );
-
-      case "신상품순":
-        return copied.sort(
-          (a, b) =>
-            new Date(b.created_at ?? 0) -
-            new Date(a.created_at ?? 0)
-        );
-
-      default:
-        return copied;
+    if (sortType === "낮은 가격순") {
+      return copied.sort((a, b) => Number(a.discount_price ?? a.price ?? 0) - Number(b.discount_price ?? b.price ?? 0));
     }
-  }, [
-    products,
-    categoryIds,
-    query,
-    sortType,
-  ]);
+    if (sortType === "높은 가격순") {
+      return copied.sort((a, b) => Number(b.discount_price ?? b.price ?? 0) - Number(a.discount_price ?? a.price ?? 0));
+    }
+    if (sortType === "신상품순") {
+      return copied.sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0));
+    }
+    return copied;
+  }, [products, categoryIds, query, sortType]);
 
   return (
     <main className="product-list-page">
+      <nav className="product-breadcrumb" aria-label="현재 위치">
+        <span>HOME</span><span>/</span><strong>{group}</strong>
+      </nav>
+
       <section className="product-list-header">
         <div>
-          <span className="product-list-label">MOOD FIT</span>
-          <h1>
-            {query
-              ? `"${query}" 검색 결과`
-              : `${group} 리스트`}
-          </h1>
-
-          <p>
-            {query
-              ? `${filteredProducts.length}개의 상품을 찾았습니다.`
-              : "AI가 선택한 코디 상품들을 확인해보세요."}
-          </p>
+          <span className="product-list-label">MOODFIT COLLECTION</span>
+          <h1>{query ? `“${query}” 검색 결과` : group}</h1>
+          <p>{query ? "검색어와 가장 가까운 스타일을 모았습니다." : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요."}</p>
         </div>
+      </section>
 
-        <select
-          className="product-sort"
-          value={sortType}
-          onChange={(event) => setSortType(event.target.value)}
-        >
-          <option>추천순</option>
-          <option>낮은 가격순</option>
-          <option>높은 가격순</option>
-          <option>신상품순</option>
-        </select>
+      <section className="product-list-toolbar" aria-label="상품 목록 도구">
+        <div className="product-result-count">
+          <SlidersHorizontal size={16} />
+          <strong>{filteredProducts.length}</strong> products
+        </div>
+        <label className="product-sort-label">
+          <span>정렬</span>
+          <select className="product-sort" value={sortType} onChange={(event) => setSortType(event.target.value)}>
+            <option>추천순</option>
+            <option>낮은 가격순</option>
+            <option>높은 가격순</option>
+            <option>신상품순</option>
+          </select>
+        </label>
       </section>
 
       {loading ? (
         <ProductGridSkeleton count={8} />
       ) : filteredProducts.length > 0 ? (
         <section className="product-grid">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+          {filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)}
         </section>
       ) : (
-        <p className="product-list-message">
-          해당 카테고리의 상품이 없습니다.
-        </p>
+        <section className="product-list-empty">
+          <span>NO RESULT</span>
+          <h2>조건에 맞는 상품이 없습니다.</h2>
+          <p>검색어 또는 카테고리를 변경해 다시 확인해보세요.</p>
+        </section>
       )}
     </main>
   );

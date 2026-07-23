@@ -1,24 +1,35 @@
 .weather-card {
   align-self: center;
+  width: 100%;
   padding: 32px;
-  border-radius: 26px;
-  background: white;
-  box-shadow: 0 20px 60px rgba(30, 45, 75, 0.12);
+  border-radius: var(--mf-radius-lg);
+  background: var(--mf-white);
+  border: 1px solid var(--mf-gray-150);
+  box-shadow: var(--mf-shadow);
 }
 
 .weather-card h2 {
   margin-bottom: 8px;
+  font-size: 20px;
+  letter-spacing: -0.02em;
 }
 
 .weather-card p {
-  color: #666;
+  color: var(--mf-gray-500);
+  font-size: 14px;
 }
 
 .weather-card strong {
   display: block;
-  margin-top: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--mf-gray-150);
   line-height: 1.6;
+  font-size: 15px;
+  color: var(--mf-ink);
 }
+
+/* ===== Skeleton ===== */
 .weather-skeleton {
   width: 100%;
   display: flex;
@@ -31,9 +42,9 @@
 .skeleton-line {
   background: linear-gradient(
     90deg,
-    #eceff3 25%,
-    #f7f8fa 50%,
-    #eceff3 75%
+    var(--mf-gray-100) 25%,
+    var(--mf-gray-50) 50%,
+    var(--mf-gray-100) 75%
   );
   background-size: 200% 100%;
   animation: skeleton-loading 1.3s infinite;
@@ -67,7 +78,6 @@
   from {
     background-position: 200% 0;
   }
-
   to {
     background-position: -200% 0;
   }

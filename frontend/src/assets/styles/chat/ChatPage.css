@@ -33,7 +33,7 @@
   height: 40px;
   border: none;
   border-radius: 12px;
-  background: #172033;
+  background: #111111;
   color: white;
   font-weight: 700;
 }
@@ -147,7 +147,7 @@
 }
 
 .chat-header strong {
-  color: #111827;
+  color: #111111;
   font-size: 16px;
 }
 
@@ -202,12 +202,12 @@
 .user-message {
   border-bottom-right-radius: 5px;
   color: #ffffff;
-  background: #111827;
+  background: #111111;
 }
 
 .ai-message {
   border-bottom-left-radius: 5px;
-  color: #1f2937;
+  color: #111111;
   background: #f3f4f6;
 }
 
@@ -253,7 +253,7 @@
 }
 
 .chat-input-area textarea:focus {
-  border-color: #111827;
+  border-color: #111111;
 }
 
 .chat-send-button {
@@ -262,7 +262,7 @@
   border: none;
   border-radius: 12px;
   color: #ffffff;
-  background: #111827;
+  background: #111111;
   font-weight: 700;
   cursor: pointer;
 }

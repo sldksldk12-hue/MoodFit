@@ -1,98 +1,129 @@
+/* Pretendard – premium Korean-first typeface (Apple SD Gothic 대체) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css");
+
 :root {
-  --text: #000000;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* ===== MOOD FIT Design System : Apple × Musinsa ===== */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Ink & Neutrals (monochrome premium palette) */
+  --mf-ink: #111111;
+  --mf-ink-soft: #2b2b2b;
+  --mf-gray-900: #1a1a1a;
+  --mf-gray-700: #4a4a4a;
+  --mf-gray-600: #5f5f5f;
+  --mf-gray-500: #767676;
+  --mf-gray-400: #9b9b9b;
+  --mf-gray-300: #cfcfcf;
+  --mf-gray-200: #e6e6e6;
+  --mf-gray-150: #ededed;
+  --mf-gray-100: #f4f4f5;
+  --mf-gray-50: #f7f7f8;
+  --mf-white: #ffffff;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* Accents (used sparingly) */
+  --mf-accent: #0071e3;          /* apple-blue : links / focus */
+  --mf-accent-soft: rgba(0, 113, 227, 0.1);
+  --mf-sale: #ff3b30;            /* 세일가 강조 */
+
+  /* Semantic aliases (kept for legacy markup) */
+  --text: var(--mf-ink);
+  --text-h: var(--mf-ink);
+  --bg: var(--mf-white);
+  --border: var(--mf-gray-200);
+  --accent: var(--mf-ink);
+  --accent-bg: var(--mf-gray-100);
+  --accent-border: var(--mf-gray-300);
+
+  /* Radius */
+  --mf-radius-sm: 6px;
+  --mf-radius: 10px;
+  --mf-radius-lg: 18px;
+  --mf-radius-xl: 28px;
+  --mf-pill: 999px;
+
+  /* Elevation */
+  --mf-shadow-xs: 0 1px 2px rgba(17, 17, 17, 0.05);
+  --mf-shadow-sm: 0 4px 16px rgba(17, 17, 17, 0.06);
+  --mf-shadow: 0 12px 32px rgba(17, 17, 17, 0.08);
+  --mf-shadow-lg: 0 24px 60px rgba(17, 17, 17, 0.12);
+  --shadow: var(--mf-shadow-sm);
+
+  /* Layout */
+  --mf-container: 1240px;
+  --mf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Fonts */
+  --sans: "Pretendard Variable", Pretendard, system-ui, -apple-system,
+    "Apple SD Gothic Neo", "Malgun Gothic", Roboto, sans-serif;
+  --heading: var(--sans);
+  --mono: ui-monospace, "SF Mono", Consolas, monospace;
+
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
   color-scheme: only light;
-  color: var(--text);
-  background: var(--bg);
+  color: var(--mf-ink);
+  background: var(--mf-white);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #01060f;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
 }
 
 body {
   margin: 0;
+  background: var(--mf-white);
+  color: var(--mf-ink);
 }
 
 #root {
-  /* width: 1126px; */
   max-width: 100%;
   margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  border: 0;
+  background: var(--mf-white);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 h1,
-h2 {
+h2,
+h3,
+h4 {
   font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  color: var(--mf-ink);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  font-weight: 700;
+  margin: 0;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-size: clamp(32px, 5vw, 56px);
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: clamp(22px, 3vw, 32px);
 }
+
 p {
   margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
 }
 
 code,
@@ -100,15 +131,16 @@ code,
   font-family: var(--mono);
   display: inline-flex;
   border-radius: 4px;
-  color: var(--text-h);
+  color: var(--mf-ink);
 }
 
 code {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 135%;
   padding: 4px 8px;
-  background: var(--code-bg);
+  background: var(--mf-gray-100);
 }
+
 .product-detail-page {
   cursor: default;
 }
@@ -116,4 +148,24 @@ code {
 .product-detail-page input,
 .product-detail-page textarea {
   cursor: text;
+}
+
+/* Selection */
+::selection {
+  background: var(--mf-ink);
+  color: var(--mf-white);
+}
+
+/* Refined scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mf-gray-300);
+  border-radius: 999px;
+  border: 3px solid var(--mf-white);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mf-gray-400);
 }
