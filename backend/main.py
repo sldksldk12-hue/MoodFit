@@ -5,8 +5,9 @@ from transformers import pipeline
 from dotenv import load_dotenv
 
 # 분리한 라우터들을 가져오기
-from app.api import chat, product, external, cart, auth, tour, like, order, history, inquiry, review, address
+from app.api import chat, product, external, cart, auth, tour, like, order, history, inquiry, review, address,admin
 from app.domains.ai_chat.rag_service import RagsFashionService
+
 # Base와 DB engine 임포트 추가 (모든 모델을 인식하도록 models 자체를 가져오는 것이 안전)
 from app.models import models 
 from app.db.database import engine, SessionLocal
@@ -67,7 +68,7 @@ app.include_router(history.router)
 app.include_router(inquiry.router)
 app.include_router(review.router)
 app.include_router(address.router)
-
+app.include_router(admin.router)
 @app.get("/")
 async def root():
     return {"message": "MoodFit AI 서버 운영 중", "rag_ready": rag_service is not None}
