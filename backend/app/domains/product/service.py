@@ -71,9 +71,24 @@ def seed_initial_categories(db: Session):
         print(f"⚠️ 카테고리 자동 적재 중 오류 발생: {seeder_err}")
 
 
-import json
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
+HANJA_TO_HANGUL_MAP = {
+    "合成": "합성", "成": "성", "綿": "면", "毛": "모", "麻": "마",
+    "絹": "실크", "革": "가죽", "皮": "피", "裏": "안감", "表": "겉감",
+    "亞麻": "아마", "羊毛": "양모", "羽毛": "우모", "天然": "천연", "人造": "인조"
+}
+
+def sanitize_json_hanja(obj):
+    """JSON 또는 텍스트 내 잔여 한자(合成, 綿 등)를 순수 한글(합성피혁, 면 등)로 자동 시정"""
+    if isinstance(obj, str):
+        res = obj
+        for hanja, hangul in HANJA_TO_HANGUL_MAP.items():
+            res = res.replace(hanja, hangul)
+        return res
+    elif isinstance(obj, list):
+        return [sanitize_json_hanja(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: sanitize_json_hanja(v) for k, v in obj.items()}
+    return obj
 
 def generate_gpt_product_options(product_name: str, category_name: str, brand: str) -> dict:
     """GPT-4o-mini를 활용하여 상품에 딱 맞는 1:1 맞춤형 사이즈, 색상, 실측치수 및 상세스펙(소재, 핏, 계절, 제조국) JSON을 생성합니다."""
@@ -106,10 +121,11 @@ def generate_gpt_product_options(product_name: str, category_name: str, brand: s
    - 모자/액세서리 키값: size, head_circumference (둘레), depth (깊이), brim_length (챙길이)
    - 상품의 핏(오버핏, 크롭, 와이드, 슬림) 특성을 수치에 자연스럽게 반영하세요.
 4. `specs`: 해당 상품의 상세 정보 4가지 항목 (객체)
-   - `material`: 소재 (예: "나일론 100%, 고어텍스 방수 원단", "면 100%, 20수 싱글원단", "데님, 면 98% 스판 2%")
+   - `material`: 소재 (예: "나일론 100%, 고어텍스 방수 원단", "면 100%, 20수 싱글원단", "데님, 면 98% 스판 2%", "합성피혁, 고무")
    - `fit`: 핏 (예: "오버핏", "레귤러 핏", "슬림 핏", "와이드 핏", "크롭 핏")
    - `season`: 계절 (예: "봄 / 가을", "여름", "겨울", "사계절")
    - `country`: 제조국 (예: "대한민국", "베트남", "중국", "인도네시아")
+5. 모든 텍스트(특히 material 소재 및 country 제조국) 작성 시 한자(合成, 綿, 毛, 革 등)나 외국어를 절대 혼용하지 마시고, 100% 한글(합성피혁, 면, 모, 가죽 등)로만 명확히 작성하세요.
 
 JSON 출력 형식:
 {
@@ -135,7 +151,7 @@ JSON 출력 형식:
         ])
         
         result_json = json.loads(response.content)
-        return result_json
+        return sanitize_json_hanja(result_json)
     except Exception as e:
         print(f"[Error] GPT 옵션 생성 에러 ({product_name}): {e}")
         return None
