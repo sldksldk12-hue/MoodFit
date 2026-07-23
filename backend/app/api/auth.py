@@ -54,21 +54,7 @@ def verify_token(token: str) -> Optional[dict]:
     except jwt.PyJWTError:
         return None
 
-# 회원가입 스키마
-class UserRegister(BaseModel):
-    user_name: str
-    email: EmailStr
-    password: str
-
-# 취향 정보 수정 스키마
-class PreferenceUpdate(BaseModel):
-    gender: Optional[str] = None
-    height: Optional[float] = None
-    weight: Optional[float] = None
-    body_form: Optional[str] = None
-    preferred_styles: Optional[str] = None
-    liked_colors: Optional[str] = None
-    disliked_colors: Optional[str] = None
+from app.schemas.auth_schema import UserRegister, PreferenceUpdate
 
 # 회원가입 API
 @router.post("/register")
