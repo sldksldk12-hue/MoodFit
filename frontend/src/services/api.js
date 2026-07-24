@@ -267,6 +267,40 @@ export const createReview = async (reviewData) => {
   }
 };
 
+
+// ===========================
+// 상품 문의(Q&A)
+// ===========================
+
+// 특정 상품의 문의 목록 조회
+export const getProductInquiries = async (productId) => {
+  const response = await api.get(
+    `/api/inquiries/product/${productId}`
+  );
+
+  return response.data;
+};
+
+// 로그인 사용자의 상품 문의 등록
+export const createInquiry = async ({
+  userId,
+  productId,
+  title,
+  content,
+}) => {
+  const response = await api.post(
+    "/api/inquiries/",
+    {
+      user_id: Number(userId),
+      product_id: Number(productId),
+      title: title.trim(),
+      content: content.trim(),
+    }
+  );
+
+  return response.data;
+};
+
 // ===========================
 // 배송지
 // ===========================

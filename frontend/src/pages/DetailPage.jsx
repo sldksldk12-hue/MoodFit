@@ -547,6 +547,7 @@ const handleBuyNow = () => {
           {tab === "qna" && (
             <ProductQna
               productId={product.id}
+              userId={user?.id}
             />
           )}
         </div>

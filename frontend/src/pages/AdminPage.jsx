@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   Edit3,
+  ExternalLink,
   LoaderCircle,
   MessageSquare,
   PackageSearch,
@@ -156,6 +157,21 @@ const AdminPage = () => {
     }
   };
 
+  // 문의에 연결된 상품 상세페이지를 새 탭으로 엽니다.
+  // 관리자 페이지의 현재 메뉴, 검색어, 필터 상태를 그대로 유지할 수 있습니다.
+  const handleViewInquiryProduct = (inquiry) => {
+    if (!inquiry?.product_id) {
+      alert("연결된 상품 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    window.open(
+      `/moodfit/detail/${inquiry.product_id}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
   const handleReply = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -234,7 +250,7 @@ const AdminPage = () => {
             {activeMenu === "dashboard" && <Dashboard data={data} />}
             {activeMenu === "products" && <ProductTable items={items} onEdit={setEditProduct} onDelete={handleProductDelete} />}
             {activeMenu === "orders" && <OrderTable items={items} onStatus={handleOrderStatus} />}
-            {activeMenu === "inquiries" && <InquiryTable items={items} onReply={(item) => setReplyInquiry({ ...item, reply_content: item.reply_content || "" })} />}
+            {activeMenu === "inquiries" && <InquiryTable items={items} onReply={(item) => setReplyInquiry({ ...item, reply_content: item.reply_content || "" })} onViewProduct={handleViewInquiryProduct} />}
             {activeMenu === "users" && <UserTable items={items} currentUserId={user.id} onRole={handleRole} />}
             {activeMenu === "reviews" && <ReviewTable items={items} onDelete={handleReviewDelete} />}
           </>
@@ -242,7 +258,7 @@ const AdminPage = () => {
       </section>
 
       {editProduct && <ProductModal product={editProduct} categories={categories} saving={saving} onChange={setEditProduct} onClose={() => setEditProduct(null)} onSubmit={handleProductSave} />}
-      {replyInquiry && <ReplyModal inquiry={replyInquiry} saving={saving} onChange={setReplyInquiry} onClose={() => setReplyInquiry(null)} onSubmit={handleReply} />}
+      {replyInquiry && <ReplyModal inquiry={replyInquiry} saving={saving} onChange={setReplyInquiry} onClose={() => setReplyInquiry(null)} onSubmit={handleReply} onViewProduct={handleViewInquiryProduct} />}
     </main>
   );
 };
@@ -273,7 +289,7 @@ const ProductTable = ({ items, onEdit, onDelete }) => items.length ? <div classN
 
 const OrderTable = ({ items, onStatus }) => items.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>주문번호</th><th>회원</th><th>상품 수량</th><th>결제금액</th><th>주문일시</th><th>상태 변경</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.order_number}</strong></td><td>{item.user_account}</td><td>{item.item_count}개</td><td>{formatPrice(item.total_price)}</td><td>{dateText(item.created_at)}</td><td><select className="status-select" value={item.order_status} onChange={(event) => onStatus(item.id, event.target.value)}>{ORDER_STATUSES.map((status) => <option key={status}>{status}</option>)}</select></td></tr>)}</tbody></table></div> : <Empty />;
 
-const InquiryTable = ({ items, onReply }) => items.length ? <div className="admin-card-list">{items.map((item) => <article className="inquiry-card" key={item.id}><div className="inquiry-card-head"><div><span className={`status-pill status-${item.inq_status}`}>{item.inq_status}</span><h3>{item.title}</h3><p>{item.user_account} · {item.product_name} · {dateText(item.created_at)}</p></div><button onClick={() => onReply(item)}><MessageSquare size={16} />{item.reply_content ? "답변 수정" : "답변 작성"}</button></div><div className="inquiry-content"><strong>문의 내용</strong><p>{item.content}</p>{item.reply_content && <div className="reply-preview"><CheckCircle2 size={17} /><div><strong>관리자 답변</strong><p>{item.reply_content}</p></div></div>}</div></article>)}</div> : <Empty />;
+const InquiryTable = ({ items, onReply, onViewProduct }) => items.length ? <div className="admin-card-list">{items.map((item) => <article className="inquiry-card" key={item.id}><div className="inquiry-card-head"><div><span className={`status-pill status-${item.inq_status}`}>{item.inq_status}</span><h3>{item.title}</h3><p>{item.user_account} · {dateText(item.created_at)}</p></div><div className="inquiry-card-actions"><button type="button" onClick={() => onViewProduct(item)}><ExternalLink size={16} />상품 보기</button><button type="button" onClick={() => onReply(item)}><MessageSquare size={16} />{item.reply_content ? "답변 수정" : "답변 작성"}</button></div></div><div className="inquiry-content"><strong>문의 내용</strong><p>{item.content}</p>{item.reply_content && <div className="reply-preview"><CheckCircle2 size={17} /><div><strong>관리자 답변</strong><p>{item.reply_content}</p></div></div>}</div></article>)}</div> : <Empty />;
 
 const UserTable = ({ items, currentUserId, onRole }) => items.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>회원</th><th>이메일</th><th>가입일</th><th>주문</th><th>리뷰</th><th>권한</th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.user_account}</strong>{item.id === currentUserId && <span className="me-badge">나</span>}</td><td>{item.email}</td><td>{dateText(item.created_at)}</td><td>{item.order_count}건</td><td>{item.review_count}개</td><td><select disabled={item.id === currentUserId} value={item.admin_role} onChange={(event) => onRole(item, event.target.value)}><option value="USER">일반 회원</option><option value="ADMIN">관리자</option></select></td></tr>)}</tbody></table></div> : <Empty />;
 
@@ -283,6 +299,6 @@ const ModalShell = ({ title, children, onClose }) => <div className="admin-modal
 
 const ProductModal = ({ product, categories, saving, onChange, onClose, onSubmit }) => <ModalShell title="상품 정보 수정" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}><label>상품명<input value={product.product_name} onChange={(e) => onChange({ ...product, product_name: e.target.value })} required /></label><div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>카테고리<select value={product.category_id || ""} onChange={(e) => onChange({ ...product, category_id: e.target.value })}><option value="">미분류</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.category_name}</option>)}</select></label></div><div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} /></label></div><label>상세 설명<textarea rows="5" value={product.product_content || ""} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label><footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "저장 중..." : "변경사항 저장"}</button></footer></form></ModalShell>;
 
-const ReplyModal = ({ inquiry, saving, onChange, onClose, onSubmit }) => <ModalShell title="문의 답변" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}><div className="modal-inquiry"><strong>{inquiry.title}</strong><p>{inquiry.content}</p></div><label>관리자 답변<textarea autoFocus rows="8" value={inquiry.reply_content} onChange={(e) => onChange({ ...inquiry, reply_content: e.target.value })} required /></label><footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "등록 중..." : "답변 등록"}</button></footer></form></ModalShell>;
+const ReplyModal = ({ inquiry, saving, onChange, onClose, onSubmit, onViewProduct }) => <ModalShell title="문의 답변" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}><div className="modal-inquiry"><div className="modal-inquiry-head"><strong>{inquiry.title}</strong><button type="button" className="secondary inquiry-modal-product-btn" onClick={() => onViewProduct(inquiry)}><ExternalLink size={15} />상품 상세 보기</button></div><span>{inquiry.product_name || `상품 #${inquiry.product_id}`}</span><p>{inquiry.content}</p></div><label>관리자 답변<textarea autoFocus rows="8" value={inquiry.reply_content} onChange={(e) => onChange({ ...inquiry, reply_content: e.target.value })} required /></label><footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "등록 중..." : "답변 등록"}</button></footer></form></ModalShell>;
 
 export default AdminPage;
