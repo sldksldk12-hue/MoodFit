@@ -18,7 +18,6 @@ router = APIRouter()
 
 @router.post("/emotion")
 async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: Session = Depends(get_db)):
-    # main.py에서 로드한 AI 모델을 request.app.state를 통해 안전하게 가져옵니다.
     classifier = request.app.state.ml_models.get("emotion_classifier")
     rag_service = request.app.state.rag_service
     
@@ -79,6 +78,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         )
         
         search_keyword = "데일리 룩"
+        summary_reason = f"[{predicted_emotion}] 기분에 어울리는 추천 코디입니다." 
         recommended_products = []
         new_ai_log = None
         
@@ -89,14 +89,15 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
                 
-                # 프롬프트 변경: 4개 추출 및 신발/악세사리 강제
+                # 🌟 프롬프트 변경: [주의사항 5] 감성적인 3줄 요약 지시
                 keyword_prompt = ChatPromptTemplate.from_template(
-                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'를 쉼표(,)로 구분하여 추출해줘.\n"
+                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'와 '추천 이유 요약'을 추출해줘.\n"
                     "현재 유저 성별: {user_gender}\n"
                     "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈,크로스백')만 추출할 것!\n"
                     "[주의사항 2]: 최대 4개의 키워드를 추출할 때 상의, 하의, 신발, 악세사리(모자, 가방 등)를 각각 1개씩 골고루 포함시킬 것.\n"
                     "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
-                    "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n\n"
+                    "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
+                    "[주의사항 5]: 전체 추천글을 바탕으로, 이 코디를 추천하는 이유를 '친한 친구나 친절한 매장 직원'이 옆에서 다정하게 설명해주듯 3줄(3문장) 정도로 요약해 주세요. 요약에는 유저의 현재 기분, 날씨, 장소 정보가 있다면 자연스럽게 포함하고, 누락된 정보가 있다면 억지로 지어내지 말고 있는 대화 내용만 바탕으로 부드럽게 요약하세요.\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
                 )
                 keyword_chain = keyword_prompt | keyword_llm | parser
@@ -108,7 +109,8 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         "format_instructions": parser.get_format_instructions()
                     })
                     
-                    # 쉼표를 기준으로 여러 개의 키워드로 분리 (최대 4개 허용)
+                    summary_reason = parsed_result.summary_reason
+                    
                     raw_keywords = parsed_result.search_keyword.split(",")
                     keyword_list = [k.strip() for k in raw_keywords if k.strip()][:4]
 
@@ -118,7 +120,6 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         if w_log:
                             weather_desc = w_log.condition_code
 
-                    # 이전 대화에서 이미 추천되었던 상품 ID 수집 (중복 방지용)
                     past_rec_sessions = db.query(RecommendationSession).filter(
                         RecommendationSession.chat_session_id == current_session_id
                     ).all()
@@ -136,15 +137,15 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     recommended_products = []
                     final_search_keywords = []
 
-                    # 키워드 개수에 따라 가져올 상품 개수 분배 (총 4개 내외 유지)
                     if len(keyword_list) == 1:
                         items_per_keyword = 4
                     elif len(keyword_list) == 2:
                         items_per_keyword = 2
+                    elif len(keyword_list) == 3:
+                        items_per_keyword = 2 
                     else:
                         items_per_keyword = 1
 
-                    # 분리된 여러 개의 키워드를 순회하며 각각 상품을 검색 (중복 제거 완료)
                     for kw in keyword_list:
                         search_kw = kw
                         if user_gender == "남성":
@@ -158,7 +159,6 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         
                         final_search_keywords.append(search_kw)
 
-                        # 각 품목별로 상품 검색 호출
                         fetched_items = get_or_fetch_products(
                             db=db,
                             keyword=search_kw,
@@ -174,18 +174,19 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         
                         recommended_products.extend(fetched_items)
                         
-                        # 방금 검색된 상품도 다음 검색 시 중복되지 않도록 제외 리스트에 즉시 추가
                         for item in fetched_items:
                             exclude_ids.append(item['id'])
 
-                    # DB 로그 및 프론트엔드 반환을 위해 최종 키워드들을 쉼표 문자열로 합침
+                    # 🌟 넉넉하게 가져온 상품 리스트를 정확히 4개까지만 자르기
+                    recommended_products = recommended_products[:4]
+
                     search_keyword = ", ".join(final_search_keywords)
                     
                     latency_ms = int((time.perf_counter() - start_time) * 1000)
                     new_ai_log = AiCallLog(
                         chat_session_id=current_session_id,
                         model_name="gpt-4o-mini",
-                        prompt_version="v1.1.0", # 프롬프트 버전을 올려줍니다.
+                        prompt_version="v1.2.0", # 프롬프트 버전 업데이트
                         log_status="SUCCESS",
                         prompt_tokens=cb.prompt_tokens,
                         completion_tokens=cb.completion_tokens,
@@ -203,7 +204,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 new_ai_log = AiCallLog(
                     chat_session_id=current_session_id,
                     model_name="gpt-4o-mini",
-                    prompt_version="v1.1.0",
+                    prompt_version="v1.2.0",
                     log_status="FAILURE",
                     failure_reason=str(e),
                     latency_ms=latency_ms
@@ -212,10 +213,8 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 db.commit()             
                 db.refresh(new_ai_log)
 
-        # 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
         if recommended_products:
             try:
-                # 추천 세션 마스터 등록
                 new_rec_session = RecommendationSession(
                     user_id=req.user_id,
                     chat_session_id=current_session_id,
@@ -224,38 +223,31 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     tour_log_id=tour_log_id
                 )
                 db.add(new_rec_session)
-                db.flush()  # ID 임시 획득
+                db.flush() 
                 
-                # AI 호출 로그가 존재할 경우 추천 세션 ID를 상호 연동
                 if new_ai_log:
                     new_ai_log.recommendation_session_id = new_rec_session.id
                 
-                # [점수 산정 로직 1] 기본 점수: AI 감정 분석 신뢰도를 백분율로 환산
                 base_score = float(emotion_score * 100)
                 
-                # 추천 아이템 상세 등록
                 for item in recommended_products:
                     prod_id = item.get("id")
                     prod_title = item.get("title", "")
                     
                     if prod_id:
-                      
-                        # [점수 산정 로직 2] 가산점: 추출된 키워드 중 하나라도 실제 상품명에 포함되어 있으면 5점 추가
                         bonus = 5.0 if any(kw in prod_title for kw in final_search_keywords) else 0.0
-                        
-                        # 최종 점수 계산 (최대 99.9점을 넘지 않도록 제한)
                         final_score = min(base_score + bonus, 99.9)
                         
                         new_rec_item = RecommendationItem(
                             recommendation_session_id=new_rec_session.id,
                             product_id=prod_id,
                             score=round(final_score, 1),
-                            recommendation_reason=f"[{predicted_emotion}] 기분과 매칭 확률 {round(final_score, 1)}%의 추천 의류입니다."
+                            recommendation_reason=summary_reason 
                         )
                         db.add(new_rec_item)
             except Exception as rec_err:
                 print(f"⚠️ 추천 세션 저장 실패: {rec_err}")
-                db.rollback()  # 에러 발생 시 DB 상태를 안전하게 초기화
+                db.rollback() 
 
         ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=ai_recommendation)
         db.add(ai_message)
@@ -266,6 +258,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
             "session_id": current_session_id,
             "mapped_emotion": predicted_emotion,
             "ai_response": ai_recommendation,
+            "summary_reason": summary_reason,
             "search_keyword": search_keyword,
             "products": recommended_products 
         }
