@@ -44,7 +44,7 @@ const hasDiscount = (item) => {
 };
 
 const getCategoryText = (item) =>
-  String(item.category ?? item.category_name ?? "").toLowerCase();
+  String(item.category ?? "").toLowerCase();
 
 const includesCategory = (item, keywords) => {
   const category = getCategoryText(item);
@@ -221,7 +221,7 @@ const MainPage = () => {
   };
 
   return (
-    <main>
+    <main className="main-page">
       {!isChatOpen ? (
         <section className="hero-section">
           <HeroContent />

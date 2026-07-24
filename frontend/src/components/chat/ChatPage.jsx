@@ -230,24 +230,12 @@ const ChatPage = ({ mode = "full", closeChat }) => {
                             .map((product, index) => (
                               <div
                                 className="chat-recommendation-preview-item"
-                                key={
-                                  product.id ??
-                                  product.link ??
-                                  `${product.title}-${index}`
-                                }
+                                key={product.id}
                               >
-                                {(product.image ||
-                                  product.image_url) && (
+                                {product.image && (
                                     <img
-                                      src={
-                                        product.image ??
-                                        product.image_url
-                                      }
-                                      alt={
-                                        product.title ??
-                                        product.product_name ??
-                                        "추천 상품"
-                                      }
+                                      src={product.image}
+                                      alt={product.title}
                                       loading="lazy"
                                     />
                                   )}

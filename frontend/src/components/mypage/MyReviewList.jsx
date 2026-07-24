@@ -14,20 +14,16 @@ const formatDate = (value) => {
 };
 
 const normalizeReview = (review) => ({
-  id: review.id ?? review.review_id,
-  productId:
-    review.product_id ?? review.productId,
-  productName:
-    review.product_name ??
-    review.productName ??
-    "상품 정보",
-  brand: review.brand ?? "",
-  rating: Number(review.rating ?? 0),
-  content: review.content ?? "",
-  imageUrl:
-    review.image_url ?? review.imageUrl ?? null,
-  createdAt:
-    review.created_at ?? review.createdAt,
+  id: review.id,
+  productId: review.product_id,
+  productName: review.product_name,
+  brand: review.brand,
+  rating: Number(review.rating),
+  content: review.content,
+  imageUrl: Array.isArray(review.image_url)
+    ? review.image_url[0] ?? null
+    : review.image_url ?? null,
+  createdAt: review.created_at,
 });
 
 const MyReviewList = ({

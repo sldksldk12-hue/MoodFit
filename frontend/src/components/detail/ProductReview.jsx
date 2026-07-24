@@ -12,21 +12,17 @@ import ReviewWrite from "../review/ReviewWrite";
 import "../../assets/styles/detail/ProductReview.css";
 
 const normalizeReview = (review) => ({
-  id: review.id ?? review.review_id,
-  userId: review.user_id ?? review.userId,
-  productId: review.product_id ?? review.productId,
-  orderItemId: review.order_item_id ?? review.orderItemId,
-  rating: Number(review.rating ?? 0),
-  content: review.content ?? "",
+  id: review.id,
+  userId: review.user_id,
+  productId: review.product_id,
+  orderItemId: review.order_item_id,
+  rating: Number(review.rating),
+  content: review.content,
   imageUrl: Array.isArray(review.image_url)
     ? review.image_url[0] ?? null
-    : review.image_url ?? review.imageUrl ?? null,
-  userName:
-    review.user_name ??
-    review.username ??
-    review.writer_name ??
-    "구매자",
-  createdAt: review.created_at ?? review.createdAt ?? null,
+    : review.image_url ?? null,
+  userName: `구매자 #${review.user_id}`,
+  createdAt: review.created_at,
 });
 
 const ProductReview = ({ productId, userId, onRatingChange }) => {
@@ -192,8 +188,8 @@ const ProductReview = ({ productId, userId, onRatingChange }) => {
 
     return (
       purchasedItems.find((item) => {
-        const itemProductId = item.product_id ?? item.productId;
-        const itemId = item.order_item_id ?? item.id;
+        const itemProductId = item.product_id;
+        const itemId = item.order_item_id;
 
         if (Number(itemProductId) !== Number(productId)) {
           return false;
@@ -211,7 +207,7 @@ const ProductReview = ({ productId, userId, onRatingChange }) => {
       orders.some((order) =>
         (order.items ?? []).some(
           (item) =>
-            Number(item.product_id ?? item.productId) ===
+            Number(item.product_id) ===
             Number(productId)
         )
       ),
@@ -337,12 +333,12 @@ const ProductReview = ({ productId, userId, onRatingChange }) => {
       {showWriteForm && reviewableOrderItem && (
         <ReviewWrite
           key={`review-write-${
-            reviewableOrderItem.order_item_id ?? reviewableOrderItem.id
+            reviewableOrderItem.order_item_id
           }`}
           userId={userId}
           productId={productId}
           initialOrderItemId={
-            reviewableOrderItem.order_item_id ?? reviewableOrderItem.id
+            reviewableOrderItem.order_item_id
           }
           submitting={submitting}
           onSubmit={handleSubmitReview}

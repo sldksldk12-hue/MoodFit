@@ -117,10 +117,10 @@ const ProductList = () => {
 
     const copied = [...filtered];
     if (sortType === "낮은 가격순") {
-      return copied.sort((a, b) => Number(a.discount_price ?? a.price ?? 0) - Number(b.discount_price ?? b.price ?? 0));
+      return copied.sort((a, b) => Number(a.discount_price) - Number(b.discount_price));
     }
     if (sortType === "높은 가격순") {
-      return copied.sort((a, b) => Number(b.discount_price ?? b.price ?? 0) - Number(a.discount_price ?? a.price ?? 0));
+      return copied.sort((a, b) => Number(b.discount_price) - Number(a.discount_price));
     }
     if (sortType === "신상품순") {
       return copied.sort(

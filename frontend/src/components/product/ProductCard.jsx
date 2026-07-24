@@ -31,7 +31,7 @@ const ProductCard = ({ product, onUnlike }) => {
 
     const success = await addProductToCart({
       productId: product.id,
-      inventory: product.inventory ?? 1,
+      inventory: product.inventory,
       quantity: 1,
       selectedSize: "기본",
       selectedColor: "기본",
@@ -47,12 +47,12 @@ const ProductCard = ({ product, onUnlike }) => {
   };
 
   const detailPath = `/moodfit/detail/${product.id}`;
-  const originalPrice = Number(product.original_price ?? product.price ?? 0);
-  const salePrice = Number(product.discount_price ?? product.price ?? originalPrice);
+  const originalPrice = Number(product.original_price);
+  const salePrice = Number(product.discount_price);
   const discountRate = originalPrice > salePrice && originalPrice > 0
     ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
     : 0;
-  const brand = product.brand_name || product.brand || product.category || "MOODFIT";
+  const brand = product.brand;
 
   return (
     <article className="product-card">
@@ -102,7 +102,7 @@ const ProductCard = ({ product, onUnlike }) => {
       <div className="product-info">
         <Link to={detailPath} className="product-card-info-link">
           <p className="product-category">{brand}</p>
-          <h3>{product.product_name || product.name}</h3>
+          <h3>{product.product_name}</h3>
           {product.desc && <p className="product-desc">{product.desc}</p>}
         </Link>
 

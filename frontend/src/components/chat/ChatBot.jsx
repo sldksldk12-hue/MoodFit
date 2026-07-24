@@ -14,10 +14,12 @@
  * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
-import { Bot } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ChatPage from "./ChatPage";
+import WeatherChatbotIcon from "./WeatherChatbotIcon";
+import { readStoredWeatherMain } from "../../utils/chatbotWeather";
 import {
   closePopupChat,
   openPopupChat,
@@ -34,6 +36,24 @@ const ChatBot = () => {
   // 여러 컴포넌트가 공유하는 Redux 상태에서 현재 화면에 필요한 값만 선택합니다.
   const popupChatOpen = useSelector((state) => state.chat.popupChatOpen);
 
+  // UI 전용 상태: 프론트엔드가 이미 받아 둔 날씨 값을 재사용해 캐릭터 표정만 바꿉니다.
+  // (새로운 날씨 API 요청 없음. 값이 없으면 기본 캐릭터가 표시됩니다.)
+  const [weatherMain, setWeatherMain] = useState(() => readStoredWeatherMain());
+
+  useEffect(() => {
+    // WeatherCard가 날씨를 저장/갱신하면 알려주는 커스텀 이벤트와
+    // 다른 탭에서의 storage 변경을 구독해 캐릭터 상태만 동기화합니다.
+    const syncWeather = () => setWeatherMain(readStoredWeatherMain());
+
+    window.addEventListener("moodfit:weather-updated", syncWeather);
+    window.addEventListener("storage", syncWeather);
+
+    return () => {
+      window.removeEventListener("moodfit:weather-updated", syncWeather);
+      window.removeEventListener("storage", syncWeather);
+    };
+  }, []);
+
   // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
   return (
     <>
@@ -41,9 +61,10 @@ const ChatBot = () => {
         type="button"
         className="floating-chatbot"
         onClick={() => dispatch(openPopupChat())}
+        aria-label="MOODFIT AI 챗봇 열기"
       >
-        <Bot size={24} />
-        AI 챗봇
+        <WeatherChatbotIcon weatherMain={weatherMain} />
+        <span className="floating-chatbot-label">AI 챗봇</span>
       </button>
 
       {popupChatOpen && (

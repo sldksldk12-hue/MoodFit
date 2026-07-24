@@ -36,7 +36,21 @@
 }
 
 .product-card:hover .product-image {
-  transform: scale(1.05);
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card,
+  .product-image,
+  .product-quick-cart {
+    transition: none;
+  }
+  .product-card:hover {
+    transform: none;
+  }
+  .product-card:hover .product-image {
+    transform: none;
+  }
 }
 
 /* ===== Heart ===== */
