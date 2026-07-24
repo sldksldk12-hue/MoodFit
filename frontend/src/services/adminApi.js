@@ -16,6 +16,8 @@ const unwrap = (request) => request.then((response) => response.data);
 export const getAdminDashboard = () => unwrap(adminApi.get("/dashboard"));
 export const getAdminCategories = () => unwrap(adminApi.get("/categories"));
 export const getAdminProducts = (params = {}) => unwrap(adminApi.get("/products", { params }));
+export const analyzeAdminProduct = (payload) => unwrap(adminApi.post("/products/analyze", payload));
+export const createAdminProduct = (payload) => unwrap(adminApi.post("/products", payload));
 export const updateAdminProduct = (id, payload) => unwrap(adminApi.patch(`/products/${id}`, payload));
 export const deleteAdminProduct = (id) => unwrap(adminApi.delete(`/products/${id}`));
 export const getAdminOrders = (params = {}) => unwrap(adminApi.get("/orders", { params }));
