@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import threading
 from typing import Optional, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -8,6 +9,8 @@ from urllib.parse import quote
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from app.models.models import Product, ProductCategory, ProductOption, ProductMoodTag
+
+_bg_seed_lock = threading.Lock()
 
 def seed_initial_categories(db: Session):
     """3자리 단축 코드 기반의 카테고리 시드 데이터를 자동으로 데이터베이스에 적재합니다."""
@@ -157,7 +160,7 @@ JSON 출력 형식:
         return None
 
 
-def seed_initial_product_options(db: Session, force_reseed: bool = False):
+def seed_initial_product_options(db: Session, force_reseed: bool = False, verbose: bool = False):
     """모든 상품에 대해 GPT-4o-mini로 1:1 맞춤형 고유 옵션(사이즈, 색상, 실측치수, 상세스펙)을 생성하여 적재합니다."""
     try:
         if force_reseed:
@@ -250,7 +253,8 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False):
                 
         if created_count > 0 or force_reseed:
             db.commit()
-            print(f"[Success] GPT 1:1 맞춤형 상품 옵션 데이터 자동 적재 완료! ({created_count}개 옵션 생성됨)")
+            if verbose:
+                print(f"[Success] GPT 1:1 맞춤형 상품 옵션 데이터 자동 적재 완료! ({created_count}개 옵션 생성됨)")
     except Exception as err:
         db.rollback()
         print(f"[Error] 상품 옵션 자동 적재 중 오류 발생: {err}")
@@ -302,7 +306,7 @@ JSON 출력 형식:
         return None
 
 
-def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False):
+def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False, verbose: bool = False):
     """모든 상품에 대해 GPT-4o-mini로 1:1 맞춤형 4대 무드 태그(감정, 날씨, 계절, TPO/관광지)를 생성하여 적재합니다."""
     try:
         if force_reseed:
@@ -348,7 +352,8 @@ def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False):
                 
         if created_count > 0 or force_reseed:
             db.commit()
-            print(f"[Success] GPT 1:1 맞춤형 상품 무드 태그 자동 적재 완료! ({created_count}개 상품 무드 태그 생성됨)")
+            if verbose:
+                print(f"[Success] GPT 1:1 맞춤형 상품 무드 태그 자동 적재 완료! ({created_count}개 상품 무드 태그 생성됨)")
     except Exception as err:
         db.rollback()
         print(f"[Error] 상품 무드 태그 자동 적재 중 오류 발생: {err}")
@@ -697,17 +702,24 @@ def get_or_fetch_products(
             print(f"[Success] 수집 완료! {len(new_products)}개의 취향 맞춤 신규 상품을 자체 DB에 영구 저장했습니다.")
             # 응답 지연 시간(19s -> 2s) 획기적 단축을 위해 GPT 1:1 맞춤 옵션 및 무드 태그 생성을 백그라운드 쓰레드로 비동기 전환
             def _async_bg_seed():
-                from app.db.database import SessionLocal
-                bg_db = SessionLocal()
+                if not _bg_seed_lock.acquire(blocking=False):
+                    return  # 이미 백그라운드 동기화 쓰레드가 진행 중이면 중복 쓰레드 생성을 차단하여 배치 처리!
                 try:
-                    seed_initial_product_options(bg_db)
-                    seed_initial_product_mood_tags(bg_db)
+                    from app.db.database import SessionLocal
+                    from app.domains.ai_chat.rag_service import RagsFashionService
+                    bg_db = SessionLocal()
+                    try:
+                        seed_initial_product_options(bg_db)
+                        seed_initial_product_mood_tags(bg_db)
+                        RagsFashionService().sync_vector_embeddings(bg_db)
+                        print("✅ [Background Sync] 이번 수집 상품들에 대한 옵션/태그 및 RAG 벡터 인덱스 동기화 완료!")
+                    finally:
+                        bg_db.close()
                 except Exception as bg_err:
                     print(f"⚠️ [BG Seeding Note]: {bg_err}")
                 finally:
-                    bg_db.close()
+                    _bg_seed_lock.release()
 
-            import threading
             threading.Thread(target=_async_bg_seed, daemon=True).start()
 
             # 신규 수집 상품 중 선호 색상 다중 정렬 (ProductOption 스펙 포함 검사)

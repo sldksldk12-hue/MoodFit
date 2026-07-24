@@ -215,12 +215,12 @@ class UserActivityLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="로그 일련번호")
     user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, comment="회원 일련번호"
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="회원 일련번호"
     )
     product_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, comment="상품 일련번호"
+        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True, comment="상품 일련번호"
     )
-    action_type: Mapped[str] = mapped_column(String(50), nullable=False, comment="행동 유형")
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True, comment="행동 유형")
     dwell_time: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=0, comment="체류 시간")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="기록 일시"
@@ -238,7 +238,7 @@ class ChatSession(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="세션 일련번호")
     user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, comment="회원 일련번호"
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True, comment="회원 일련번호"
     )
     session_uuid: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, comment="세션 식별 UUID")
     created_at: Mapped[datetime] = mapped_column(
@@ -272,7 +272,7 @@ class ChatMessage(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, comment="메시지 일련번호")
     session_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, comment="세션 일련번호"
+        Integer, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True, comment="세션 일련번호"
     )
     sender_type: Mapped[str] = mapped_column(String(10), nullable=False, comment="발화자 유형")
     message_text: Mapped[str] = mapped_column(Text, nullable=False, comment="메시지 내용")

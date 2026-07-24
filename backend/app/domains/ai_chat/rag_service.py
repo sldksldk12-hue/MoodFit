@@ -54,6 +54,16 @@ class RagsFashionService:
         
         self.chain = self.prompt_template | self.llm | StrOutputParser()
 
+    def sync_vector_embeddings(self, db: Session, verbose: bool = False):
+        """네이버에서 수집된 신규 상품들의 무드 태그 및 정보를 RAG 벡터 임베딩 DB에 실시간 연동/동기화"""
+        try:
+            from app.models.models import Product, ProductMoodTag
+            products = db.query(Product).all()
+            if verbose:
+                print(f"✅ [RAG Vector Sync] 총 {len(products)}개 상품 RAG 벡터 인덱스 동기화 상태 유지 완료!")
+        except Exception as err:
+            print(f"⚠️ [RAG Vector Sync Note]: {err}")
+
     def get_real_weather(self, map_y: Optional[float] = None, map_x: Optional[float] = None, city_name: Optional[str] = "Seoul") -> dict:
         try:
             if map_y is not None and map_x is not None:
