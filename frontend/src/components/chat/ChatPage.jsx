@@ -103,7 +103,7 @@ const ChatPage = ({ mode = "full", closeChat }) => {
       "맞춤 코디";
 
     const recommendationTitle =
-      `${searchKeyword} 추천 상품`;
+      `AI 추천 상품`;
 
     dispatch(
       setRecommendationGroup({
