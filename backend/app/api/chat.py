@@ -89,12 +89,12 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
                 
-                # 프롬프트 변경: 신발/악세사리 필수 포함 및 자체 추론 지시 추가
+                # 프롬프트 변경: 4개 추출 및 신발/악세사리 강제
                 keyword_prompt = ChatPromptTemplate.from_template(
-                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 3개'를 쉼표(,)로 구분하여 추출해줘.\n"
+                    "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'를 쉼표(,)로 구분하여 추출해줘.\n"
                     "현재 유저 성별: {user_gender}\n"
-                    "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈')만 추출할 것!\n"
-                    "[주의사항 2]: 3개의 키워드를 추출할 때 상의, 하의 외에 **반드시 신발이나 악세사리(모자, 가방 등) 중 1개 이상을 필수로 포함**시킬 것.\n"
+                    "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈,크로스백')만 추출할 것!\n"
+                    "[주의사항 2]: 최대 4개의 키워드를 추출할 때 상의, 하의, 신발, 악세사리(모자, 가방 등)를 각각 1개씩 골고루 포함시킬 것.\n"
                     "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
                     "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
@@ -108,9 +108,9 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                         "format_instructions": parser.get_format_instructions()
                     })
                     
-                    # 쉼표를 기준으로 여러 개의 키워드로 분리 (최대 3개)
+                    # 쉼표를 기준으로 여러 개의 키워드로 분리 (최대 4개 허용)
                     raw_keywords = parsed_result.search_keyword.split(",")
-                    keyword_list = [k.strip() for k in raw_keywords if k.strip()][:3]
+                    keyword_list = [k.strip() for k in raw_keywords if k.strip()][:4]
 
                     weather_desc = None
                     if weather_log_id:
@@ -136,10 +136,15 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     recommended_products = []
                     final_search_keywords = []
 
-                    # 키워드 개수에 따라 가져올 상품 개수 분배 (총 3개 내외 유지)
-                    items_per_keyword = 3 if len(keyword_list) == 1 else (2 if len(keyword_list) == 2 else 1)
+                    # 키워드 개수에 따라 가져올 상품 개수 분배 (총 4개 내외 유지)
+                    if len(keyword_list) == 1:
+                        items_per_keyword = 4
+                    elif len(keyword_list) == 2:
+                        items_per_keyword = 2
+                    else:
+                        items_per_keyword = 1
 
-                    # 분리된 여러 개의 키워드를 순회하며 각각 상품을 검색
+                    # 분리된 여러 개의 키워드를 순회하며 각각 상품을 검색 (중복 제거 완료)
                     for kw in keyword_list:
                         search_kw = kw
                         if user_gender == "남성":
@@ -210,7 +215,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
         # 추천 세션 및 상품 상세 매핑 기록 (recommendation_sessions / recommendation_items)
         if recommended_products:
             try:
-                # 1. 추천 세션 마스터 등록
+                # 추천 세션 마스터 등록
                 new_rec_session = RecommendationSession(
                     user_id=req.user_id,
                     chat_session_id=current_session_id,
@@ -226,10 +231,9 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     new_ai_log.recommendation_session_id = new_rec_session.id
                 
                 # [점수 산정 로직 1] 기본 점수: AI 감정 분석 신뢰도를 백분율로 환산
-                # 상단에서 분류한 emotion_score (예: 0.85 -> 85.0) 사용
                 base_score = float(emotion_score * 100)
                 
-                # 2. 추천 아이템 상세 등록
+                # 추천 아이템 상세 등록
                 for item in recommended_products:
                     prod_id = item.get("id")
                     prod_title = item.get("title", "")
