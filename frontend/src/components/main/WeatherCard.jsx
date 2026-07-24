@@ -74,6 +74,12 @@ const WeatherCard = () => {
           "moodfit_weather",
           JSON.stringify(data)
         );
+
+        // 챗봇 캐릭터가 같은 세션에서도 최신 날씨 상태를 반영하도록 알림만 보냅니다.
+        // (새로운 API 호출이 아니라 이미 받은 데이터를 전달하는 UI용 이벤트입니다.)
+        window.dispatchEvent(
+          new CustomEvent("moodfit:weather-updated", { detail: data })
+        );
       } catch (error) {
         console.error("날씨 API 오류:", error);
 

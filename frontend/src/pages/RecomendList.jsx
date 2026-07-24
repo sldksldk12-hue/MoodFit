@@ -11,9 +11,8 @@ const RecomendList = () => {
 
   const sortedProducts = useMemo(() => {
     const copied = [...(Array.isArray(products) ? products : [])];
-    if (sortType === "낮은 가격순") return copied.sort((a, b) => Number(a.price ?? a.lprice ?? 0) - Number(b.price ?? b.lprice ?? 0));
-    if (sortType === "높은 가격순") return copied.sort((a, b) => Number(b.price ?? b.lprice ?? 0) - Number(a.price ?? a.lprice ?? 0));
-    if (sortType === "신상품순") return copied.sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0));
+    if (sortType === "낮은 가격순") return copied.sort((a, b) => Number(a.lprice) - Number(b.lprice));
+    if (sortType === "높은 가격순") return copied.sort((a, b) => Number(b.lprice) - Number(a.lprice));
     return copied;
   }, [products, sortType]);
 
@@ -28,7 +27,7 @@ const RecomendList = () => {
           <p>대화 속 기분, 날씨, 선호 스타일을 읽고 가장 어울리는 상품만 골랐습니다.</p>
         </div>
         <select className="product-sort" value={sortType} onChange={(event) => setSortType(event.target.value)}>
-          <option>추천순</option><option>낮은 가격순</option><option>높은 가격순</option><option>신상품순</option>
+          <option>추천순</option><option>낮은 가격순</option><option>높은 가격순</option>
         </select>
       </section>
 
@@ -50,13 +49,17 @@ const RecomendList = () => {
           {sortedProducts.map((product, index) => {
             const normalizedProduct = {
               ...product,
-              id: product.id ?? product.product_id ?? index,
-              product_name: product.product_name ?? product.name ?? product.title,
-              image_url: product.image_url ?? product.image,
-              price: product.price ?? product.lprice ?? 0,
+              id: product.id,
+              product_name: product.title,
+              image_url: product.image,
+              original_price: Number(product.lprice),
+              discount_price: Number(product.lprice),
+              inventory: 1,
+              like_count: 0,
+              brand: "MOODFIT AI PICK",
               ai_recommended: true,
             };
-            return <ProductCard key={normalizedProduct.id ?? index} product={normalizedProduct} />;
+            return <ProductCard key={normalizedProduct.id} product={normalizedProduct} />;
           })}
         </section>
       ) : (

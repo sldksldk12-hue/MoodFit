@@ -1,37 +1,99 @@
 .floating-chatbot {
     position: fixed;
     right: 30px;
-    bottom: 30px;
+    bottom: calc(30px + env(safe-area-inset-bottom, 0px));
     z-index: 9998;
 
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 
-    padding: 14px 20px;
-    border: none;
+    min-height: 56px;
+    padding: 10px 22px 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
 
-    background-color: #111111;
-    color: white;
+    background-color: var(--mf-ink, #111111);
+    color: #ffffff;
 
     font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
     cursor: pointer;
+    box-shadow: 0 12px 30px rgba(17, 17, 17, 0.28);
+    transition: transform 0.25s var(--mf-ease, ease),
+        box-shadow 0.25s var(--mf-ease, ease);
+}
+
+.floating-chatbot:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 42px rgba(17, 17, 17, 0.34);
+}
+
+.floating-chatbot:active {
+    transform: translateY(-1px);
+}
+
+.floating-chatbot:focus-visible {
+    outline: 3px solid var(--mf-accent, #0071e3);
+    outline-offset: 3px;
+}
+
+.floating-chatbot-label {
+    white-space: nowrap;
 }
 
 .chat-popup {
     position: fixed;
     right: 30px;
-    bottom: 95px;
+    bottom: calc(95px + env(safe-area-inset-bottom, 0px));
 
     width: 420px;
     height: 620px;
+    max-height: calc(100svh - 130px);
 
     background-color: white;
     border-radius: 20px;
+    border: 1px solid var(--mf-gray-150, #ededed);
 
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 24px 60px rgba(17, 17, 17, 0.22);
 
     z-index: 9999;
     overflow: hidden;
+    animation: chat-popup-in 0.28s var(--mf-ease, ease);
+}
+
+@keyframes chat-popup-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 620px) {
+    .floating-chatbot {
+        right: 16px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        padding: 8px 18px 8px 10px;
+        min-height: 52px;
+    }
+
+    .chat-popup {
+        right: 12px;
+        left: 12px;
+        width: auto;
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .floating-chatbot,
+    .chat-popup {
+        transition: none;
+        animation: none;
+    }
 }

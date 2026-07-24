@@ -64,31 +64,19 @@ const normalizeCheckoutItems = (items) => {
       source:
         item.source === "cart" ? "cart" : "direct",
       cartItemId:
-        item.cartItemId ?? item.cart_item_id ?? null,
+        item.cartItemId ?? null,
       productId:
-        item.productId ?? item.product_id ?? null,
-      name:
-        item.name ??
-        item.product_name ??
-        "상품명 없음",
-      image:
-        item.image ??
-        item.image_url ??
-        "/images/product-placeholder.png",
+        item.productId ?? null,
+      name: item.name ?? "상품명 없음",
+      image: item.image ?? "/images/product-placeholder.png",
       price: Number(item.price ?? 0),
       quantity: Math.max(
         1,
         Number(item.quantity ?? 1)
       ),
       inventory: Number(item.inventory ?? 0),
-      selectedSize:
-        item.selectedSize ??
-        item.selected_size ??
-        "FREE",
-      selectedColor:
-        item.selectedColor ??
-        item.selected_color ??
-        "기본",
+      selectedSize: item.selectedSize ?? "FREE",
+      selectedColor: item.selectedColor ?? "기본",
     }))
     .filter(
       (item) =>

@@ -25,23 +25,10 @@ const RecentProductList = ({
   return (
     <div className="recent-product-grid">
       {visibleProducts.map((product) => {
-        const productId =
-          product.product_id ?? product.id;
-
-        const productName =
-          product.product_name ??
-          product.name ??
-          "상품명 없음";
-
-        const productImage =
-          product.image_url ??
-          product.imageUrl ??
-          product.images?.[0];
-
-        const productPrice =
-          product.discount_price ??
-          product.price ??
-          0;
+        const productId = product.product_id;
+        const productName = product.product_name;
+        const productImage = product.image_url;
+        const productPrice = product.discount_price;
 
         return (
           <button
