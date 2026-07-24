@@ -6,6 +6,7 @@ from typing import Optional
 class HistoryCreate(BaseModel):
     user_id: int
     product_id: int
+    dwell_time: Optional[int] = 0
 
 class HistoryResponse(BaseModel):
     product_id: int

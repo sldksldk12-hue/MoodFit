@@ -139,25 +139,21 @@ const DetailPage = () => {
     fetchProduct();
   }, [id]);
   /*
- * 최근 본 상품 기록
- *
- * 로그인한 사용자가 상품 상세페이지에 들어오면
- * 해당 상품을 최근 본 상품 목록에 저장합니다.
- */
+   * 최근 본 상품 기록 및 체류 시간(dwell_time) 측정
+   *
+   * 페이지 진입 시 초기 기록을 저장하고, 유저가 페이지를 벗어날 때(Unmount)
+   * 머문 시간(초)을 계산하여 체류 시간(dwell_time)을 DB에 저장합니다.
+   */
   useEffect(() => {
     if (!user?.id || !id) return;
 
-    const saveProductHistory = async () => {
-      try {
-        await addProductHistory(user.id, id);
-      } catch (err) {
-        // 최근 본 상품 저장 실패가 상세페이지 이용을 막으면 안 되므로
-        // 화면에는 오류를 표시하지 않고 콘솔에만 기록합니다.
-        console.error("최근 본 상품 기록 실패:", err);
-      }
-    };
+    const startTime = Date.now();
 
-    saveProductHistory();
+    // 페이지 이탈 시점에 머문 시간(초)을 측정하여 딱 1번만 전송
+    return () => {
+      const dwellSeconds = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+      addProductHistory(user.id, id, dwellSeconds).catch(() => {});
+    };
   }, [user?.id, id]);
   const {
     liked,

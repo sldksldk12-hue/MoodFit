@@ -19,12 +19,29 @@ def add_to_history(req: HistoryCreate, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="상품을 찾을 수 없습니다.")
 
-    # 조회 기록 추가 (action_type을 'VIEW'로 고정하여 저장)
+    # 동일 유저/상품에 대해 최근 5분 이내 로그가 존재하면 신규 생성 대신 체류 시간(dwell_time) 갱신
     try:
+        from datetime import datetime, timedelta
+        cutoff_time = datetime.now() - timedelta(minutes=5)
+
+        recent_log = db.query(UserActivityLog).filter(
+            UserActivityLog.user_id == req.user_id,
+            UserActivityLog.product_id == req.product_id,
+            UserActivityLog.action_type == "VIEW",
+            UserActivityLog.created_at >= cutoff_time
+        ).order_by(UserActivityLog.created_at.desc()).first()
+
+        if recent_log:
+            # 2번 이상 분할 방문 시 체류 시간을 합산(Sum)하여 총 체류 시간으로 누적 저장
+            recent_log.dwell_time = (recent_log.dwell_time or 0) + (req.dwell_time or 0)
+            db.commit()
+            return {"message": "기존 조회 기록의 체류 시간이 합산 갱신되었습니다.", "status": "updated"}
+
         new_log = UserActivityLog(
             user_id=req.user_id,
             product_id=req.product_id,
-            action_type="VIEW"
+            action_type="VIEW",
+            dwell_time=req.dwell_time
         )
         db.add(new_log)
         db.commit()

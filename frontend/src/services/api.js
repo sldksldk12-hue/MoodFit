@@ -198,11 +198,12 @@ export const getUserLikes = (userId) =>
 // 최근 본 상품
 // ===========================
 
-// 상품 상세페이지를 조회했을 때 기록 저장
-export const addProductHistory = async (userId, productId) => {
+// 상품 상세페이지를 조회했을 때 기록 및 체류시간(dwell_time) 저장
+export const addProductHistory = async (userId, productId, dwellTime = 0) => {
   const response = await api.post("/api/history/", {
     user_id: Number(userId),
     product_id: Number(productId),
+    dwell_time: Number(dwellTime || 0),
   });
 
   // 조회 목록 캐시를 사용할 경우 기존 캐시 제거
