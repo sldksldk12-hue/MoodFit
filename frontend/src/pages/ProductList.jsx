@@ -11,6 +11,19 @@ import ProductGridSkeleton from "../components/product/ProductGridSkeleton";
 import { getList } from "../services/api";
 import "../assets/styles/product/ProductListPage.css";
 
+
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const isCreatedWithinOneWeek = (createdAt) => {
+  if (!createdAt) return false;
+
+  const createdTime = new Date(createdAt).getTime();
+  if (Number.isNaN(createdTime)) return false;
+
+  const elapsed = Date.now() - createdTime;
+  return elapsed >= 0 && elapsed <= ONE_WEEK_MS;
+};
+
 const ProductList = () => {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
@@ -20,6 +33,7 @@ const ProductList = () => {
   const group = searchParams.get("group") || "전체 상품";
   const category = searchParams.get("category") || "";
   const query = searchParams.get("query")?.trim() || "";
+  const collection = searchParams.get("collection") || "";
 
   const categoryIds = useMemo(
     () => category.split(",").map((item) => item.trim()).filter(Boolean),
@@ -42,12 +56,38 @@ const ProductList = () => {
     fetchProducts();
   }, []);
 
+
+  useEffect(() => {
+    if (collection === "new") {
+      setSortType("신상품순");
+    } else if (collection === "best") {
+      setSortType("좋아요순");
+    }
+  }, [collection]);
+
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.toLowerCase();
     const filtered = products.filter((product) => {
       const categoryMatched =
-        categoryIds.length === 0 || categoryIds.includes(String(product.category_id));
+        categoryIds.length === 0 ||
+        categoryIds.includes(String(product.category_id));
+
       if (!categoryMatched) return false;
+
+      if (
+        collection === "new" &&
+        !isCreatedWithinOneWeek(product.created_at)
+      ) {
+        return false;
+      }
+
+      if (
+        collection === "best" &&
+        Number(product.like_count ?? 0) < 5
+      ) {
+        return false;
+      }
+
       if (!normalizedQuery) return true;
 
       return [
@@ -72,10 +112,35 @@ const ProductList = () => {
       return copied.sort((a, b) => Number(b.discount_price ?? b.price ?? 0) - Number(a.discount_price ?? a.price ?? 0));
     }
     if (sortType === "신상품순") {
-      return copied.sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0));
+      return copied.sort(
+        (a, b) =>
+          new Date(b.created_at ?? 0).getTime() -
+          new Date(a.created_at ?? 0).getTime()
+      );
+    }
+    if (sortType === "좋아요순") {
+      return copied.sort(
+        (a, b) =>
+          Number(b.like_count ?? 0) -
+          Number(a.like_count ?? 0)
+      );
     }
     return copied;
-  }, [products, categoryIds, query, sortType]);
+  }, [products, categoryIds, query, collection, sortType]);
+
+  const collectionTitle =
+    collection === "new"
+      ? "이번 주 신상품"
+      : collection === "best"
+        ? "베스트 셀러"
+        : group;
+
+  const collectionDescription =
+    collection === "new"
+      ? "최근 7일 이내 등록된 상품만 모았습니다."
+      : collection === "best"
+        ? "좋아요 5개 이상을 받은 인기 상품만 모았습니다."
+        : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요.";
 
   return (
     <main className="product-list-page">
@@ -86,8 +151,8 @@ const ProductList = () => {
       <section className="product-list-header">
         <div>
           <span className="product-list-label">MOODFIT COLLECTION</span>
-          <h1>{query ? `“${query}” 검색 결과` : group}</h1>
-          <p>{query ? "검색어와 가장 가까운 스타일을 모았습니다." : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요."}</p>
+          <h1>{query ? `“${query}” 검색 결과` : collectionTitle}</h1>
+          <p>{query ? "검색어와 가장 가까운 스타일을 모았습니다." : collectionDescription}</p>
         </div>
       </section>
 
@@ -103,6 +168,7 @@ const ProductList = () => {
             <option>낮은 가격순</option>
             <option>높은 가격순</option>
             <option>신상품순</option>
+            <option>좋아요순</option>
           </select>
         </label>
       </section>
@@ -116,8 +182,18 @@ const ProductList = () => {
       ) : (
         <section className="product-list-empty">
           <span>NO RESULT</span>
-          <h2>조건에 맞는 상품이 없습니다.</h2>
-          <p>검색어 또는 카테고리를 변경해 다시 확인해보세요.</p>
+          <h2>
+            {collection === "new"
+              ? "최근 7일 이내 등록된 상품이 없습니다."
+              : collection === "best"
+                ? "좋아요 5개 이상인 상품이 없습니다."
+                : "조건에 맞는 상품이 없습니다."}
+          </h2>
+          <p>
+            {collection
+              ? "상품이 등록되거나 좋아요가 늘어나면 이 목록에 표시됩니다."
+              : "검색어 또는 카테고리를 변경해 다시 확인해보세요."}
+          </p>
         </section>
       )}
     </main>
