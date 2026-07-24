@@ -10,10 +10,12 @@ import {
   LoaderCircle,
   MessageSquare,
   PackageSearch,
+  Plus,
   RefreshCw,
   Search,
   ShieldCheck,
   ShoppingBag,
+  Sparkles,
   Star,
   Trash2,
   Users,
@@ -23,6 +25,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
+  analyzeAdminProduct,
+  createAdminProduct,
   deleteAdminProduct,
   deleteAdminReview,
   getAdminCategories,
@@ -55,6 +59,26 @@ const ORDER_STATUSES = ["결제완료", "상품준비중", "배송중", "배송�
 const dateText = (value) => value ? new Date(value).toLocaleString("ko-KR") : "-";
 const getErrorMessage = (error) => error.response?.data?.detail || "요청 처리 중 오류가 발생했습니다.";
 
+const createEmptyProduct = () => ({
+  product_name: "",
+  brand: "",
+  category_id: "",
+  original_price: 0,
+  discount_price: 0,
+  inventory: 0,
+  gender_target: "공용",
+  image_urls_text: "",
+  purchase_link: "",
+  product_content: "",
+  tags: {
+    mood_tag: "#편안함",
+    weather_tag: "#맑음",
+    season_tag: "#사계절",
+    tour_tag: "#카페/도심",
+  },
+  ai_used: false,
+});
+
 const AdminPage = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -66,6 +90,8 @@ const AdminPage = () => {
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [editProduct, setEditProduct] = useState(null);
+  const [createProduct, setCreateProduct] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [replyInquiry, setReplyInquiry] = useState(null);
   const [saving, setSaving] = useState(false);
 
@@ -115,10 +141,34 @@ const AdminPage = () => {
 
   const items = useMemo(() => Array.isArray(data) ? data : data?.items || [], [data]);
 
+  const openProductEdit = (product) => {
+    const imageUrls = Array.isArray(product.image_urls)
+      ? product.image_urls
+      : product.image_url
+        ? [product.image_url]
+        : [];
+
+    setEditProduct({
+      ...product,
+      image_urls_text: imageUrls.join("\n"),
+    });
+  };
+
   const handleProductSave = async (event) => {
     event.preventDefault();
     setSaving(true);
     try {
+      const imageUrls = String(editProduct.image_urls_text || "")
+        .split(/[\n,]+/)
+        .map((url) => url.trim())
+        .filter(Boolean);
+
+      if (!imageUrls.length) {
+        alert("상품 이미지 URL을 1개 이상 입력하세요.");
+        setSaving(false);
+        return;
+      }
+
       await updateAdminProduct(editProduct.id, {
         product_name: editProduct.product_name,
         category_id: editProduct.category_id ? Number(editProduct.category_id) : null,
@@ -127,9 +177,70 @@ const AdminPage = () => {
         inventory: Number(editProduct.inventory),
         brand: editProduct.brand,
         gender_target: editProduct.gender_target,
+        image_urls: imageUrls,
         product_content: editProduct.product_content || null,
       });
       setEditProduct(null);
+      await loadData();
+    } catch (requestError) {
+      alert(getErrorMessage(requestError));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  const handleProductAnalyze = async () => {
+    if (!createProduct?.product_name.trim()) {
+      alert("AI 분석 전에 상품명을 입력하세요.");
+      return;
+    }
+    setAnalyzing(true);
+    try {
+      const result = await analyzeAdminProduct({
+        product_name: createProduct.product_name,
+        brand: createProduct.brand,
+        product_content: createProduct.product_content || null,
+      });
+      setCreateProduct((current) => ({
+        ...current,
+        category_id: String(result.category_id),
+        tags: result.tags,
+        ai_used: result.ai_used,
+      }));
+    } catch (requestError) {
+      alert(getErrorMessage(requestError));
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleProductCreate = async (event) => {
+    event.preventDefault();
+    const imageUrls = createProduct.image_urls_text
+      .split(/[,\n]/)
+      .map((url) => url.trim())
+      .filter(Boolean);
+    if (!createProduct.category_id) {
+      alert("카테고리를 선택하거나 AI 추천을 실행하세요.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createAdminProduct({
+        product_name: createProduct.product_name,
+        brand: createProduct.brand,
+        category_id: Number(createProduct.category_id),
+        original_price: Number(createProduct.original_price),
+        discount_price: Number(createProduct.discount_price),
+        inventory: Number(createProduct.inventory),
+        gender_target: createProduct.gender_target,
+        image_urls: imageUrls,
+        purchase_link: createProduct.purchase_link || null,
+        product_content: createProduct.product_content || null,
+        tags: createProduct.tags,
+      });
+      setCreateProduct(null);
       await loadData();
     } catch (requestError) {
       alert(getErrorMessage(requestError));
@@ -233,7 +344,7 @@ const AdminPage = () => {
       <section className="admin-content">
         <header className="admin-topbar">
           <div><span>ADMINISTRATION</span><h1>{MENUS.find((menu) => menu.id === activeMenu)?.label}</h1></div>
-          <button className="admin-refresh" onClick={loadData}><RefreshCw size={17} /> 새로고침</button>
+          <div className="admin-topbar-actions">{activeMenu === "products" && <button className="admin-create-btn" onClick={() => setCreateProduct(createEmptyProduct())}><Plus size={17} /> 상품 등록</button>}<button className="admin-refresh" onClick={loadData}><RefreshCw size={17} /> 새로고침</button></div>
         </header>
 
         {activeMenu !== "dashboard" && (
@@ -248,7 +359,7 @@ const AdminPage = () => {
         {loading ? <div className="admin-loading"><LoaderCircle className="spin" /> 데이터를 불러오는 중입니다.</div> : (
           <>
             {activeMenu === "dashboard" && <Dashboard data={data} />}
-            {activeMenu === "products" && <ProductTable items={items} onEdit={setEditProduct} onDelete={handleProductDelete} />}
+            {activeMenu === "products" && <ProductTable items={items} onEdit={openProductEdit} onDelete={handleProductDelete} />}
             {activeMenu === "orders" && <OrderTable items={items} onStatus={handleOrderStatus} />}
             {activeMenu === "inquiries" && <InquiryTable items={items} onReply={(item) => setReplyInquiry({ ...item, reply_content: item.reply_content || "" })} onViewProduct={handleViewInquiryProduct} />}
             {activeMenu === "users" && <UserTable items={items} currentUserId={user.id} onRole={handleRole} />}
@@ -257,6 +368,7 @@ const AdminPage = () => {
         )}
       </section>
 
+      {createProduct && <ProductCreateModal product={createProduct} categories={categories} saving={saving} analyzing={analyzing} onChange={setCreateProduct} onAnalyze={handleProductAnalyze} onClose={() => setCreateProduct(null)} onSubmit={handleProductCreate} />}
       {editProduct && <ProductModal product={editProduct} categories={categories} saving={saving} onChange={setEditProduct} onClose={() => setEditProduct(null)} onSubmit={handleProductSave} />}
       {replyInquiry && <ReplyModal inquiry={replyInquiry} saving={saving} onChange={setReplyInquiry} onClose={() => setReplyInquiry(null)} onSubmit={handleReply} onViewProduct={handleViewInquiryProduct} />}
     </main>
@@ -297,7 +409,38 @@ const ReviewTable = ({ items, onDelete }) => items.length ? <div className="admi
 
 const ModalShell = ({ title, children, onClose }) => <div className="admin-modal-backdrop" onMouseDown={onClose}><section className="admin-modal" onMouseDown={(event) => event.stopPropagation()}><header><h2>{title}</h2><button type="button" onClick={onClose}><X /></button></header>{children}</section></div>;
 
-const ProductModal = ({ product, categories, saving, onChange, onClose, onSubmit }) => <ModalShell title="상품 정보 수정" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}><label>상품명<input value={product.product_name} onChange={(e) => onChange({ ...product, product_name: e.target.value })} required /></label><div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>카테고리<select value={product.category_id || ""} onChange={(e) => onChange({ ...product, category_id: e.target.value })}><option value="">미분류</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.category_name}</option>)}</select></label></div><div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} /></label></div><label>상세 설명<textarea rows="5" value={product.product_content || ""} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label><footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "저장 중..." : "변경사항 저장"}</button></footer></form></ModalShell>;
+
+const ProductCreateModal = ({ product, categories, saving, analyzing, onChange, onAnalyze, onClose, onSubmit }) => {
+  const setTag = (key, value) => onChange({ ...product, tags: { ...product.tags, [key]: value } });
+  return <ModalShell title="새 상품 등록" onClose={onClose}><form className="admin-form product-create-form" onSubmit={onSubmit}>
+    <div className="ai-analysis-box"><div><Sparkles size={20} /><div><strong>AI 카테고리·태그 추천</strong><p>상품명을 기준으로 service.py의 카테고리와 무드 태그를 추천합니다. 추천 후에도 직접 수정할 수 있습니다.</p></div></div><button type="button" onClick={onAnalyze} disabled={analyzing}>{analyzing ? "분석 중..." : "AI 분석"}</button></div>
+    <label>상품명<input value={product.product_name} onChange={(e) => onChange({ ...product, product_name: e.target.value })} required placeholder="예: 코튼 케이블 크루넥 반팔 스웨터" /></label>
+    <div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>대상 성별<select value={product.gender_target} onChange={(e) => onChange({ ...product, gender_target: e.target.value })}><option>공용</option><option>남성</option><option>여성</option></select></label></div>
+    <label>카테고리<select value={product.category_id} onChange={(e) => onChange({ ...product, category_id: e.target.value })} required><option value="">카테고리를 선택하세요</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.parent_id ? "└ " : ""}{item.category_name}</option>)}</select><small>{product.ai_used ? "AI가 추천했습니다. 필요하면 다른 카테고리를 선택하세요." : "관리자가 직접 선택하거나 AI 분석으로 추천받을 수 있습니다."}</small></label>
+    <div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} required /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} required /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} required /></label></div>
+    <label>상품 이미지 URL<textarea rows="3" value={product.image_urls_text} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="여러 장은 줄바꿈 또는 쉼표로 구분하세요." /></label>
+    <label>상세 설명<textarea rows="4" value={product.product_content} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label>
+    <fieldset className="tag-fieldset"><legend>추천 태그</legend><div className="form-row"><label>감정 태그<input value={product.tags.mood_tag} onChange={(e) => setTag("mood_tag", e.target.value)} required /></label><label>날씨 태그<input value={product.tags.weather_tag} onChange={(e) => setTag("weather_tag", e.target.value)} required /></label></div><div className="form-row"><label>계절 태그<input value={product.tags.season_tag} onChange={(e) => setTag("season_tag", e.target.value)} required /></label><label>TPO/관광 태그<input value={product.tags.tour_tag || ""} onChange={(e) => setTag("tour_tag", e.target.value)} /></label></div></fieldset>
+    <footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving || analyzing}>{saving ? "등록 중..." : "상품 등록"}</button></footer>
+  </form></ModalShell>;
+};
+
+const ProductModal = ({ product, categories, saving, onChange, onClose, onSubmit }) => {
+  const previewImage = String(product.image_urls_text || "")
+    .split(/[\n,]+/)
+    .map((url) => url.trim())
+    .find(Boolean);
+
+  return <ModalShell title="상품 정보 수정" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}>
+    <label>상품명<input value={product.product_name} onChange={(e) => onChange({ ...product, product_name: e.target.value })} required /></label>
+    <div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>카테고리<select value={product.category_id || ""} onChange={(e) => onChange({ ...product, category_id: e.target.value })}><option value="">미분류</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.category_name}</option>)}</select></label></div>
+    <div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} /></label></div>
+    <label>상품 이미지 URL<textarea rows="4" value={product.image_urls_text || ""} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="여러 장은 줄바꿈 또는 쉼표로 구분하세요." /><small>첫 번째 URL이 대표 이미지로 사용됩니다.</small></label>
+    {previewImage && <div className="admin-product-image-preview"><span>대표 이미지 미리보기</span><img src={previewImage} alt="상품 대표 이미지 미리보기" onError={(event) => { event.currentTarget.style.display = "none"; }} /></div>}
+    <label>상세 설명<textarea rows="5" value={product.product_content || ""} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label>
+    <footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "저장 중..." : "변경사항 저장"}</button></footer>
+  </form></ModalShell>;
+};
 
 const ReplyModal = ({ inquiry, saving, onChange, onClose, onSubmit, onViewProduct }) => <ModalShell title="문의 답변" onClose={onClose}><form className="admin-form" onSubmit={onSubmit}><div className="modal-inquiry"><div className="modal-inquiry-head"><strong>{inquiry.title}</strong><button type="button" className="secondary inquiry-modal-product-btn" onClick={() => onViewProduct(inquiry)}><ExternalLink size={15} />상품 상세 보기</button></div><span>{inquiry.product_name || `상품 #${inquiry.product_id}`}</span><p>{inquiry.content}</p></div><label>관리자 답변<textarea autoFocus rows="8" value={inquiry.reply_content} onChange={(e) => onChange({ ...inquiry, reply_content: e.target.value })} required /></label><footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "등록 중..." : "답변 등록"}</button></footer></form></ModalShell>;
 

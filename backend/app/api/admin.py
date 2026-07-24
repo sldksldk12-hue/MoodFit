@@ -4,6 +4,7 @@
 """
 from datetime import datetime, timedelta
 from typing import Literal, Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,18 +14,47 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.auth import verify_token
 from app.db.database import get_db
+from app.domains.product.service import CATEGORY_MAP, generate_gpt_product_mood_tags
 from app.models.models import (
     Inquiry,
     Order,
     OrderItem,
     Product,
     ProductCategory,
+    ProductMoodTag,
     ProductReview,
     User,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/moodfit/login")
+
+
+class ProductTagPayload(BaseModel):
+    mood_tag: str = Field(default="#편안함", min_length=1, max_length=50)
+    weather_tag: str = Field(default="#맑음", min_length=1, max_length=50)
+    season_tag: str = Field(default="#사계절", min_length=1, max_length=50)
+    tour_tag: Optional[str] = Field(default="#카페/도심", max_length=50)
+
+
+class ProductAnalysisRequest(BaseModel):
+    product_name: str = Field(min_length=1, max_length=255)
+    brand: str = Field(default="", max_length=100)
+    product_content: Optional[str] = None
+
+
+class ProductCreate(BaseModel):
+    product_name: str = Field(min_length=1, max_length=255)
+    category_id: int
+    original_price: int = Field(ge=0)
+    discount_price: int = Field(ge=0)
+    inventory: int = Field(default=0, ge=0)
+    brand: str = Field(min_length=1, max_length=100)
+    gender_target: Literal["남성", "여성", "공용"] = "공용"
+    image_urls: list[str] = Field(min_length=1)
+    purchase_link: Optional[str] = Field(default=None, max_length=1024)
+    product_content: Optional[str] = None
+    tags: ProductTagPayload
 
 
 class ProductUpdate(BaseModel):
@@ -35,6 +65,7 @@ class ProductUpdate(BaseModel):
     inventory: Optional[int] = Field(default=None, ge=0)
     brand: Optional[str] = Field(default=None, min_length=1, max_length=100)
     gender_target: Optional[str] = Field(default=None, min_length=1, max_length=10)
+    image_urls: Optional[list[str]] = None
     product_content: Optional[str] = None
 
 
@@ -69,11 +100,18 @@ def require_admin(
 
 
 def product_to_dict(product: Product) -> dict:
-    image = product.image_url
-    if isinstance(image, list):
-        image = image[0] if image else None
-    elif isinstance(image, dict):
-        image = image.get("url") or image.get("image_url")
+    raw_images = product.image_url
+    if isinstance(raw_images, list):
+        image_urls = [str(item).strip() for item in raw_images if item and str(item).strip()]
+    elif isinstance(raw_images, dict):
+        image = raw_images.get("url") or raw_images.get("image_url")
+        image_urls = [image] if image else []
+    elif raw_images:
+        image_urls = [str(raw_images).strip()]
+    else:
+        image_urls = []
+
+    image = image_urls[0] if image_urls else None
 
     return {
         "id": product.id,
@@ -87,8 +125,15 @@ def product_to_dict(product: Product) -> dict:
         "like_count": product.like_count,
         "average_rating": float(product.average_rating or 0),
         "image_url": image,
+        "image_urls": image_urls,
         "gender_target": product.gender_target,
         "product_content": product.product_content,
+        "tags": [{
+            "mood_tag": tag.mood_tag,
+            "weather_tag": tag.weather_tag,
+            "season_tag": tag.season_tag,
+            "tour_tag": tag.tour_tag,
+        } for tag in product.mood_tags],
         "created_at": product.created_at,
     }
 
@@ -170,7 +215,108 @@ def get_dashboard(
 @router.get("/categories")
 def get_categories(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     categories = db.query(ProductCategory).order_by(ProductCategory.category_name).all()
-    return [{"id": item.id, "category_name": item.category_name} for item in categories]
+    return [{"id": item.id, "category_name": item.category_name, "parent_id": item.parent_id} for item in categories]
+
+
+def _recommend_category(db: Session, product_name: str) -> ProductCategory:
+    normalized = product_name.lower().strip()
+    for keyword, category_id in CATEGORY_MAP.items():
+        if keyword.lower() in normalized:
+            category = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+            if category:
+                return category
+
+    # 정확히 매칭되는 키워드가 없으면 첫 번째 하위 카테고리를 안전한 기본값으로 사용합니다.
+    category = (
+        db.query(ProductCategory)
+        .filter(ProductCategory.parent_id.isnot(None))
+        .order_by(ProductCategory.id)
+        .first()
+    )
+    if not category:
+        raise HTTPException(status_code=400, detail="등록 가능한 상품 카테고리가 없습니다.")
+    return category
+
+
+@router.post("/products/analyze")
+def analyze_product(
+    req: ProductAnalysisRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    category = _recommend_category(db, req.product_name)
+    tags = generate_gpt_product_mood_tags(
+        product_name=req.product_name,
+        category_name=category.category_name,
+        brand=req.brand or "브랜드 미정",
+    )
+    ai_used = bool(tags)
+    tags = tags or {
+        "mood_tag": "#편안함",
+        "weather_tag": "#맑음",
+        "season_tag": "#사계절",
+        "tour_tag": "#카페/도심",
+    }
+    return {
+        "category_id": category.id,
+        "category_name": category.category_name,
+        "tags": tags,
+        "ai_used": ai_used,
+    }
+
+
+@router.post("/products", status_code=status.HTTP_201_CREATED)
+def create_product(
+    req: ProductCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    category = db.query(ProductCategory).filter(ProductCategory.id == req.category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="존재하지 않는 카테고리입니다.")
+
+    image_urls = [url.strip() for url in req.image_urls if url and url.strip()]
+    if not image_urls:
+        raise HTTPException(status_code=400, detail="상품 이미지 URL을 1개 이상 입력하세요.")
+    if req.discount_price > req.original_price and req.original_price > 0:
+        raise HTTPException(status_code=400, detail="판매가는 원가보다 높을 수 없습니다.")
+
+    product = Product(
+        shop_product_id=f"admin-{uuid4().hex}",
+        product_name=req.product_name.strip(),
+        category_id=req.category_id,
+        original_price=req.original_price,
+        discount_price=req.discount_price,
+        image_url=image_urls,
+        purchase_link=req.purchase_link or None,
+        product_content=req.product_content or None,
+        brand=req.brand.strip(),
+        gender_target=req.gender_target,
+        inventory=req.inventory,
+        average_rating=0,
+        like_count=0,
+    )
+    try:
+        db.add(product)
+        db.flush()
+        db.add(ProductMoodTag(
+            product_id=product.id,
+            mood_tag=req.tags.mood_tag.strip(),
+            weather_tag=req.tags.weather_tag.strip(),
+            season_tag=req.tags.season_tag.strip(),
+            tour_tag=req.tags.tour_tag.strip() if req.tags.tour_tag else None,
+        ))
+        db.commit()
+        product = (
+            db.query(Product)
+            .options(joinedload(Product.category), joinedload(Product.mood_tags))
+            .filter(Product.id == product.id)
+            .first()
+        )
+        return product_to_dict(product)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"상품 등록 실패: {exc}")
 
 
 @router.get("/products")
@@ -182,7 +328,7 @@ def get_products(
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
 ):
-    query = db.query(Product).options(joinedload(Product.category))
+    query = db.query(Product).options(joinedload(Product.category), joinedload(Product.mood_tags))
     if q.strip():
         pattern = f"%{q.strip()}%"
         query = query.filter(or_(Product.product_name.ilike(pattern), Product.brand.ilike(pattern)))
@@ -210,6 +356,13 @@ def update_product(
         category = db.query(ProductCategory).filter(ProductCategory.id == data["category_id"]).first()
         if not category:
             raise HTTPException(status_code=400, detail="존재하지 않는 카테고리입니다.")
+
+    if "image_urls" in data:
+        image_urls = [url.strip() for url in (data.pop("image_urls") or []) if url and url.strip()]
+        if not image_urls:
+            raise HTTPException(status_code=400, detail="상품 이미지 URL을 1개 이상 입력하세요.")
+        product.image_url = image_urls
+
     for key, value in data.items():
         setattr(product, key, value)
 
