@@ -265,9 +265,6 @@ const MainPage = () => {
             <h2>오늘의 AI 코디</h2>
             <p>날씨와 인기 데이터를 참고해 오늘 입기 좋은 조합을 골랐어요.</p>
           </div>
-          <Link to="/moodfit/ailist" className="ai-outfit-more">
-            AI 추천 더보기 <ArrowRight size={17} />
-          </Link>
         </div>
 
         <div className="ai-outfit-layout">
