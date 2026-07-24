@@ -93,6 +93,7 @@ CREATE TABLE chat_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '세션 일련번호',
     user_id INT NULL COMMENT '회원 일련번호',
     session_uuid VARCHAR(64) NOT NULL UNIQUE COMMENT '세션 식별 UUID',
+    summary_text TEXT NULL COMMENT '대화 세션 2줄 핵심 요약문',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '세션 생성 일시',
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
 ) COMMENT = '대화 세션';

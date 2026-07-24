@@ -244,6 +244,7 @@ class ChatSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False, comment="세션 생성 일시"
     )
+    summary_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="대화 세션 2줄 핵심 요약문")
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_sessions")

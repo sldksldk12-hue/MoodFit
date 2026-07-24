@@ -8,8 +8,8 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder # 메
 from langchain_core.messages import HumanMessage, AIMessage # 대화 타입 지정용 모듈 추가
 from langchain_core.output_parsers import StrOutputParser
 
-# ChatMessage 모델 추가
-from app.models.models import User, EmotionLog, WeatherLog, ChatMessage, TourLog 
+# ChatMessage, ChatSession 모델 추가
+from app.models.models import User, EmotionLog, WeatherLog, ChatMessage, ChatSession, TourLog 
 
 class RagsFashionService:
     def __init__(self):
@@ -20,7 +20,7 @@ class RagsFashionService:
         )
         self.weather_api_key = os.getenv("OPENWEATHER_API_KEY")
         
-        # 시스템 메시지와 유저 메시지 사이에 'chat_history'라는 기억 장치 추가
+        # 시스템 메시지에 2줄 대화 요약문(chat_summary) 보관용 슬롯 추가 (토큰 100개 미만 최적화)
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", """당신은 유저의 기분과 날씨, 패션 취향을 분석하여 최적의 코디를 제안하는 퍼스널 쇼퍼이자 패션 테라피스트 AI 'MoodFit'입니다.
 
@@ -38,15 +38,17 @@ class RagsFashionService:
 - 선호 색상: {liked_colors}
 - ⚠️ 절대 추천하면 안 되는 기피 색상 (하드 필터링 제약 조건): {disliked_colors}
 
+🧠 [이전 대화 핵심 요약 (Chat Summary)]:
+{chat_summary}
+
 [답변 작성 가이드]
 1. 유저의 현재 감정에 깊이 공감해주며, 오늘 날씨에 적합한 활동적인 멘트로 시작하세요.
-2. 이전 대화 문맥(chat_history)을 완벽히 파악하고, 유저가 변경을 원한다면 이전 코디를 바탕으로 수정해서 제안하세요.
+2. 이전 대화 핵심 요약문(Chat Summary)의 맥락을 완벽히 파악하고, 유저가 변경/추가를 원한다면 이전 추천을 바탕으로 연속성 있게 답변하세요.
 3. **성별 맞춤 필수**: 유저 성별이 [{gender}]로 설정되어 있으므로, 반드시 100% [{gender}]에게 적합한 스타일과 의류 핏(예: 남성 유저인 경우 남성용/남녀공용 착장)만을 제안하고, 반대 성별 전용 의류(예: 여성 전용 스커트/원피스/블라우스/여성 가디건 등)는 절대로 제안하거나 언급하지 마세요.
 4. **선호 스타일 최우선 반영**: 유저가 설정한 선호 스타일({preferred_style}) 감성(예: 스트릿, 미니멀, 캐주얼, 아메카지, 스포티, 모던 등)을 중심으로 전체 코디 분위기와 실루엣을 제안하세요.
 5. **선호/기피 색상 반영**: 유저가 좋아하는 색상({liked_colors})을 매칭에 우선 반영하고, **기피하는 색상({disliked_colors})은 옷, 신발, 액세서리 등 추천 목록 그 어디에도 절대 포함시키지 마세요.**
 6. **신체 핏 가이드**: 유저의 키({user_height}cm), 몸무게({user_weight}kg), 체형({body_form})에 맞는 핏 팁(오버핏, 레귤러핏 등)을 친절하게 제시하세요.
 7. 친근하면서도 전문적인 톤앤매너(해요체)를 유지하세요."""),
-            MessagesPlaceholder(variable_name="chat_history"), # 이전 대화가 들어가는 자리
             ("human", "{user_message}")
         ])
         
@@ -104,27 +106,16 @@ class RagsFashionService:
         weather_data = self.get_real_weather(map_y=map_y, map_x=map_x, city_name=city_name)
         current_weather = f"섭씨 {weather_data['temp']}도, {weather_data['desc']} ({weather_data['region']})"
         
-        # 1.5. DB에서 이전 대화(기억) 긁어오기
-        chat_history = []
+        # 1.5. DB에서 대화 세션 2줄 요약문(chat_summary) 긁어오기 (단 50~100 토큰 소비!)
+        chat_summary_text = "이전 대화 내역 없음"
         if session_id:
             try:
-                past_messages = db.query(ChatMessage).filter(
-                    ChatMessage.session_id == session_id
-                ).order_by(ChatMessage.created_at.asc()).all()
-                
-                # 방금 DB에 등록된 제일 마지막 유저 메시지는 human 인자로 넘어가므로 chat_history에서 제외
-                if past_messages and past_messages[-1].sender_type == "USER" and past_messages[-1].message_text == user_message:
-                    past_messages = past_messages[:-1]
-                
-                for msg in past_messages:
-                    if msg.sender_type == "USER":
-                        chat_history.append(HumanMessage(content=msg.message_text))
-                    elif msg.sender_type == "AI":
-                        chat_history.append(AIMessage(content=msg.message_text))
-                        
-                print(f"[Memory] 세션 ID({session_id})의 이전 대화 {len(chat_history)}건이 RAG 메모리에 로드되었습니다.")
+                chat_sess = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                if chat_sess and chat_sess.summary_text:
+                    chat_summary_text = chat_sess.summary_text
+                    print(f"[Memory Summary] 세션 ID({session_id}) 2줄 압축 요약문 로드: {chat_summary_text}")
             except Exception as e:
-                print(f"[Error] 대화 기록 불러오기 실패: {e}")
+                print(f"[Error] 대화 요약 불러오기 실패: {e}")
 
         # 2. 날씨 기록 (현지 날씨 저장)
         weather_log_id = None
@@ -164,7 +155,7 @@ class RagsFashionService:
         except Exception as e:
             print(f"[Error] 유저 취향 정보 조회 실패: {e}")
 
-        # 4. 프롬프트에 모든 유저 취향/신체 정보 및 chat_history 주입!
+        # 4. 프롬프트에 유저 프로필 및 2줄 압축 요약문(chat_summary) 주입!
         response = self.chain.invoke({
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",
@@ -177,8 +168,42 @@ class RagsFashionService:
             "preferred_style": preferred_style,
             "liked_colors": liked_colors,
             "disliked_colors": disliked_colors,
-            "chat_history": chat_history,
+            "chat_summary": chat_summary_text,
             "user_message": user_message
         })
+
+        # 5. 백그라운드 쓰레드로 대화 요약 2줄 압축 비동기 갱신 (유저 응답 지연 0초!)
+        if session_id:
+            import threading
+            def _async_update_summary():
+                from app.db.database import SessionLocal
+                from app.models.models import ChatSession
+                from langchain_openai import ChatOpenAI
+                
+                bg_db = SessionLocal()
+                try:
+                    sess = bg_db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                    if not sess:
+                        return
+                    
+                    old_sum = sess.summary_text or "없음"
+                    sum_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY"))
+                    prompt = (
+                        f"이전 대화 요약: {old_sum}\n"
+                        f"신규 대화:\n- 유저: {user_message}\n- AI: {response[:200]}\n\n"
+                        f"위 대화의 핵심 유저 요청, 선호 품목, 스타일 및 추천 경과를 한국어 2줄 이내(100자 이내)로 요약해라."
+                    )
+                    res = sum_llm.invoke(prompt)
+                    new_sum = res.content.strip()
+                    sess.summary_text = new_sum
+                    bg_db.commit()
+                    print(f"[BG Summary Updated for Session {session_id}]: {new_sum}")
+                except Exception as bg_err:
+                    bg_db.rollback()
+                    print(f"[BG Summary Note]: {bg_err}")
+                finally:
+                    bg_db.close()
+
+            threading.Thread(target=_async_update_summary, daemon=True).start()
 
         return response, weather_log_id

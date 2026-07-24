@@ -684,9 +684,20 @@ def get_or_fetch_products(
         if new_products:
             db.commit()
             print(f"[Success] 수집 완료! {len(new_products)}개의 취향 맞춤 신규 상품을 자체 DB에 영구 저장했습니다.")
-            # 새로 수집된 상품들에 대해 즉시 GPT 1:1 맞춤 옵션 및 무드 태그 자동 생성
-            seed_initial_product_options(db)
-            seed_initial_product_mood_tags(db)
+            # 응답 지연 시간(19s -> 2s) 획기적 단축을 위해 GPT 1:1 맞춤 옵션 및 무드 태그 생성을 백그라운드 쓰레드로 비동기 전환
+            def _async_bg_seed():
+                from app.db.database import SessionLocal
+                bg_db = SessionLocal()
+                try:
+                    seed_initial_product_options(bg_db)
+                    seed_initial_product_mood_tags(bg_db)
+                except Exception as bg_err:
+                    print(f"⚠️ [BG Seeding Note]: {bg_err}")
+                finally:
+                    bg_db.close()
+
+            import threading
+            threading.Thread(target=_async_bg_seed, daemon=True).start()
 
             # 신규 수집 상품 중 선호 색상 다중 정렬 (ProductOption 스펙 포함 검사)
             if liked_list:
