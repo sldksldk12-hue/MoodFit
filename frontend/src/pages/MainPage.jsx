@@ -17,6 +17,7 @@
 import { PlayCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import ProductCard from '../components/product/ProductCard';
 import ProductGridSkeleton from '../components/product/ProductGridSkeleton';
 import ChatPage from '../components/chat/ChatPage';
@@ -29,10 +30,40 @@ import { closeMainChat } from '../store/slices/chatSlice';
 
 
 const banners = [
-    { title: 'WEEKLY EVENT', desc: '이번 주 특별 할인', image: '/images/banner01.jpg' },
-    { title: 'SHOPPING LIVE', desc: '라이브 인기 상품', image: '/images/banner02.jpg' },
-    { title: 'NEW COLLECTION', desc: '새로운 시즌 컬렉션', image: '/images/banner03.jpg' },
+    {
+        eyebrow: 'WEEKLY EVENT',
+        title: '이번 주 특별 할인',
+        desc: '지금 가장 인기 있는 아이템을 특별한 가격으로 만나보세요.',
+        image: '/images/banner01.jpg',
+        link: '/moodfit/list?event=weekly',
+    },
+    {
+        eyebrow: 'SHOPPING LIVE',
+        title: '라이브 인기 상품',
+        desc: '실시간으로 주목받는 스타일과 베스트 아이템을 확인해보세요.',
+        image: '/images/banner02.jpg',
+        link: '/moodfit/list?collection=best',
+    },
+    {
+        eyebrow: 'NEW COLLECTION',
+        title: '새로운 시즌 컬렉션',
+        desc: '새 계절에 어울리는 MOODFIT의 큐레이션을 만나보세요.',
+        image: '/images/banner03.jpg',
+        link: '/moodfit/list?collection=new',
+    },
 ];
+
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const isCreatedWithinOneWeek = (createdAt) => {
+    if (!createdAt) return false;
+
+    const createdTime = new Date(createdAt).getTime();
+    if (Number.isNaN(createdTime)) return false;
+
+    const elapsed = Date.now() - createdTime;
+    return elapsed >= 0 && elapsed <= ONE_WEEK_MS;
+};
 
 /**
  * MainPage2 컴포넌트
@@ -50,12 +81,27 @@ const MainPage = () => {
     const [productLoading, setProductLoading] = useState(true);
 
     // 상품 데이터가 바뀔 때만 정렬하여 렌더링마다 sort가 반복되지 않게 합니다.
-    const newestProducts = useMemo(() => [...product].sort(
-        (a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)
-    ), [product]);
-    const bestProducts = useMemo(() => [...product].sort(
-        (a, b) => Number(b.like_count ?? 0) - Number(a.like_count ?? 0)
-    ), [product]);
+    const newestProducts = useMemo(
+        () => product
+            .filter((item) => isCreatedWithinOneWeek(item.created_at))
+            .sort(
+                (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
+            ),
+        [product]
+    );
+
+    const bestProducts = useMemo(
+        () => product
+            .filter((item) => Number(item.like_count ?? 0) >= 5)
+            .sort(
+                (a, b) =>
+                    Number(b.like_count ?? 0) -
+                    Number(a.like_count ?? 0)
+            ),
+        [product]
+    );
 
     // 컴포넌트 렌더링 이후 API 호출, DOM 동기화 또는 이벤트 정리가 필요할 때 실행합니다.
     useEffect(() => {
@@ -112,13 +158,25 @@ const MainPage = () => {
 
                     <div className="banner-grid">
                         {banners.map((banner) => (
-                            <a href="#" className="event-banner" key={banner.title}>
-                                <img src={banner.image} alt={banner.title} loading="lazy" decoding="async" />
-                                <div>
+                            <Link
+                                to={banner.link}
+                                className="event-banner"
+                                key={banner.eyebrow}
+                                aria-label={`${banner.title} 상품 보러 가기`}
+                            >
+                                <img
+                                    src={banner.image}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                />
+                                <div className="event-banner__content">
+                                    <span className="event-banner__eyebrow">{banner.eyebrow}</span>
                                     <h3>{banner.title}</h3>
                                     <p>{banner.desc}</p>
+                                    <span className="event-banner__link">상품 보러 가기 →</span>
                                 </div>
-                            </a>
+                            </Link>
                         ))}
                     </div>
                 </section>
@@ -129,16 +187,26 @@ const MainPage = () => {
                             <h2>신상품</h2>
                             <p>새롭게 출시된 상품들</p>
                         </div>
-                        <a href="#">전체보기</a>
+                        <Link to="/moodfit/list?collection=new">전체보기</Link>
                     </div>
 
                     <div className="product-grid">
-                            {productLoading ? <ProductGridSkeleton count={4} /> : newestProducts.map((product) => (
+                        {productLoading ? (
+                            <ProductGridSkeleton count={4} />
+                        ) : (
+                            newestProducts.length > 0 ? (
+                                newestProducts.slice(0, 4).map((product) => (
                                     <ProductCard
                                         product={product}
                                         key={product.id}
                                     />
-                                ))}
+                                ))
+                            ) : (
+                                <p className="product-section-empty">
+                                    최근 7일 이내 등록된 신상품이 없습니다.
+                                </p>
+                            )
+                        )}
                     </div>
 
                 </section>
@@ -162,21 +230,37 @@ const MainPage = () => {
                             <h2>베스트 셀러</h2>
                             <p>금주의 베스트 아이템</p>
                         </div>
+                        <Link to="/moodfit/list?collection=best">전체보기</Link>
                     </div>
                     <div className="product-grid">
-                        {productLoading ? <ProductGridSkeleton count={4} /> : bestProducts.map((product) => (
-                            <ProductCard
-                                product={product}
-                                key={`best-${product.id}`}
-                            />
-                        ))}
+                        {productLoading ? (
+                            <ProductGridSkeleton count={4} />
+                        ) : (
+                            bestProducts.length > 0 ? (
+                                bestProducts.slice(0, 4).map((product) => (
+                                    <ProductCard
+                                        product={product}
+                                        key={`best-${product.id}`}
+                                    />
+                                ))
+                            ) : (
+                                <p className="product-section-empty">
+                                    좋아요 5개 이상인 베스트 상품이 없습니다.
+                                </p>
+                            )
+                        )}
                     </div>
                 </section>
 
                 <section className="trend-banner" id="sale">
                     <h2>TREND PICK</h2>
                     <p>지금 바로 MOOD FIT의 인기 상품을 만나보세요.</p>
-                    <button type="button">자세히 보기</button>
+                    <Link
+                        to="/moodfit/list?collection=best"
+                        className="trend-banner__link"
+                    >
+                        자세히 보기
+                    </Link>
                 </section>
             </main>
 

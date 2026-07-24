@@ -95,7 +95,7 @@
   transform: scale(1.06);
 }
 
-.event-banner div {
+.event-banner__content {
   position: absolute;
   left: 24px;
   bottom: 22px;
@@ -104,17 +104,51 @@
 }
 
 .event-banner h3 {
-  margin: 0 0 6px;
-  font-size: 20px;
+  margin: 7px 0 8px;
+  font-size: 22px;
   color: var(--mf-white);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+}
+
+.event-banner__eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.event-banner__link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mf-white);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.25s var(--mf-ease),
+    transform 0.25s var(--mf-ease);
+}
+
+.event-banner:hover .event-banner__link,
+.event-banner:focus-visible .event-banner__link {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .event-banner p {
+  max-width: 300px;
   margin: 0;
   font-weight: 500;
   font-size: 14px;
+  line-height: 1.55;
   color: rgba(255, 255, 255, 0.85);
+}
+
+.event-banner:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 4px;
 }
 
 /* ===== Product grid ===== */
@@ -122,6 +156,19 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 28px 24px;
+}
+
+
+.product-section-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 52px 20px;
+  border: 1px solid var(--mf-gray-150);
+  border-radius: var(--mf-radius-lg);
+  background: var(--mf-gray-50);
+  color: var(--mf-gray-500);
+  text-align: center;
+  font-size: 14px;
 }
 
 /* ===== Brand video ===== */
@@ -190,19 +237,23 @@
   font-size: 16px;
 }
 
-.trend-banner button {
+.trend-banner__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 28px;
   padding: 15px 34px;
   border: 0;
   border-radius: var(--mf-pill);
   background: var(--mf-ink);
   color: var(--mf-white);
+  text-decoration: none;
   font-weight: 700;
   font-size: 15px;
   transition: all 0.2s var(--mf-ease);
 }
 
-.trend-banner button:hover {
+.trend-banner__link:hover {
   transform: translateY(-2px);
   box-shadow: var(--mf-shadow);
 }
