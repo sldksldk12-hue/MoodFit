@@ -26,10 +26,19 @@ const api = axios.create({
   },
 });
 export const getFestival = () =>
-  getCachedRequest("festival", async () => {
+  getCachedRequest("festival:v2", async () => {
     const response = await api.get("/api/festival");
-    if (response.data.error) throw new Error(response.data.error);
-    return response.data.data ?? [];
+    if (response.data?.error) throw new Error(response.data.error);
+
+    // 백엔드 응답 형태가 달라도 축제 배열 자체를 반환하도록 정리합니다.
+    const payload = response.data;
+    return (
+      payload?.data ??
+      payload?.items ??
+      payload?.response?.body?.items?.item ??
+      payload ??
+      []
+    );
   }, 30 * 60 * 1000);
 //chat
 // chat
@@ -59,7 +68,7 @@ export const chatStart = async ({
     payload
   );
 
-  return response.data;
+ return response.data;
 };
 //날씨
 export const getWeather = () =>

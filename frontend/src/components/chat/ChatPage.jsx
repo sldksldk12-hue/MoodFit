@@ -109,15 +109,12 @@ const ChatPage = ({ mode = "full", closeChat }) => {
       setRecommendationGroup({
         title: recommendationTitle,
 
-        // AI 답변 전체를 해당 상품들의 공통 추천 이유로 사용
-        reason: toMessageText(msg.text),
+        reason: msg.summaryReason,
 
         searchKeyword,
-
         products,
       })
     );
-
     navigate("/moodfit/ailist");
 
     window.scrollTo({

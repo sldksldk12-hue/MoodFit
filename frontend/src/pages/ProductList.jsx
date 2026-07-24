@@ -34,6 +34,7 @@ const ProductList = () => {
   const category = searchParams.get("category") || "";
   const query = searchParams.get("query")?.trim() || "";
   const collection = searchParams.get("collection") || "";
+  const saleOnly = searchParams.get("sale") === "true";
 
   const categoryIds = useMemo(
     () => category.split(",").map((item) => item.trim()).filter(Boolean),
@@ -62,8 +63,10 @@ const ProductList = () => {
       setSortType("신상품순");
     } else if (collection === "best") {
       setSortType("좋아요순");
+    } else if (saleOnly) {
+      setSortType("할인율순");
     }
-  }, [collection]);
+  }, [collection, saleOnly]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.toLowerCase();
@@ -73,6 +76,14 @@ const ProductList = () => {
         categoryIds.includes(String(product.category_id));
 
       if (!categoryMatched) return false;
+
+      if (saleOnly) {
+        const originalPrice = Number(product.original_price ?? 0);
+        const discountPrice = Number(product.discount_price ?? originalPrice);
+        if (!(originalPrice > 0 && discountPrice >= 0 && discountPrice < originalPrice)) {
+          return false;
+        }
+      }
 
       if (
         collection === "new" &&
@@ -125,22 +136,37 @@ const ProductList = () => {
           Number(a.like_count ?? 0)
       );
     }
+    if (sortType === "할인율순") {
+      return copied.sort((a, b) => {
+        const originalA = Number(a.original_price ?? 0);
+        const saleA = Number(a.discount_price ?? originalA);
+        const originalB = Number(b.original_price ?? 0);
+        const saleB = Number(b.discount_price ?? originalB);
+        const rateA = originalA > 0 ? (originalA - saleA) / originalA : 0;
+        const rateB = originalB > 0 ? (originalB - saleB) / originalB : 0;
+        return rateB - rateA;
+      });
+    }
     return copied;
-  }, [products, categoryIds, query, collection, sortType]);
+  }, [products, categoryIds, query, collection, saleOnly, sortType]);
 
   const collectionTitle =
-    collection === "new"
-      ? "이번 주 신상품"
-      : collection === "best"
-        ? "베스트 셀러"
-        : group;
+    saleOnly
+      ? "할인 상품"
+      : collection === "new"
+        ? "이번 주 신상품"
+        : collection === "best"
+          ? "베스트 셀러"
+          : group;
 
   const collectionDescription =
-    collection === "new"
-      ? "최근 7일 이내 등록된 상품만 모았습니다."
-      : collection === "best"
-        ? "좋아요 5개 이상을 받은 인기 상품만 모았습니다."
-        : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요.";
+    saleOnly
+      ? "정상가보다 할인된 상품만 모았습니다."
+      : collection === "new"
+        ? "최근 7일 이내 등록된 상품만 모았습니다."
+        : collection === "best"
+          ? "좋아요 5개 이상을 받은 인기 상품만 모았습니다."
+          : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요.";
 
   return (
     <main className="product-list-page">
@@ -169,6 +195,7 @@ const ProductList = () => {
             <option>높은 가격순</option>
             <option>신상품순</option>
             <option>좋아요순</option>
+            {saleOnly && <option>할인율순</option>}
           </select>
         </label>
       </section>
@@ -183,16 +210,20 @@ const ProductList = () => {
         <section className="product-list-empty">
           <span>NO RESULT</span>
           <h2>
-            {collection === "new"
-              ? "최근 7일 이내 등록된 상품이 없습니다."
-              : collection === "best"
-                ? "좋아요 5개 이상인 상품이 없습니다."
-                : "조건에 맞는 상품이 없습니다."}
+            {saleOnly
+              ? "현재 진행 중인 할인 상품이 없습니다."
+              : collection === "new"
+                ? "최근 7일 이내 등록된 상품이 없습니다."
+                : collection === "best"
+                  ? "좋아요 5개 이상인 상품이 없습니다."
+                  : "조건에 맞는 상품이 없습니다."}
           </h2>
           <p>
-            {collection
-              ? "상품이 등록되거나 좋아요가 늘어나면 이 목록에 표시됩니다."
-              : "검색어 또는 카테고리를 변경해 다시 확인해보세요."}
+            {saleOnly
+              ? "관리자가 상품 가격을 할인 설정하면 이 목록에 표시됩니다."
+              : collection
+                ? "상품이 등록되거나 좋아요가 늘어나면 이 목록에 표시됩니다."
+                : "검색어 또는 카테고리를 변경해 다시 확인해보세요."}
           </p>
         </section>
       )}

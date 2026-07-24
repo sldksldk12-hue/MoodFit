@@ -315,6 +315,8 @@ const chatSlice = createSlice({
             // 네이버 쇼핑 검색에 사용된 키워드
             searchKeyword:
               action.payload?.search_keyword ?? "",
+            summaryReason:
+              action.payload?.summary_reason ?? "",
 
             // 네이버 쇼핑 API에서 받은 상품 목록
             // 배열이 아닌 값이 들어오면 빈 배열로 처리한다.
@@ -323,41 +325,41 @@ const chatSlice = createSlice({
             )
               ? action.payload.products
               : [],
-          
-        });
-  }
+
+          });
+        }
       )
 
-  /*
-    API 요청 실패
-  */
-  .addCase(
-    sendChatMessage.rejected,
-    (state, action) => {
-      state.loading = false;
-
       /*
-        rejectWithValue로 전달한 값은 action.payload에 들어온다.
-        payload가 없다면 기본 오류 문구를 사용한다.
+        API 요청 실패
       */
-      state.error =
-        action.payload ??
-        "AI 요청에 실패했습니다.";
+      .addCase(
+        sendChatMessage.rejected,
+        (state, action) => {
+          state.loading = false;
 
-      /*
-        오류도 AI 메시지 형태로 배열에 넣는다.
+          /*
+            rejectWithValue로 전달한 값은 action.payload에 들어온다.
+            payload가 없다면 기본 오류 문구를 사용한다.
+          */
+          state.error =
+            action.payload ??
+            "AI 요청에 실패했습니다.";
 
-        화면에서는 isError 값을 이용해
-        일반 AI 메시지와 다른 디자인을 적용할 수 있다.
-      */
-      state.messages.push({
-        id: createMessageId(),
-        sender: "ai",
-        text: toMessageText(state.error),
-        isError: true,
-      });
-    }
-  );
+          /*
+            오류도 AI 메시지 형태로 배열에 넣는다.
+    
+            화면에서는 isError 값을 이용해
+            일반 AI 메시지와 다른 디자인을 적용할 수 있다.
+          */
+          state.messages.push({
+            id: createMessageId(),
+            sender: "ai",
+            text: toMessageText(state.error),
+            isError: true,
+          });
+        }
+      );
   },
 });
 
