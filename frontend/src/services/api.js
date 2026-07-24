@@ -256,6 +256,10 @@ export const createReview = async (reviewData) => {
       payload
     );
 
+    // 백엔드에서 상품 평균 평점이 변경되므로 기존 상품 캐시를 제거합니다.
+    invalidateRequestCache(`products:detail:${reviewData.productId}`);
+    invalidateRequestCache("products:list");
+
     return response.data;
   } catch (error) {
     console.error("리뷰 등록 API 오류:", error);

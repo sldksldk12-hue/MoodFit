@@ -176,6 +176,17 @@ const DetailPage = () => {
   };
 
   /*
+   * 리뷰 등록 직후 ProductReview에서 계산한 평균 평점을 받아
+   * 상세페이지 상단 평점을 새로고침 없이 즉시 갱신합니다.
+   */
+  const handleRatingChange = (averageRating) => {
+    setProduct((currentProduct) => ({
+      ...currentProduct,
+      average_rating: Number(averageRating ?? 0),
+    }));
+  };
+
+  /*
    * 대표 이미지
    */
   const mainImage = useMemo(() => {
@@ -529,6 +540,7 @@ const handleBuyNow = () => {
             <ProductReview
               productId={product.id}
               userId={user?.id}
+              onRatingChange={handleRatingChange}
             />
           )}
 

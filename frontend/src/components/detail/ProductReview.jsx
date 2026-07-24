@@ -29,7 +29,7 @@ const normalizeReview = (review) => ({
   createdAt: review.created_at ?? review.createdAt ?? null,
 });
 
-const ProductReview = ({ productId, userId }) => {
+const ProductReview = ({ productId, userId, onRatingChange }) => {
   /*
    * 요청 결과와 그 결과가 어느 productId/userId에 해당하는지
    * 함께 저장합니다. 이렇게 하면 useEffect 시작과 동시에
@@ -258,7 +258,18 @@ const ProductReview = ({ productId, userId }) => {
       setSubmitting(true);
 
       await createReview(reviewData);
-      await refreshReviews();
+
+      // 등록 직후 최신 리뷰 목록을 다시 받아 평균 평점을 계산합니다.
+      // 부모인 DetailPage에도 전달하여 새로고침 없이 상단 평점을 갱신합니다.
+      const updatedReviews = await refreshReviews();
+      const updatedAverageRating = updatedReviews.length
+        ? updatedReviews.reduce(
+            (sum, review) => sum + Number(review.rating ?? 0),
+            0
+          ) / updatedReviews.length
+        : 0;
+
+      onRatingChange?.(updatedAverageRating);
 
       setShowWriteForm(false);
       alert("리뷰가 등록되었습니다.");
