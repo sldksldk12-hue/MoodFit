@@ -89,13 +89,14 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
                 
-                # 프롬프트 변경: 키워드를 최대 3개까지 추출하도록 지시
+                # 프롬프트 변경: 신발/악세사리 필수 포함 및 자체 추론 지시 추가
                 keyword_prompt = ChatPromptTemplate.from_template(
                     "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 3개'를 쉼표(,)로 구분하여 추출해줘.\n"
                     "현재 유저 성별: {user_gender}\n"
-                    "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 의류/잡화의 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈')을 추출할 것!\n"
-                    "[주의사항 2]: 여러 품목(상의, 하의, 신발 등)이 추천되었다면 골고루 추출해줄 것.\n"
-                    "[주의사항 3]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n\n"
+                    "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈')만 추출할 것!\n"
+                    "[주의사항 2]: 3개의 키워드를 추출할 때 상의, 하의 외에 **반드시 신발이나 악세사리(모자, 가방 등) 중 1개 이상을 필수로 포함**시킬 것.\n"
+                    "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
+                    "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
                 )
                 keyword_chain = keyword_prompt | keyword_llm | parser
