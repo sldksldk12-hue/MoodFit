@@ -36,7 +36,7 @@ import {
   createSlice,
 } from "@reduxjs/toolkit";
 
-import { chatStart } from "../../services/api";
+import { chatStart, chatStartStream } from "../../services/api";
 
 /*
   각 메시지를 구분하기 위한 고유 ID 생성
@@ -111,56 +111,44 @@ export const sendChatMessage = createAsyncThunk(
   */
   async (
     { message, userId = 1 },
-    { getState, rejectWithValue }
+    { getState, dispatch, rejectWithValue }
   ) => {
     try {
-      /*
-        현재 채팅 세션 ID를 Redux Store에서 가져온다.
+      const sessionId = getState().chat.sessionId;
+      let isFirstChunk = true;
 
-        기존 세션 ID를 서버에 보내야
-        AI가 이전 대화를 이어갈 수 있다.
-      */
-      const sessionId =
-        getState().chat.sessionId;
-
-      // FastAPI의 /api/chat/emotion 호출
-      const data = await chatStart({
+      const data = await chatStartStream({
         userId,
         message,
         sessionId,
+        onInit: (emotion) => {
+          dispatch(chatSlice.actions.startStreamingMessage({ emotion }));
+        },
+        onChunk: (chunk) => {
+          if (isFirstChunk) {
+            isFirstChunk = false;
+            dispatch(chatSlice.actions.startStreamingMessage({ emotion: "neutral" }));
+          }
+          dispatch(chatSlice.actions.appendStreamChunk(chunk));
+        }
       });
 
-      /*
-        HTTP 요청은 성공했어도
-        백엔드가 { error: ... }를 반환할 수 있으므로 확인한다.
-      */
       if (data?.error) {
-        return rejectWithValue(
-          toMessageText(data.error)
-        );
+        return rejectWithValue(toMessageText(data.error));
       }
 
-      // 성공 결과는 fulfilled action의 payload가 된다.
       return data;
     } catch (error) {
-      /*
-        Axios 오류 구조별로 메시지를 찾아온다.
-
-        우선순위:
-        1. FastAPI detail
-        2. 백엔드 error
-        3. JavaScript error.message
-        4. 기본 오류 문구
-      */
-      const errorValue =
-        error.response?.data?.detail ??
-        error.response?.data?.error ??
-        error.message ??
-        "AI 응답을 불러오지 못했습니다.";
-
-      return rejectWithValue(
-        toMessageText(errorValue)
-      );
+      try {
+        const fallbackData = await chatStart({
+          userId,
+          message,
+          sessionId: getState().chat.sessionId,
+        });
+        return fallbackData;
+      } catch (e) {
+        return rejectWithValue("AI 응답을 불러오지 못했습니다.");
+      }
     }
   }
 );
@@ -249,6 +237,30 @@ const chatSlice = createSlice({
       state.heroInput = "";
     },
 
+    startStreamingMessage: (state, action) => {
+      state.loading = false;
+      const existing = state.messages.find((m) => m.isStreaming);
+      if (!existing) {
+        state.messages.push({
+          id: createMessageId(),
+          sender: "ai",
+          text: "",
+          emotion: action.payload?.emotion || "neutral",
+          isStreaming: true,
+          products: [],
+        });
+      }
+    },
+
+    appendStreamChunk: (state, action) => {
+      state.loading = false;
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (lastMsg && lastMsg.sender === "ai") {
+        lastMsg.text += action.payload;
+        lastMsg.isStreaming = true;
+      }
+    },
+
     /*
       전체 채팅 초기화
 
@@ -296,37 +308,32 @@ const chatSlice = createSlice({
             action.payload?.session_id !== null &&
             action.payload?.session_id !== undefined
           ) {
-            state.sessionId =
-              action.payload.session_id;
+            state.sessionId = action.payload.session_id;
           }
 
-          // AI 응답 메시지를 대화 목록에 추가
-          state.messages.push({
-            id: createMessageId(),
-            sender: "ai",
-            text: toMessageText(
-              action.payload?.ai_response ??
-              "AI 응답 내용이 없습니다."
-            ),
-
-            // 감정 분석 결과가 있으면 함께 저장
-            emotion:
-              action.payload?.mapped_emotion,
-            // 네이버 쇼핑 검색에 사용된 키워드
-            searchKeyword:
-              action.payload?.search_keyword ?? "",
-            summaryReason:
-              action.payload?.summary_reason ?? "",
-
-            // 네이버 쇼핑 API에서 받은 상품 목록
-            // 배열이 아닌 값이 들어오면 빈 배열로 처리한다.
-            products: Array.isArray(
-              action.payload?.products
-            )
-              ? action.payload.products
-              : [],
-
-          });
+          const existingStreaming = state.messages.find((m) => m.isStreaming);
+          if (existingStreaming) {
+            existingStreaming.isStreaming = false;
+            if (action.payload?.ai_response) existingStreaming.text = action.payload.ai_response;
+            if (action.payload?.products) existingStreaming.products = action.payload.products;
+            if (action.payload?.search_keyword) existingStreaming.searchKeyword = action.payload.search_keyword;
+            if (action.payload?.summary_reason) existingStreaming.summaryReason = action.payload.summary_reason;
+            if (action.payload?.mapped_emotion) existingStreaming.emotion = action.payload.mapped_emotion;
+          } else {
+            state.messages.push({
+              id: createMessageId(),
+              sender: "ai",
+              text: toMessageText(
+                action.payload?.ai_response ?? "AI 응답 내용이 없습니다."
+              ),
+              emotion: action.payload?.mapped_emotion,
+              searchKeyword: action.payload?.search_keyword ?? "",
+              summaryReason: action.payload?.summary_reason ?? "",
+              products: Array.isArray(action.payload?.products)
+                ? action.payload.products
+                : [],
+            });
+          }
         }
       )
 

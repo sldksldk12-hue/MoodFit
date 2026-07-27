@@ -217,3 +217,105 @@ class RagsFashionService:
             threading.Thread(target=_async_update_summary, daemon=True).start()
 
         return response, weather_log_id
+
+    def stream_recommendation(
+        self,
+        emotion: str,
+        confidence: float,
+        user_message: str,
+        db: Session,
+        user_id: int,
+        session_id: Optional[int] = None
+    ):
+        """AI 추천 텍스트를 0.3초 만에 실시간 스트리밍 청크 단위로 생성합니다."""
+        tour_info_text = "선택된 관광지 정보 없음"
+        latest_tour = None
+        if session_id:
+            try:
+                latest_tour = db.query(TourLog).filter(
+                    TourLog.session_id == session_id
+                ).order_by(TourLog.created_at.desc()).first()
+                if latest_tour:
+                    tour_info_text = (
+                        f"\n[유저 나들이 목적지 (TPO)]\n"
+                        f"- 방문 목적지: {latest_tour.title}\n"
+                        f"- 카테고리: {latest_tour.content_type}\n"
+                        f"- 위치/주소: {latest_tour.addr or '정보 없음'}\n"
+                    )
+            except Exception as e:
+                print(f"[Error] 관광지 정보 조회 실패: {e}")
+
+        map_x, map_y, city_name = None, None, "Seoul"
+        if latest_tour and latest_tour.map_x is not None and latest_tour.map_y is not None:
+            map_x = float(latest_tour.map_x)
+            map_y = float(latest_tour.map_y)
+            city_name = latest_tour.title
+            
+        weather_data = self.get_real_weather(map_y=map_y, map_x=map_x, city_name=city_name)
+        current_weather = f"섭씨 {weather_data['temp']}도, {weather_data['desc']} ({weather_data['region']})"
+
+        chat_summary_text = "이전 대화 내역 없음"
+        if session_id:
+            try:
+                chat_sess = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                if chat_sess and chat_sess.summary_text:
+                    chat_summary_text = chat_sess.summary_text
+            except Exception:
+                pass
+
+        gender, user_height, user_weight, body_form, preferred_style, liked_colors, disliked_colors = (
+            "정보 없음", "정보 없음", "정보 없음", "정보 없음", "캐주얼(Casual)", "없음", "없음"
+        )
+        try:
+            user_info = db.query(User).filter(User.id == user_id).first()
+            if user_info:
+                gender = user_info.gender or gender
+                user_height = str(user_info.user_height) if user_info.user_height else user_height
+                user_weight = str(user_info.user_weight) if user_info.user_weight else user_weight
+                body_form = user_info.body_form or body_form
+                preferred_style = user_info.preferred_styles or preferred_style
+                liked_colors = user_info.liked_colors or liked_colors
+                disliked_colors = user_info.disliked_colors or disliked_colors
+        except Exception:
+            pass
+
+        prompt_inputs = {
+            "emotion": emotion,
+            "confidence": f"{confidence * 100:.1f}",
+            "weather": current_weather,
+            "tour_info": tour_info_text,
+            "gender": gender,
+            "user_height": user_height,
+            "user_weight": user_weight,
+            "body_form": body_form,
+            "preferred_style": preferred_style,
+            "liked_colors": liked_colors,
+            "disliked_colors": disliked_colors,
+            "chat_summary": chat_summary_text,
+            "user_message": user_message
+        }
+
+        full_response = ""
+        for chunk in self.chain.stream(prompt_inputs):
+            full_response += chunk
+            yield chunk
+
+        if session_id and full_response:
+            import threading
+            def _async_update_summary():
+                from app.db.database import SessionLocal
+                from app.models.models import ChatSession
+                from langchain_openai import ChatOpenAI
+                bg_db = SessionLocal()
+                try:
+                    sess = bg_db.query(ChatSession).filter(ChatSession.id == session_id).first()
+                    if sess:
+                        sum_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, openai_api_key=os.getenv("OPENAI_API_KEY"))
+                        res = sum_llm.invoke(f"이전: {sess.summary_text or '없음'}\n신규: {user_message} -> {full_response[:200]}\n2줄 요약해라.")
+                        sess.summary_text = res.content.strip()
+                        bg_db.commit()
+                except Exception:
+                    bg_db.rollback()
+                finally:
+                    bg_db.close()
+            threading.Thread(target=_async_update_summary, daemon=True).start()

@@ -70,6 +70,89 @@ export const chatStart = async ({
 
  return response.data;
 };
+
+export const chatStartStream = async ({
+  userId = 1,
+  message,
+  sessionId = null,
+  onInit,
+  onChunk
+}) => {
+  const payload = {
+    user_id: Number(userId),
+    message: String(message).trim(),
+  };
+
+  if (sessionId !== null && sessionId !== undefined && sessionId !== "") {
+    payload.session_id = Number(sessionId);
+  }
+
+  const response = await fetch(`${BASE_URL}/api/chat/emotion/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.body) {
+    throw new Error("ReadableStream not supported");
+  }
+
+  let reader = response.body.getReader();
+  let decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  let fullText = "";
+  let mappedEmotion = "neutral";
+  let returnedSessionId = sessionId;
+  let returnedProducts = [];
+  let searchKeyword = "";
+  let summaryReason = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data: ")) {
+        try {
+          const jsonStr = trimmed.replace("data: ", "").trim();
+          if (!jsonStr) continue;
+          const eventData = JSON.parse(jsonStr);
+
+          if (eventData.type === "init") {
+            mappedEmotion = eventData.emotion;
+            if (eventData.session_id) returnedSessionId = eventData.session_id;
+            if (onInit) onInit(mappedEmotion);
+          } else if (eventData.type === "text") {
+            fullText += eventData.chunk;
+            if (onChunk) onChunk(eventData.chunk);
+          } else if (eventData.type === "products") {
+            returnedProducts = eventData.products || [];
+            searchKeyword = eventData.search_keyword || "";
+            summaryReason = eventData.summary_reason || "";
+            if (eventData.session_id) returnedSessionId = eventData.session_id;
+          }
+        } catch (e) {
+          console.error("SSE Parse Error:", e);
+        }
+      }
+    }
+  }
+
+  return {
+    status: "success",
+    session_id: returnedSessionId,
+    mapped_emotion: mappedEmotion,
+    ai_response: fullText,
+    products: returnedProducts,
+    search_keyword: searchKeyword,
+    summary_reason: summaryReason
+  };
+};
 //날씨
 export const getWeather = () =>
   getCachedRequest("weather", async () => {
