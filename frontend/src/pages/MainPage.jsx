@@ -23,7 +23,7 @@ import ProductGridSkeleton from "../components/product/ProductGridSkeleton";
 import "../assets/styles/global.css";
 import "../assets/styles/main/MainPage.css";
 import { getFestival, getList } from "../services/api";
-import { closeMainChat } from "../store/slices/chatSlice";
+import { closeMainChat, openMainChat, setHeroInput } from "../store/slices/chatSlice";
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -218,6 +218,13 @@ const MainPage = () => {
     setFestivalIndex((current) =>
       (current + direction + festivals.length) % festivals.length
     );
+  };
+
+  const handleFestivalRecommend = () => {
+    const festivalTitle = activeFestival?.title || activeFestival?.festival_name || "축제";
+    const prompt = `${festivalTitle} 축제에 가려고 하는데, 분위기와 장소에 어울리는 추천 코디를 알려줘`;
+    dispatch(setHeroInput(prompt));
+    dispatch(openMainChat());
   };
 
   return (
