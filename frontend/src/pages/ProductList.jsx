@@ -34,7 +34,10 @@ const ProductList = () => {
   const category = searchParams.get("category") || "";
   const query = searchParams.get("query")?.trim() || "";
   const collection = searchParams.get("collection") || "";
+  const sortParam = searchParams.get("sort") || "";
   const saleOnly = searchParams.get("sale") === "true";
+  const isBestCollection = collection === "best" || sortParam === "best";
+  const isNewCollection = collection === "new" || sortParam === "new";
 
   const categoryIds = useMemo(
     () => category.split(",").map((item) => item.trim()).filter(Boolean),
@@ -59,14 +62,14 @@ const ProductList = () => {
 
 
   useEffect(() => {
-    if (collection === "new") {
+    if (isNewCollection) {
       setSortType("신상품순");
-    } else if (collection === "best") {
+    } else if (isBestCollection) {
       setSortType("좋아요순");
     } else if (saleOnly) {
       setSortType("할인율순");
     }
-  }, [collection, saleOnly]);
+  }, [isNewCollection, isBestCollection, saleOnly]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.toLowerCase();
@@ -86,15 +89,8 @@ const ProductList = () => {
       }
 
       if (
-        collection === "new" &&
+        isNewCollection &&
         !isCreatedWithinOneWeek(product.created_at)
-      ) {
-        return false;
-      }
-
-      if (
-        collection === "best" &&
-        Number(product.like_count ?? 0) < 5
       ) {
         return false;
       }
@@ -153,19 +149,19 @@ const ProductList = () => {
   const collectionTitle =
     saleOnly
       ? "할인 상품"
-      : collection === "new"
+      : isNewCollection
         ? "이번 주 신상품"
-        : collection === "best"
+        : isBestCollection
           ? "베스트 셀러"
           : group;
 
   const collectionDescription =
     saleOnly
       ? "정상가보다 할인된 상품만 모았습니다."
-      : collection === "new"
+      : isNewCollection
         ? "최근 7일 이내 등록된 상품만 모았습니다."
-        : collection === "best"
-          ? "좋아요 5개 이상을 받은 인기 상품만 모았습니다."
+        : isBestCollection
+          ? "가장 많은 좋아요와 인기를 받은 상품 모음입니다."
           : "기분과 취향에 맞는 오늘의 스타일을 발견해보세요.";
 
   return (

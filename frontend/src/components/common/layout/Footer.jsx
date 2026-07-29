@@ -14,6 +14,7 @@
  * - 외부에서는 필요한 props 또는 Redux 상태만 사용하게 하여 컴포넌트 간 결합도를 낮춥니다.
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
+import { Link } from 'react-router-dom';
 import '../../../assets/styles/common/layout/Footer.css';
 
 /**
@@ -39,10 +40,10 @@ const Footer = () => {
 
         <div>
           <h4>메뉴</h4>
-          <a href="#new">신상품</a>
-          <a href="#best">베스트셀러</a>
-          <a href="#sale">시즌오프</a>
-          <a href="#ai">AI 추천</a>
+          <Link to="/moodfit/list?collection=new">신상품</Link>
+          <Link to="/moodfit/list?collection=best">베스트셀러</Link>
+          <Link to="/moodfit/list?sale=true">시즌오프</Link>
+          <Link to="/moodfit/ailist">AI 추천</Link>
         </div>
 
         <div>

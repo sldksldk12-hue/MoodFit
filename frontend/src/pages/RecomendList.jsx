@@ -55,12 +55,22 @@ const RecomendList = () => {
     }
   }, [festivalParam, dispatch, user?.id]);
 
+  const chatMessages = useSelector((state) => state.chat.messages);
+  const latestAiMsg = useMemo(() => {
+    return chatMessages.slice().reverse().find((m) => m.sender === "ai" && Array.isArray(m.products) && m.products.length > 0);
+  }, [chatMessages]);
+
+  const activeTitle = title || (festivalParam ? `${festivalParam} 맞춤 코디` : "당신을 위한 스타일 셀렉션");
+  const activeProducts = products.length > 0 ? products : (latestAiMsg?.products || []);
+  const activeReason = reason || latestAiMsg?.summaryReason || latestAiMsg?.text || "";
+  const activeSearchKeyword = searchKeyword || latestAiMsg?.searchKeyword || festivalParam || "";
+
   const sortedProducts = useMemo(() => {
-    const copied = [...(Array.isArray(products) ? products : [])];
+    const copied = [...(Array.isArray(activeProducts) ? activeProducts : [])];
     if (sortType === "낮은 가격순") return copied.sort((a, b) => Number(a.lprice) - Number(b.lprice));
     if (sortType === "높은 가격순") return copied.sort((a, b) => Number(b.lprice) - Number(a.lprice));
     return copied;
-  }, [products, sortType]);
+  }, [activeProducts, sortType]);
 
   return (
     <main className="product-list-page recommendation-page">
@@ -69,7 +79,7 @@ const RecomendList = () => {
       <section className="product-list-header recommendation-header">
         <div>
           <span className="product-list-label">MOODFIT AI CURATION</span>
-          <h1>{title || (festivalParam ? `${festivalParam} 맞춤 코디` : "당신을 위한 스타일 셀렉션")}</h1>
+          <h1>{activeTitle}</h1>
           <p>대화 속 기분, 날씨, 선호 스타일을 읽고 가장 어울리는 상품만 골랐습니다.</p>
         </div>
         <select className="product-sort" value={sortType} onChange={(event) => setSortType(event.target.value)}>
@@ -78,7 +88,7 @@ const RecomendList = () => {
       </section>
 
       <section className="recommendation-insight-grid">
-        <article><Sparkles size={19} /><div><span>AI 추천 포인트</span><strong>{searchKeyword || festivalParam || "현재 대화 맥락"}</strong></div></article>
+        <article><Sparkles size={19} /><div><span>AI 추천 포인트</span><strong>{activeSearchKeyword || "현재 대화 맥락"}</strong></div></article>
         <article><CloudSun size={19} /><div><span>상황 분석</span><strong>날씨와 계절감 반영</strong></div></article>
         <article><HeartHandshake size={19} /><div><span>취향 분석</span><strong>사용자 선호 스타일 반영</strong></div></article>
       </section>
@@ -86,7 +96,7 @@ const RecomendList = () => {
       <section className="recommendation-reason-box">
         <span className="recommendation-reason-label">WHY WE PICKED THESE</span>
         <h2>이 상품들을 추천한 이유</h2>
-        <p>{reason || "사용자의 기분과 날씨, 선호 스타일을 바탕으로 자연스럽게 활용하기 좋은 상품을 선택했습니다."}</p>
+        <p>{activeReason || "사용자의 기분과 날씨, 선호 스타일을 바탕으로 자연스럽게 활용하기 좋은 상품을 선택했습니다."}</p>
         <span className="recommendation-product-count">총 {sortedProducts.length}개의 추천 상품</span>
       </section>
 

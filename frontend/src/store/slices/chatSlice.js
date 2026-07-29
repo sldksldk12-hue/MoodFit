@@ -37,6 +37,7 @@ import {
 } from "@reduxjs/toolkit";
 
 import { chatStart, chatStartStream } from "../../services/api";
+import { setRecommendationGroup } from "./recommendationSlice";
 
 /*
   각 메시지를 구분하기 위한 고유 ID 생성
@@ -115,18 +116,19 @@ export const sendChatMessage = createAsyncThunk(
   ) => {
     try {
       const sessionId = getState().chat.sessionId;
-      let isFirstChunk = true;
+      let hasStartedStreaming = false;
 
       const data = await chatStartStream({
         userId,
         message,
         sessionId,
         onInit: (emotion) => {
+          hasStartedStreaming = true;
           dispatch(chatSlice.actions.startStreamingMessage({ emotion }));
         },
         onChunk: (chunk) => {
-          if (isFirstChunk) {
-            isFirstChunk = false;
+          if (!hasStartedStreaming) {
+            hasStartedStreaming = true;
             dispatch(chatSlice.actions.startStreamingMessage({ emotion: "neutral" }));
           }
           dispatch(chatSlice.actions.appendStreamChunk(chunk));
@@ -137,6 +139,17 @@ export const sendChatMessage = createAsyncThunk(
         return rejectWithValue(toMessageText(data.error));
       }
 
+      if (data?.products && Array.isArray(data.products) && data.products.length > 0) {
+        dispatch(
+          setRecommendationGroup({
+            title: "AI 취향 맞춤 코디 추천",
+            reason: data.summary_reason || data.ai_response,
+            searchKeyword: data.search_keyword || "",
+            products: data.products,
+          })
+        );
+      }
+
       return data;
     } catch (error) {
       try {
@@ -145,6 +158,18 @@ export const sendChatMessage = createAsyncThunk(
           message,
           sessionId: getState().chat.sessionId,
         });
+
+        if (fallbackData?.products && Array.isArray(fallbackData.products) && fallbackData.products.length > 0) {
+          dispatch(
+            setRecommendationGroup({
+              title: "AI 취향 맞춤 코디 추천",
+              reason: fallbackData.summary_reason || fallbackData.ai_response,
+              searchKeyword: fallbackData.search_keyword || "",
+              products: fallbackData.products,
+            })
+          );
+        }
+
         return fallbackData;
       } catch (e) {
         return rejectWithValue("AI 응답을 불러오지 못했습니다.");

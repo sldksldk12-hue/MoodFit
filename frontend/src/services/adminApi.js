@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearRequestCache } from "./requestCache";
 
 const adminApi = axios.create({
   baseURL: "http://127.0.0.1:8000/api/admin",
@@ -17,9 +18,21 @@ export const getAdminDashboard = () => unwrap(adminApi.get("/dashboard"));
 export const getAdminCategories = () => unwrap(adminApi.get("/categories"));
 export const getAdminProducts = (params = {}) => unwrap(adminApi.get("/products", { params }));
 export const analyzeAdminProduct = (payload) => unwrap(adminApi.post("/products/analyze", payload));
-export const createAdminProduct = (payload) => unwrap(adminApi.post("/products", payload));
-export const updateAdminProduct = (id, payload) => unwrap(adminApi.patch(`/products/${id}`, payload));
-export const deleteAdminProduct = (id) => unwrap(adminApi.delete(`/products/${id}`));
+export const createAdminProduct = (payload) =>
+  unwrap(adminApi.post("/products", payload)).then((res) => {
+    clearRequestCache();
+    return res;
+  });
+export const updateAdminProduct = (id, payload) =>
+  unwrap(adminApi.patch(`/products/${id}`, payload)).then((res) => {
+    clearRequestCache();
+    return res;
+  });
+export const deleteAdminProduct = (id) =>
+  unwrap(adminApi.delete(`/products/${id}`)).then((res) => {
+    clearRequestCache();
+    return res;
+  });
 export const getAdminOrders = (params = {}) => unwrap(adminApi.get("/orders", { params }));
 export const updateAdminOrderStatus = (id, orderStatus) =>
   unwrap(adminApi.patch(`/orders/${id}/status`, { order_status: orderStatus }));

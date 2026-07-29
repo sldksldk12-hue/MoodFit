@@ -47,8 +47,12 @@ const ProductCard = ({ product, onUnlike }) => {
   };
 
   const detailPath = `/moodfit/detail/${product.id}`;
-  const originalPrice = Number(product.original_price);
-  const salePrice = Number(product.discount_price);
+  const originalPrice = Number(product.original_price || product.price || 0);
+  const salePrice = Number(
+    product.discount_price !== undefined && product.discount_price !== null
+      ? product.discount_price
+      : product.price || product.original_price || 0
+  );
   const discountRate = originalPrice > salePrice && originalPrice > 0
     ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
     : 0;

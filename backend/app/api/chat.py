@@ -407,43 +407,59 @@ async def analyze_emotion_stream(req: ChatRequest, request: Request, db: Session
 
     current_session_id = req.session_id
     if not current_session_id:
-        new_sess = ChatSession(user_id=req.user_id, session_title=f"{predicted_emotion.capitalize()} 대화")
+        new_sess = ChatSession(user_id=req.user_id, session_uuid=f"session-{datetime.now().timestamp()}")
         db.add(new_sess)
         db.commit()
         db.refresh(new_sess)
         current_session_id = new_sess.id
 
+    user_message = ChatMessage(session_id=current_session_id, sender_type="USER", message_text=req.message)
+    db.add(user_message)
+    db.commit()
+    db.refresh(user_message)
+
+    new_emotion_log = EmotionLog(message_id=user_message.id, predicted_emotion=predicted_emotion, confidence=emotion_score, raw_input=req.message)
+    db.add(new_emotion_log)
+    db.commit()
+
     extracted_dest = extract_destination(req.message)
 
     async def event_generator():
-        # 1. 초기 감정 및 세션 ID 전송!
-        yield f"data: {json.dumps({'type': 'init', 'emotion': predicted_emotion, 'session_id': current_session_id})}\n\n"
+        try:
+            # 1. 초기 감정 및 세션 ID 전송!
+            yield f"data: {json.dumps({'type': 'init', 'emotion': predicted_emotion, 'session_id': current_session_id})}\n\n"
 
-        # 2. GPT 추천 텍스트 실시간 스트리밍
-        full_text = ""
-        for chunk in rag_service.stream_recommendation(
-            emotion=predicted_emotion,
-            confidence=emotion_score,
-            user_message=req.message,
-            db=db,
-            user_id=req.user_id,
-            session_id=current_session_id
-        ):
-            full_text += chunk
-            yield f"data: {json.dumps({'type': 'text', 'chunk': chunk})}\n\n"
+            # 2. GPT 추천 텍스트 실시간 스트리밍
+            full_text = ""
+            for chunk in rag_service.stream_recommendation(
+                emotion=predicted_emotion,
+                confidence=emotion_score,
+                user_message=req.message,
+                db=db,
+                user_id=req.user_id,
+                session_id=current_session_id
+            ):
+                full_text += chunk
+                yield f"data: {json.dumps({'type': 'text', 'chunk': chunk})}\n\n"
 
-        # 3. 텍스트 완성 후 상품 추천 추출 및 카드 전송!
-        products, search_kw, summary_reason = extract_and_fetch_recommendation_products(
-            db=db, user_id=req.user_id, session_id=current_session_id, user=user,
-            message=req.message, ai_recommendation=full_text, predicted_emotion=predicted_emotion,
-            emotion_score=emotion_score, extracted_dest=extracted_dest
-        )
+            # 3. 텍스트 완성 후 상품 추천 추출 및 카드 전송!
+            products, search_kw, summary_reason = extract_and_fetch_recommendation_products(
+                db=db, user_id=req.user_id, session_id=current_session_id, user=user,
+                message=req.message, ai_recommendation=full_text, predicted_emotion=predicted_emotion,
+                emotion_score=emotion_score, extracted_dest=extracted_dest
+            )
 
-        ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=full_text)
-        db.add(ai_message)
-        db.commit()
+            ai_message = ChatMessage(session_id=current_session_id, sender_type="AI", message_text=full_text)
+            db.add(ai_message)
+            db.commit()
 
-        yield f"data: {json.dumps({'type': 'products', 'products': products, 'search_keyword': search_kw, 'summary_reason': summary_reason, 'session_id': current_session_id})}\n\n"
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            yield f"data: {json.dumps({'type': 'products', 'products': products, 'search_keyword': search_kw, 'summary_reason': summary_reason, 'session_id': current_session_id})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        except Exception as err:
+            print(f"❌ 스트리밍 파이프라인 에러 발생: {err}")
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(err)})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
