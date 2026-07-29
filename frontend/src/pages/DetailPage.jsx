@@ -49,18 +49,35 @@ const DetailPage = () => {
   const { user } = useAuth();
 
   const [tab, setTab] = useState("desc");
-  const [size, setSize] = useState("M");
-  const [quantity, setQuantity] =
-    useState(1);
+  const [color, setColor] = useState("");
+  const [size, setSize] = useState("");
+  const [quantity, setQuantity] = useState(1);
 
-  const [product, setProduct] =
-    useState(initialProduct);
+  const [product, setProduct] = useState(initialProduct);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const availableColors = useMemo(() => {
+    if (Array.isArray(product.options)) {
+      const colorOpt = product.options.find(
+        (opt) => opt.option_name === "색상" || opt.option_name === "컬러"
+      );
+      if (colorOpt && Array.isArray(colorOpt.option_values) && colorOpt.option_values.length > 0) {
+        return colorOpt.option_values;
+      }
+    }
+    return ["블랙", "화이트", "네이비", "베이지"];
+  }, [product.options]);
 
-  const [error, setError] =
-    useState("");
+  const availableSizes = useMemo(() => {
+    if (Array.isArray(product.options)) {
+      const sizeOpt = product.options.find((opt) => opt.option_name === "사이즈");
+      if (sizeOpt && Array.isArray(sizeOpt.option_values) && sizeOpt.option_values.length > 0) {
+        return sizeOpt.option_values;
+      }
+    }
+    return ["S", "M", "L", "XL"];
+  }, [product.options]);
 
   /*
    * 상품 상세 조회
@@ -215,12 +232,21 @@ const DetailPage = () => {
    * 장바구니 DB 저장
    */
   const handleAddCart = async () => {
+    if (!color) {
+      alert("상품 색상을 선택해 주세요.");
+      return false;
+    }
+    if (!size) {
+      alert("상품 사이즈를 선택해 주세요.");
+      return false;
+    }
+
     const success = await addProductToCart({
       productId: product.id,
       inventory: product.inventory,
       quantity,
       selectedSize: size,
-      selectedColor: "기본",
+      selectedColor: color,
       loginReturnPath: `/moodfit/detail/${product.id}`,
     });
 
@@ -238,6 +264,15 @@ const DetailPage = () => {
    * 장바구니 페이지로 이동합니다.
    */
 const handleBuyNow = () => {
+  if (!color) {
+    alert("상품 색상을 선택해 주세요.");
+    return;
+  }
+  if (!size) {
+    alert("상품 사이즈를 선택해 주세요.");
+    return;
+  }
+
   if (!user?.id) {
     navigate("/moodfit/login", {
       state: {
@@ -272,7 +307,7 @@ const handleBuyNow = () => {
         quantity: Number(quantity),
         inventory: Number(product.inventory ?? 0),
         selectedSize: size,
-        selectedColor: "기본",
+        selectedColor: color,
       },
     ],
   };
@@ -360,28 +395,37 @@ const handleBuyNow = () => {
             {salePrice.toLocaleString()}원
           </div>
 
+          {/* 색상 선택 */}
+          <div className="detail-option">
+            <label>색상</label>
+            <div className="size-buttons color-buttons">
+              {availableColors.map((itemColor) => (
+                <button
+                  type="button"
+                  key={itemColor}
+                  className={color === itemColor ? "active" : ""}
+                  onClick={() => setColor(itemColor)}
+                >
+                  {itemColor}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 사이즈 선택 */}
           <div className="detail-option">
             <label>사이즈</label>
-
             <div className="size-buttons">
-              {["S", "M", "L", "XL"].map(
-                (itemSize) => (
-                  <button
-                    type="button"
-                    key={itemSize}
-                    className={
-                      size === itemSize
-                        ? "active"
-                        : ""
-                    }
-                    onClick={() =>
-                      setSize(itemSize)
-                    }
-                  >
-                    {itemSize}
-                  </button>
-                )
-              )}
+              {availableSizes.map((itemSize) => (
+                <button
+                  type="button"
+                  key={itemSize}
+                  className={size === itemSize ? "active" : ""}
+                  onClick={() => setSize(itemSize)}
+                >
+                  {itemSize}
+                </button>
+              ))}
             </div>
           </div>
 

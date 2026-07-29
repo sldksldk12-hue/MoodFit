@@ -25,28 +25,13 @@ const ProductCard = ({ product, onUnlike }) => {
     if (result?.status === "removed") onUnlike?.(product.id);
   };
 
-  const handleCart = async (event) => {
+  const detailPath = `/moodfit/detail/${product.id}`;
+
+  const handleCart = (event) => {
     event.preventDefault();
     event.stopPropagation();
-
-    const success = await addProductToCart({
-      productId: product.id,
-      inventory: product.inventory,
-      quantity: 1,
-      selectedSize: "기본",
-      selectedColor: "기본",
-    });
-
-    if (!success) return;
-
-    const moveToCart = window.confirm(
-      `${product.product_name} 상품을 장바구니에 담았습니다.\n장바구니로 이동할까요?`
-    );
-
-    if (moveToCart) navigate("/moodfit/cart");
+    navigate(detailPath);
   };
-
-  const detailPath = `/moodfit/detail/${product.id}`;
   const originalPrice = Number(product.original_price || product.price || 0);
   const salePrice = Number(
     product.discount_price !== undefined && product.discount_price !== null
