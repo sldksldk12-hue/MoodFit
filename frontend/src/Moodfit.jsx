@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import ChatBot from "./components/chat/ChatBot";
 import Header from "./components/common/layout/header/Header";
@@ -47,6 +47,8 @@ const Moodfit = () => {
           }
         >
           <Routes>
+            {/* 루트 경로 진입 시 메인 페이지(/moodfit)로 즉시 자동 리다이렉트 */}
+            <Route path="/" element={<Navigate to="/moodfit" replace />} />
 
             {/* 공개 페이지 */}
             <Route path="/moodfit" element={<MainPage />} />
