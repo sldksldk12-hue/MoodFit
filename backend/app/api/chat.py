@@ -392,10 +392,24 @@ def extract_and_fetch_recommendation_products(
                             recommendation_reason=summary_reason
                         )
                         db.add(new_rec_item)
+
+                # AI 호출 로그(ai_call_logs) DB 적재
+                new_ai_log = AiCallLog(
+                    chat_session_id=session_id,
+                    recommendation_session_id=new_rec_session.id,
+                    model_name="gpt-4o-mini",
+                    prompt_version="v1.2.0",
+                    log_status="SUCCESS",
+                    prompt_tokens=cb.prompt_tokens if cb else 0,
+                    completion_tokens=cb.completion_tokens if cb else 0,
+                    total_tokens=cb.total_tokens if cb else 0,
+                    latency_ms=1500
+                )
+                db.add(new_ai_log)
                 db.commit()
             except Exception as rec_save_err:
                 db.rollback()
-                print(f"⚠️ 스트리밍 추천 세션 저장 중 에러: {rec_save_err}")
+                print(f"⚠️ 스트리밍 추천 세션 및 AI 로그 저장 중 에러: {rec_save_err}")
 
     except Exception as e:
         print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
