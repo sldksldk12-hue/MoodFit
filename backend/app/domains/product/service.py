@@ -49,7 +49,7 @@ def seed_initial_categories(db: Session):
                 # 아우터 하위
                 ProductCategory(id=301, category_name='집업', parent_id=300),
                 ProductCategory(id=302, category_name='슈트', parent_id=300),
-                ProductCategory(id=303, category_name='카디건', parent_id=300),
+                ProductCategory(id=303, category_name='가디건', parent_id=300),
                 ProductCategory(id=304, category_name='패딩', parent_id=300),
                 ProductCategory(id=305, category_name='재킷', parent_id=300),
                 ProductCategory(id=306, category_name='코트', parent_id=300),

@@ -98,7 +98,7 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
         try:
             encoded_kw = urllib.parse.quote(search_keyword)
             raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey={api_key}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&keyword={encoded_kw}"
-            res = requests.get(raw_url, timeout=5)
+            res = requests.get(raw_url, timeout=3)
             if res.status_code == 200:
                 data = res.json()
                 items = data.get("response", {}).get("body", {}).get("items", {}).get("item", [])
@@ -111,6 +111,8 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
                     map_x = float(item["mapx"]) if item.get("mapx") else None
                     map_y = float(item["mapy"]) if item.get("mapy") else None
                     title = item.get("title", destination)
+        except requests.exceptions.Timeout:
+            print("⚠️ KTO API 응답 지연 (Timeout 3s) - 폴백 로그로 대체 처리합니다.")
         except Exception as err:
             print(f"⚠️ KTO API Call Fail: {err}")
 

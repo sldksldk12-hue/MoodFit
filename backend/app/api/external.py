@@ -64,7 +64,7 @@ async def get_recommended_festivals():
         return {"status": "success", "data": DEFAULT_FESTIVALS}
     try:
         raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=C&eventStartDate=20240101"
-        response = requests.get(raw_url, timeout=5)
+        response = requests.get(raw_url, timeout=3)
         if response.status_code == 200:
             data = response.json()
             items = data.get("response", {}).get("body", {}).get("items", {})
@@ -88,6 +88,8 @@ async def get_recommended_festivals():
                         "tags": ["축제", "나들이"]
                     })
                 return {"status": "success", "data": festivals[:5]}
+    except requests.exceptions.Timeout:
+        print("⚠️ 공공데이터 포털(data.go.kr) 응답 지연으로 기본 축제 카드를 표시합니다.")
     except Exception as e:
         print(f"⚠️ 축제 API 파싱 오류: {e}")
     return {"status": "success", "data": DEFAULT_FESTIVALS}
