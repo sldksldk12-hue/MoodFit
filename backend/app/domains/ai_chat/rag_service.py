@@ -123,6 +123,14 @@ class RagsFashionService:
                 if chat_sess and chat_sess.summary_text:
                     chat_summary_text = chat_sess.summary_text
                     print(f"[Memory Summary] 세션 ID({session_id}) 2줄 압축 요약문 로드: {chat_summary_text}")
+                else:
+                    recent_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.desc()).limit(6).all()
+                    if recent_msgs:
+                        msgs_text = []
+                        for m in reversed(recent_msgs):
+                            sender = "유저" if m.sender_type == "USER" else "AI"
+                            msgs_text.append(f"{sender}: {m.message_text[:100]}")
+                        chat_summary_text = "\n".join(msgs_text)
             except Exception as e:
                 print(f"[Error] 대화 요약 불러오기 실패: {e}")
 
@@ -259,8 +267,16 @@ class RagsFashionService:
                 chat_sess = db.query(ChatSession).filter(ChatSession.id == session_id).first()
                 if chat_sess and chat_sess.summary_text:
                     chat_summary_text = chat_sess.summary_text
-            except Exception:
-                pass
+                else:
+                    recent_msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.created_at.desc()).limit(6).all()
+                    if recent_msgs:
+                        msgs_text = []
+                        for m in reversed(recent_msgs):
+                            sender = "유저" if m.sender_type == "USER" else "AI"
+                            msgs_text.append(f"{sender}: {m.message_text[:100]}")
+                        chat_summary_text = "\n".join(msgs_text)
+            except Exception as hist_err:
+                print(f"[Error] 이전 대화 히스토리 불러오기 실패: {hist_err}")
 
         gender, user_height, user_weight, body_form, preferred_style, liked_colors, disliked_colors = (
             "정보 없음", "정보 없음", "정보 없음", "정보 없음", "캐주얼(Casual)", "없음", "없음"

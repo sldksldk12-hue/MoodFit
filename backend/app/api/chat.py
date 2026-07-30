@@ -372,6 +372,31 @@ def extract_and_fetch_recommendation_products(
             recommended_products = recommended_products[:4]
             search_keyword = ", ".join(final_search_keywords)
 
+            # 추천 세션 및 아이템 DB 저장 (다음 대화에서 중복 추천 방지용)
+            try:
+                new_rec_session = RecommendationSession(
+                    user_id=user_id,
+                    chat_session_id=session_id,
+                    weather_log_id=weather_log_id,
+                )
+                db.add(new_rec_session)
+                db.flush()
+
+                for item in recommended_products:
+                    prod_id = item.get("id")
+                    if prod_id:
+                        new_rec_item = RecommendationItem(
+                            recommendation_session_id=new_rec_session.id,
+                            product_id=prod_id,
+                            score=95.0,
+                            recommendation_reason=summary_reason
+                        )
+                        db.add(new_rec_item)
+                db.commit()
+            except Exception as rec_save_err:
+                db.rollback()
+                print(f"⚠️ 스트리밍 추천 세션 저장 중 에러: {rec_save_err}")
+
     except Exception as e:
         print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
 
