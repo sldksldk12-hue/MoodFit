@@ -63,28 +63,31 @@ async def get_recommended_festivals():
     if not api_key:
         return {"status": "success", "data": DEFAULT_FESTIVALS}
     try:
-        today_str = datetime.now().strftime("%Y%m%d")
-        raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=5&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&eventStartDate={today_str}"
+        raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=C&eventStartDate=20240101"
         response = requests.get(raw_url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             items = data.get("response", {}).get("body", {}).get("items", {})
-            item_list = items.get("item", []) if isinstance(items, dict) else []
-            festivals = []
-            for idx, item in enumerate(item_list):
-                start_date = item.get("eventstartdate", "")
-                end_date = item.get("eventenddate", "")
-                period = f"{start_date[:4]}.{start_date[4:6]}.{start_date[6:]} ~ {end_date[:4]}.{end_date[4:6]}.{end_date[6:]}" if start_date else "상시 진행"
-                festivals.append({
-                    "id": idx + 1,
-                    "title": item.get("title", "축제명 없음"),
-                    "location": item.get("addr1", "장소 미상"),
-                    "period": period,
-                    "image_url": item.get("firstimage") or item.get("firstimage2") or "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=800&q=80",
-                    "description": "자세한 사항은 관광공사 홈페이지를 참고해주세요.",
-                    "tags": ["축제", "나들이"]
-                })
-            return {"status": "success", "data": festivals}
+            item_list = items.get("item", []) if isinstance(items, dict) else (items if isinstance(items, list) else [])
+            if isinstance(item_list, dict):
+                item_list = [item_list]
+
+            if item_list and len(item_list) > 0:
+                festivals = []
+                for idx, item in enumerate(item_list):
+                    start_date = str(item.get("eventstartdate", ""))
+                    end_date = str(item.get("eventenddate", ""))
+                    period = f"{start_date[:4]}.{start_date[4:6]}.{start_date[6:]} ~ {end_date[:4]}.{end_date[4:6]}.{end_date[6:]}" if len(start_date) >= 8 else "상시 진행"
+                    festivals.append({
+                        "id": idx + 1,
+                        "title": item.get("title", "축제명 없음"),
+                        "location": item.get("addr1", "장소 미상"),
+                        "period": period,
+                        "image_url": item.get("firstimage") or item.get("firstimage2") or "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=800&q=80",
+                        "description": "자세한 사항은 관광공사 홈페이지를 참고해주세요.",
+                        "tags": ["축제", "나들이"]
+                    })
+                return {"status": "success", "data": festivals[:5]}
     except Exception as e:
         print(f"⚠️ 축제 API 파싱 오류: {e}")
     return {"status": "success", "data": DEFAULT_FESTIVALS}
