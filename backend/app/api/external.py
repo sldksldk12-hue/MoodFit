@@ -64,18 +64,8 @@ async def get_recommended_festivals():
         return {"status": "success", "data": DEFAULT_FESTIVALS}
     try:
         today_str = datetime.now().strftime("%Y%m%d")
-        url = "http://apis.data.go.kr/B551011/KorService2/searchFestival2"
-        params = {
-            "serviceKey": urllib.parse.unquote(api_key), 
-            "numOfRows": 5,
-            "pageNo": 1,
-            "MobileOS": "ETC",
-            "MobileApp": "MoodFit",
-            "_type": "json",
-            "arrange": "A",
-            "eventStartDate": today_str
-        }
-        response = requests.get(url, params=params, timeout=5)
+        raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=5&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&eventStartDate={today_str}"
+        response = requests.get(raw_url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             items = data.get("response", {}).get("body", {}).get("items", {})

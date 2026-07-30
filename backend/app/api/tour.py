@@ -96,18 +96,9 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
 
     if api_key:
         try:
-            url = "http://apis.data.go.kr/B551011/KorService2/searchKeyword2"
-            params = {
-                "serviceKey": urllib.parse.unquote(api_key),
-                "numOfRows": 1,
-                "pageNo": 1,
-                "MobileOS": "ETC",
-                "MobileApp": "MoodFit",
-                "_type": "json",
-                "arrange": "A",
-                "keyword": search_keyword
-            }
-            res = requests.get(url, params=params, timeout=5)
+            encoded_kw = urllib.parse.quote(search_keyword)
+            raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey={api_key}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&keyword={encoded_kw}"
+            res = requests.get(raw_url, timeout=5)
             if res.status_code == 200:
                 data = res.json()
                 items = data.get("response", {}).get("body", {}).get("items", {}).get("item", [])
