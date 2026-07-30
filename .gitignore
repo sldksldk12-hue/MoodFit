@@ -21,6 +21,8 @@ env/
 .vscode/
 .idea/
 
+*.bat
+
 recreate_db.py
 
 main_admin.py

@@ -31,6 +31,7 @@ const initialProduct = {
   id: null,
   shop_product_id: "",
   category: "",
+  sub_category: "",
   brand: "",
   name: "",
   original_price: 0,
@@ -108,6 +109,8 @@ const DetailPage = () => {
         setProduct({
           ...initialProduct,
           ...data,
+
+          sub_category: data.sub_category || "", 
 
           original_price: Number(
             data.original_price ?? 0
@@ -363,7 +366,8 @@ const handleBuyNow = () => {
 
         <div className="detail-info">
           <span className="detail-category">
-            {product.category}
+            {product.category} 
+            {product.sub_category && ` > ${product.sub_category}`}
           </span>
 
           {product.brand && (
