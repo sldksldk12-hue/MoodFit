@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import Optional
 from app.db.database import get_db
 from app.models.models import Product, ProductCategory
 
@@ -19,7 +20,6 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
             if category:
                 category_name = category.category_name
         
-        # product_content Null 데이터 처리 및 UI 렌더링용 포맷팅
         fallback_content = (
             f"<div style='padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>"
             f"<h3 style='color: #333;'><b>{product.brand}</b> 추천 아이템</h3>"
@@ -82,7 +82,7 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
                 "discount_price": product.discount_price,
                 "images": product.image_url if isinstance(product.image_url, list) else [product.image_url],
                 "purchase_link": product.purchase_link,
-                "product_content": safe_content,  # UI에 직접 삽입 가능한 안전한 데이터 추가
+                "product_content": safe_content,
                 "material": material,
                 "fit": fit,
                 "season": season,
@@ -103,18 +103,30 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/")
-async def get_product_list(db: Session = Depends(get_db)):
-    """전체 상품 목록을 조회합니다."""
+async def get_product_list(
+    # 프론트엔드에서 전달하는 category ID를 받기 위해 파라미터를 추가
+    category: Optional[int] = Query(None, description="필터링할 카테고리 ID"),
+    db: Session = Depends(get_db)
+):
+    """전체 상품 목록을 조회하거나 카테고리별로 필터링합니다."""
     try:
-        products = db.query(Product).order_by(Product.id.desc()).all()
+        # 기본 쿼리를 만듭니다.
+        query = db.query(Product)
+        
+        # 카테고리 값이 들어왔다면, 해당 카테고리와 일치하는 상품만 필터링
+        if category:
+            query = query.filter(Product.category_id == category)
+            
+        # 최신순으로 정렬하여 상품 목록을 가져옴
+        products = query.order_by(Product.id.desc()).all()
         result = []
 
         for product in products:
             category_name = "미분류"
             if product.category_id:
-                category = db.query(ProductCategory).filter(ProductCategory.id == product.category_id).first()
-                if category:
-                    category_name = category.category_name
+                cat = db.query(ProductCategory).filter(ProductCategory.id == product.category_id).first()
+                if cat:
+                    category_name = cat.category_name
 
             result.append({
                 "id": product.id,
