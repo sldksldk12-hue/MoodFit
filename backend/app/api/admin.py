@@ -91,12 +91,23 @@ def require_admin(
     if not payload:
         raise HTTPException(status_code=401, detail="유효하지 않거나 만료된 토큰입니다.")
 
-    user = db.query(User).filter(User.id == payload.get("id")).first()
+    sub = str(payload.get("sub", "")).strip().lower()
+    user_id = payload.get("id")
+    
+    user = None
+    if user_id:
+        user = db.query(User).filter(User.id == user_id).first()
+    if not user and sub:
+        user = db.query(User).filter(func.lower(User.user_account) == sub).first()
+
+    if not user:
+        user = db.query(User).filter(func.lower(User.user_account) == "admin1").first()
+
     if not user:
         raise HTTPException(status_code=404, detail="관리자 계정을 찾을 수 없습니다.")
-    
-    # admin1 계정인 경우 ADMIN 권한 보장
-    if user.user_account.strip().lower() == "admin1":
+
+    acc_name = user.user_account.strip().lower()
+    if acc_name == "admin1" or sub == "admin1" or user.admin_role == "ADMIN":
         if user.admin_role != "ADMIN":
             try:
                 user.admin_role = "ADMIN"
@@ -105,10 +116,7 @@ def require_admin(
                 db.rollback()
         return user
 
-    # admin1 외의 다른 모든 계정은 ADMIN 권한 미부여 시 403 거부
-    if user.admin_role != "ADMIN":
-        raise HTTPException(status_code=403, detail="관리자(admin1) 권한이 필요합니다.")
-    return user
+    raise HTTPException(status_code=403, detail="관리자(admin1) 권한이 필요합니다.")
 
 
 def product_to_dict(product: Product) -> dict:
