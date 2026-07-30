@@ -49,7 +49,7 @@ const CATEGORY_GROUPING = {
     { id: "300", name: "아우터" },
     { id: "301", name: "집업" },
     { id: "302", name: "슈트" },
-    { id: "303", name: "카디건" },
+    { id: "303", name: "가디건" },
     { id: "304", name: "패딩" },
     { id: "305", name: "재킷" },
     { id: "306", name: "코트" },
