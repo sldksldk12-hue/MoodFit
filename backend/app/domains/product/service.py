@@ -2,6 +2,8 @@ import os
 import json
 import requests
 import threading
+import random
+from datetime import datetime, timedelta
 from typing import Optional, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -358,16 +360,16 @@ def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False, verb
         db.rollback()
         print(f"[Error] 상품 무드 태그 자동 적재 중 오류 발생: {err}")
 
-# 커스텀 카테고리 매핑 사전 정의 (소재 수식어 '데님', '코튼', '가죽' 등으로 인한 2차 오분류 방지 체계)
+
 CATEGORY_MAP = {
-    # 1. 신발/액세서리 (단어 겹침 최우선 방지: 코트비전, 에어포스 등)
+    # 1. 신발/액세서리
     "코트비전": 405, "에어포스": 405, "조던": 405, "스니커즈": 405, "단화": 405,
     "스포츠화": 406, "런닝화": 406, "러닝화": 406, "운동화": 406, "신발": 406,
     "구두": 407, "로퍼": 407, "힐": 407, "부츠": 408, "워커": 408, "샌들": 409, "슬리퍼": 409,
     "캡": 401, "야구모": 401, "베레모": 402, "페도라": 403, "비니": 404,
     "백팩": 410, "가방": 410, "에코백": 410, "크로스백": 410, "토트백": 410,
 
-    # 2. 복합 아우터 (소재/수식어 조합 명사 우선 매핑)
+    # 2. 복합 아우터
     "데님 자켓": 305, "데님자켓": 305, "가죽 자켓": 305, "레더 자켓": 305, "라이더 자켓": 305,
     "후드 집업": 301, "후드집업": 301, "니트 집업": 301, "니트집업": 301,
     "트렌치코트": 306, "트렌치 코트": 306, "트렌치": 306,
@@ -379,12 +381,12 @@ CATEGORY_MAP = {
     "코트": 306, "더플코트": 306,
     "베스트": 307, "조끼": 307,
 
-    # 3. 하의 (단독 '데님', '코튼' 소재 키워드는 하의 오매칭 방지를 위해 '데님 팬츠', '청바지'로 정밀화)
+    # 3. 하의
     "데님 팬츠": 201, "데님 바지": 201, "청바지": 207, "데님": 201,
     "숏 팬츠": 204, "트레이닝 팬츠": 202, "트레이닝 바지": 202, "트레이닝": 202, "츄리닝": 202, "면바지": 203,
     "반바지": 204, "핫팬츠": 204, "레깅스": 205, "조거 팬츠": 206, "조거": 206, "스커트": 208, "치마": 208,
 
-    # 4. 상의 (복합 상의 명사 우선 매핑)
+    # 4. 상의
     "데님 셔츠": 104, "데님 남방": 104, "반팔 셔츠": 104, "반팔 남방": 104,
     "스웨트셔츠": 103, "맨투맨": 103, "후드티": 105, "후드 셔츠": 105, "후드": 105,
     "반소매": 101, "반팔": 101, "긴소매": 102, "긴팔": 102,
@@ -407,48 +409,35 @@ def get_or_create_category(db: Session, category_name: str) -> int:
 
 
 def classify_product_category(db: Session, item_meta: dict, prod_name: str, search_keyword: str) -> int:
-    """
-    네이버 API 카테고리 메타데이터(category1~4)를 1순위로 검사하여 
-    단어 부분 일치(예: "코트비전" -> "코트")로 인한 오분류를 원천 방지하는 스마트 분류 함수
-    """
+    """네이버 API 카테고리 메타데이터를 검사하여 오분류를 방지하는 스마트 분류 함수"""
     cat1 = item_meta.get("category1", "")
     cat2 = item_meta.get("category2", "")
     cat3 = item_meta.get("category3", "")
     cat4 = item_meta.get("category4", "")
     full_meta = f"{cat1} {cat2} {cat3} {cat4}"
 
-    # 1. 네이버 API 공식 메타데이터 기반 최우선 판별 (신발/잡화/아우터/상의/하의)
     if any(k in full_meta for k in ["신발", "운동화", "스니커즈", "구두", "부츠", "슬리퍼", "샌들", "로퍼", "워커"]):
-        if "운동화" in full_meta or "스포츠화" in full_meta:
-            return 406
-        elif "구두" in full_meta or "로퍼" in full_meta:
-            return 407
-        elif "부츠" in full_meta or "워커" in full_meta:
-            return 408
-        elif "샌들" in full_meta or "슬리퍼" in full_meta:
-            return 409
-        return 405  # 기본 스니커즈
+        if "운동화" in full_meta or "스포츠화" in full_meta: return 406
+        elif "구두" in full_meta or "로퍼" in full_meta: return 407
+        elif "부츠" in full_meta or "워커" in full_meta: return 408
+        elif "샌들" in full_meta or "슬리퍼" in full_meta: return 409
+        return 405
 
     if any(k in full_meta for k in ["가방", "백팩", "지갑", "모자", "패션잡화"]):
-        if "모자" in full_meta or "캡" in full_meta:
-            return 401
-        elif "가방" in full_meta or "백팩" in full_meta:
-            return 410
-
-    # 2. CATEGORY_MAP 기반 상품명 및 검색어 우선순위 매칭
-    for key, cat_id in CATEGORY_MAP.items():
-        if key in prod_name:
-            return cat_id
+        if "모자" in full_meta or "캡" in full_meta: return 401
+        elif "가방" in full_meta or "백팩" in full_meta: return 410
 
     for key, cat_id in CATEGORY_MAP.items():
-        if key in search_keyword:
-            return cat_id
+        if key in prod_name: return cat_id
+
+    for key, cat_id in CATEGORY_MAP.items():
+        if key in search_keyword: return cat_id
 
     return get_or_create_category(db, cat1 if cat1 else "AI 추천 상품")
 
 
 def check_product_has_colors(db: Session, product: Product, color_list: List[str]) -> bool:
-    """상품 제목(product_name) 또는 상품 옵션(ProductOption '색상')에 target 색상이 포함되어 있는지 검사"""
+    """상품 제목 또는 상품 옵션에 target 색상이 포함되어 있는지 검사"""
     if not color_list:
         return False
     if any(c in product.product_name for c in color_list):
@@ -476,7 +465,7 @@ def get_or_fetch_products(
     liked_colors: Optional[str] = None,
     disliked_colors: Optional[str] = None
 ):
-    """자체 DB 무드 태그 및 성별 스마트 매칭 (이전 추천 제외) -> 부족하면 네이버 API 수집 -> DB 영구 저장 -> 프론트엔드 반환"""
+    """자체 DB 무드 태그 및 성별 스마트 매칭 -> 부족하면 네이버 API 수집 -> DB 영구 저장 -> 프론트엔드 반환"""
     try:
         if exclude_ids is None:
             exclude_ids = []
@@ -491,7 +480,6 @@ def get_or_fetch_products(
         search_terms = keyword.split()
         gender_prefix_words = {"남성", "여성", "남자", "여자", "남성용", "여성용"}
         
-        # 품목명(카테고리 명사) 최우선 추출 사전
         category_noun_list = [
             "반소매", "반팔", "긴소매", "긴팔", "맨투맨", "스웨트셔츠", "셔츠", "남방", "후드", "니트", "스웨터",
             "데님", "청바지", "트레이닝", "면바지", "슬랙스", "팬츠", "바지", "반바지", "스커트", "치마", "조거",
@@ -509,18 +497,15 @@ def get_or_fetch_products(
         if not core_terms:
             core_terms = search_terms
 
-        # DB 검색 기본 제약 조건 (이전 추천 제외 + 성별 타겟 필터링 + 기피 색상 제외)
         base_conditions = []
         if exclude_ids:
             base_conditions.append(~Product.id.in_(exclude_ids))
 
-        # 기피 색상(disliked_colors) DB 하드 제외 조건 추가
         if disliked_list:
             for d_color in disliked_list:
                 if d_color not in keyword:
                     base_conditions.append(~Product.product_name.ilike(f"%{d_color}%"))
 
-        # 성별 기반 상품 필터링 (남성 유저에게 여성 전용 상품 제외)
         if gender == "남성":
             base_conditions.append(Product.gender_target != "여성")
             female_keywords = ["여성", "원피스", "스커트", "블라우스", "크롭"]
@@ -534,22 +519,18 @@ def get_or_fetch_products(
                 if mk not in keyword:
                     base_conditions.append(~Product.product_name.ilike(f"%{mk}%"))
 
-        # 최우선 품목명(카테고리 명사) 조건 강제 반영
         if matched_cat_noun:
             base_conditions.append(or_(Product.product_name.ilike(f"%{matched_cat_noun}%"), Product.brand.ilike(f"%{matched_cat_noun}%")))
 
-        # 핵심 상품 단어(core_terms) 조건
         and_core = [
             or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) 
             for term in core_terms
         ]
         conditions = base_conditions + and_core
 
-        # 무드 태그 우선순위 스마트 쿼리
         query = db.query(Product).outerjoin(ProductMoodTag, Product.id == ProductMoodTag.product_id)
         query = query.filter(and_(*conditions))
         
-        # 무드 태그 조건이 주어진 경우, 매칭되는 무드 태그 상품을 우선 정렬
         mood_conditions = []
         if emotion:
             emotion_keywords = {
@@ -601,7 +582,6 @@ def get_or_fetch_products(
                 if p_item not in local_products:
                     local_products.append(p_item)
         
-        # 성별 특화 자체 DB 쿼리 검사
         if gender in ["남성", "여성"]:
             gender_products = [
                 p for p in local_products 
@@ -612,7 +592,6 @@ def get_or_fetch_products(
             else:
                 local_products = []
         
-        # 기피 색상 하드 exclusion 및 선호 색상 최상단 다중 정렬 (ProductOption 통합 검사)
         if disliked_list and local_products:
             local_products = [p for p in local_products if not check_product_has_colors(db, p, disliked_list)]
 
@@ -642,7 +621,6 @@ def get_or_fetch_products(
         start_param = len(exclude_ids) + 1 if exclude_ids else 1
         headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
         
-        # 유저가 설정한 선호 색상이 있으면 선호 색상별로 개별 네이버 쿼리를 순회하여 수집
         search_queries = [f"{naver_keyword} {c}" for c in liked_list] if liked_list else [naver_keyword]
         new_products = []
 
@@ -662,7 +640,6 @@ def get_or_fetch_products(
                         matched_cat_id = None
                         prod_name = item["title"].replace("<b>", "").replace("</b>", "")
 
-                        # 기피 색상 포함 여부 하드 검사
                         if disliked_list:
                             skip_color = False
                             for d_color in disliked_list:
@@ -700,10 +677,11 @@ def get_or_fetch_products(
         if new_products:
             db.commit()
             print(f"[Success] 수집 완료! {len(new_products)}개의 취향 맞춤 신규 상품을 자체 DB에 영구 저장했습니다.")
-            # 응답 지연 시간(19s -> 2s) 획기적 단축을 위해 GPT 1:1 맞춤 옵션 및 무드 태그 생성을 백그라운드 쓰레드로 비동기 전환
+            
+            # --- 백그라운드 태그 생성 로직 ---
             def _async_bg_seed():
                 if not _bg_seed_lock.acquire(blocking=False):
-                    return  # 이미 백그라운드 동기화 쓰레드가 진행 중이면 중복 쓰레드 생성을 차단하여 배치 처리!
+                    return  
                 try:
                     from app.db.database import SessionLocal
                     from app.domains.ai_chat.rag_service import RagsFashionService
@@ -722,12 +700,13 @@ def get_or_fetch_products(
 
             threading.Thread(target=_async_bg_seed, daemon=True).start()
 
-            # 신규 수집 상품 중 선호 색상 다중 정렬 (ProductOption 스펙 포함 검사)
+            # 선호 색상 정렬
             if liked_list:
                 liked_new = [p for p in new_products if check_product_has_colors(db, p, liked_list)]
                 other_new = [p for p in new_products if p not in liked_new]
                 new_products = liked_new + other_new
 
+            # 네이버에서 성공적으로 가져왔다면 여기서 반환
             return [
                 {
                     "id": p.id,
@@ -738,25 +717,30 @@ def get_or_fetch_products(
                 } for p in new_products[:display]
             ]
             
-            final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
-            if len(final_products) < display and len(search_terms) > 1:
-                term_or_conditions = [
-                    or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) 
-                    for term in search_terms
-                ]
-                or_query = db.query(Product).filter(or_(*term_or_conditions))
-                if exclude_ids:
-                    or_query = or_query.filter(~Product.id.in_(exclude_ids))
-                if gender == "남성":
-                    or_query = or_query.filter(Product.gender_target != "여성")
-                elif gender == "여성":
-                    or_query = or_query.filter(Product.gender_target != "남성")
+        # 네이버 API에서도 상품을 못 찾았을 경우 진입하는 '최후의 보루' 로직입니다!
+        final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+        
+        if len(final_products) < display and len(search_terms) > 1:
+            term_or_conditions = [
+                or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) 
+                for term in search_terms
+            ]
+            or_query = db.query(Product).filter(or_(*term_or_conditions))
+            
+            if exclude_ids:
+                or_query = or_query.filter(~Product.id.in_(exclude_ids))
+            if gender == "남성":
+                or_query = or_query.filter(Product.gender_target != "여성")
+            elif gender == "여성":
+                or_query = or_query.filter(Product.gender_target != "남성")
 
-                or_prods = or_query.limit(display).all()
-                for p_item in or_prods:
-                    if p_item not in final_products:
-                        final_products.append(p_item)
+            or_prods = or_query.limit(display).all()
+            for p_item in or_prods:
+                if p_item not in final_products:
+                    final_products.append(p_item)
 
+        # 최후의 보루 로직으로 긁어모은 상품이 있다면 반환, 그래도 없으면 빈 배열 반환
+        if final_products:
             return [
                 {
                     "id": p.id,
@@ -774,110 +758,94 @@ def get_or_fetch_products(
         db.rollback()
         return []
 
-
-# 기존 코드는 그대로 둔 상태에서, 이 함수만 맨 아래에 추가합니다.
-
+# 네이버 API 기반 맞춤형 상품 적재 로직 (중분류 20개씩)
 def seed_initial_products(db: Session):
     """
-    Fake Store API를 활용하여 각 대분류 카테고리별로 최소 20개의 상품이 유지되도록 DB에 적재합니다.
-    기존에 구축된 GPT 옵션/태그 로직을 그대로 활용하여 신규 상품에만 태그를 입힙니다.
+    네이버 쇼핑 API를 활용하여 '중분류' 카테고리별로 리얼한 상품 데이터를 20개씩 적재합니다.
+    할인, 신상품 섹션 노출을 위한 데이터 가공 로직이 포함되어 있습니다.
+    (likes 관계형 데이터 충돌 오류 수정 완료)
     """
-    print("🌱 카테고리별 초기 상품 데이터(최소 20개) 검사 및 적재를 시작합니다...")
+    client_id = os.getenv("NAVER_CLIENT_ID")
+    client_secret = os.getenv("NAVER_CLIENT_SECRET")
+    
+    if not client_id or not client_secret:
+        print("⚠️ 네이버 API 키가 없어 초기 상품 적재를 건너뜁니다.")
+        return
 
-    # 카테고리 대분류별 ID 범위 및 하위 카테고리 목록 설정
-    category_groups = {
-        "상의": (100, 199, [101, 102, 103, 104, 105, 106]),
-        "하의": (200, 299, [201, 202, 203, 204, 205, 206, 207, 208]),
-        "아우터": (300, 399, [301, 302, 303, 304, 305, 306, 307]),
-        "악세사리/신발": (400, 499, [401, 402, 403, 404, 405, 406, 407, 408, 409, 410])
-    }
+    print("🌱 중분류 카테고리별 리얼 상품 데이터(최소 20개) 검사 및 네이버 수집을 시작합니다...")
 
-    # 카테고리별 부족한 수량 파악
-    needs_by_group = {}
-    total_needed = 0
-    for group_name, (min_id, max_id, sub_cats) in category_groups.items():
-        current_count = db.query(Product).filter(
-            Product.category_id >= min_id, 
-            Product.category_id <= max_id
-        ).count()
+    # 부모 카테고리 ID(parent_id)가 존재하는 '중분류' 카테고리만 필터링
+    sub_categories = db.query(ProductCategory).filter(ProductCategory.parent_id.isnot(None)).all()
+    
+    headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
+    total_added = 0
+
+    for cat in sub_categories:
+        current_count = db.query(Product).filter(Product.category_id == cat.id).count()
+        needed = 20 - current_count
+
+        if needed <= 0:
+            continue
+
+        target_gender = random.choice(["남성", "여성"])
+        search_keyword = f"{target_gender} {cat.category_name} 패션"
         
-        needed = max(0, 20 - current_count)
-        needs_by_group[group_name] = needed
-        total_needed += needed
+        print(f"🔍 [{cat.category_name}] 카테고리 {needed}개 부족 -> '{search_keyword}' (으)로 수집 중...")
+        
+        url = f"https://openapi.naver.com/v1/search/shop.json?query={quote(search_keyword)}&display={needed}&start=1"
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            items = response.json().get("items", [])
+            products_to_save = []
+            
+            for item in items:
+                shop_pid = item.get("productId", str(hash(item["link"])))
+                
+                if db.query(Product).filter(Product.shop_product_id == shop_pid).first():
+                    continue
+                
+                prod_name = item["title"].replace("<b>", "").replace("</b>", "")
+                base_price = int(item["lprice"])
+                
+                # [UI 노출을 위한 가공 1] 할인상품 탭 노출 (약 40% 확률)
+                original_price = base_price
+                discount_price = base_price
+                if random.random() < 0.4:
+                    discount_rate = random.choice([0.1, 0.2, 0.3, 0.4, 0.5])
+                    original_price = int(base_price / (1 - discount_rate))
+                
+                new_p = Product(
+                    category_id=cat.id,
+                    shop_product_id=shop_pid,
+                    product_name=prod_name,
+                    original_price=original_price,
+                    discount_price=discount_price,
+                    image_url=[item["image"]],
+                    purchase_link=item["link"],
+                    brand=item.get("mallName", "제휴 쇼핑몰"),
+                    gender_target=target_gender,
+                    inventory=random.randint(50, 200)
+                )
 
-    if total_needed == 0:
-        print("✅ 모든 카테고리에 이미 20개 이상의 상품이 존재합니다. 적재를 건너뜁니다.")
-        return
+                # [UI 노출을 위한 가공 2] 신상품 탭 노출 (최근 7일 이내 날짜 랜덤 부여)
+                if hasattr(new_p, 'created_at'):
+                    random_days_ago = random.randint(0, 7)
+                    setattr(new_p, 'created_at', datetime.now() - timedelta(days=random_days_ago))
 
-    # 부족한 상품이 있다면 외부 API 호출
-    api_url = "https://fakestoreapi.com/products"
-    response = requests.get(api_url)
-    if response.status_code != 200:
-        print(f"⚠️ 외부 API 호출 실패: {response.status_code}")
-        return
+                products_to_save.append(new_p)
 
-    external_data = response.json()
-    products_to_save = []
+            if products_to_save:
+                db.add_all(products_to_save)
+                db.commit()
+                total_added += len(products_to_save)
 
-    # API 데이터를 카테고리 그룹별 소스로 분배
-    source_by_group = {"상의": [], "하의": [], "아우터": [], "악세사리/신발": []}
-    for ext_prod in external_data:
-        ext_category = ext_prod.get('category', '').lower()
-        if 'jewelery' in ext_category or 'electronics' in ext_category:
-            source_by_group["악세사리/신발"].append(ext_prod)
-        else:
-            source_by_group["상의"].append(ext_prod)
-            source_by_group["하의"].append(ext_prod)
-            source_by_group["아우터"].append(ext_prod)
-
-    # 각 카테고리별로 부족한 개수만큼 상품 생성
-    import random # 혹시 파일 상단에 없다면 함수 내부에서라도 임포트
-    for group_name, needed_count in needs_by_group.items():
-        if needed_count <= 0:
-            continue
-
-        source_items = source_by_group[group_name]
-        if not source_items:
-            continue
-
-        sub_cats = category_groups[group_name][2]
-
-        for _ in range(needed_count):
-            ext_prod = random.choice(source_items)
-
-            base_price = int(ext_prod.get('price', 0) * 1300)
-            discount_rate = random.choice([0, 10, 20, 30, 50])
-            discount_price = int(base_price * (1 - (discount_rate / 100)))
-
-            # 중복 방지를 위해 상품명에 고유 식별자 추가
-            variation_suffix = f" (Type-{random.randint(1000, 9999)})"
-            prod_name = ext_prod.get('title', '') + variation_suffix
-
-            matched_cat_id = random.choice(sub_cats)
-            saved_gender = random.choice(["남성", "여성", "공용"])
-
-            new_product = Product(
-                category_id=matched_cat_id,
-                shop_product_id=f"fakestore_{ext_prod.get('id')}_{random.randint(10000, 99999)}",
-                product_name=prod_name,
-                original_price=base_price,
-                discount_price=discount_price,
-                image_url=[ext_prod.get('image', '')],
-                purchase_link=api_url,
-                brand="FakeStore",
-                gender_target=saved_gender,
-                inventory=random.randint(10, 100)
-            )
-            products_to_save.append(new_product)
-
-    # DB 일괄 저장 및 기존 로직 연동
-    if products_to_save:
-        db.add_all(products_to_save)
-        db.commit()
-        print(f"✅ 총 {len(products_to_save)}개의 외부 상품 데이터를 카테고리별로 보충 저장했습니다!")
-
-        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 무드 태그 생성을 시작합니다...")
-        # 파트너님이 만들어두신 기존 함수를 호출합니다!
+    if total_added > 0:
+        print(f"✅ 총 {total_added}개의 리얼 네이버 상품을 중분류 카테고리별로 꽉꽉 채웠습니다!")
+        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 4대 무드 태그(AI 코디용) 생성을 시작합니다...")
+        
         seed_initial_product_options(db)
         seed_initial_product_mood_tags(db)
-        print("🎉 카테고리별 최소 20개 상품 세팅(옵션, 무드태그 포함)이 완벽하게 끝났습니다!")
+        print("🎉 모든 카테고리 20개 세팅 및 AI 옵션/태그 적재가 완벽하게 끝났습니다!")
+    else:
+        print("✅ 모든 중분류 카테고리에 이미 20개 이상의 상품이 충분히 존재합니다.")
