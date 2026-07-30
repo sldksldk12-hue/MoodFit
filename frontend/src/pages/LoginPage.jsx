@@ -45,11 +45,22 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    if (!username.trim()) {
+      alert("아이디를 입력해 주세요.");
+      return;
+    }
+    if (!password) {
+      alert("비밀번호를 입력해 주세요.");
+      return;
+    }
+
     try {
       await login(username, password);
       navigate(from, { replace: true });
-    } catch {
-      setError("아이디 혹은 비밀번호가 일치하지 않습니다");
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || "아이디 혹은 비밀번호가 올바르지 않습니다.";
+      setError(errorMsg);
+      alert(errorMsg);
     }
   };
   // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.
@@ -75,6 +86,12 @@ const LoginPage = () => {
 
           <div className="login-card">
             <h2>로그인</h2>
+
+            {error && (
+              <p style={{ color: "#e53e3e", backgroundColor: "#fff5f5", padding: "10px", borderRadius: "6px", fontSize: "14px", marginBottom: "16px", border: "1px solid #fed7d7", textAlign: "center" }}>
+                ⚠️ {error}
+              </p>
+            )}
 
             <form className="login-form" onSubmit={handleLogin}>
               <input

@@ -305,13 +305,21 @@ def extract_and_fetch_recommendation_products(
         )
         keyword_chain = keyword_prompt | keyword_llm | parser
         
+        prompt_tokens_val = 0
+        completion_tokens_val = 0
+        total_tokens_val = 0
+
         with get_openai_callback() as cb:
             parsed_result = keyword_chain.invoke({
                 "recommendation": ai_recommendation,
                 "user_gender": user_gender,
                 "format_instructions": parser.get_format_instructions()
             })
-            
+            if cb:
+                prompt_tokens_val = cb.prompt_tokens
+                completion_tokens_val = cb.completion_tokens
+                total_tokens_val = cb.total_tokens
+
             summary_reason = parsed_result.summary_reason
             raw_keywords = parsed_result.search_keyword.split(",")
             keyword_list = [k.strip() for k in raw_keywords if k.strip()][:4]
@@ -403,9 +411,9 @@ def extract_and_fetch_recommendation_products(
                     model_name="gpt-4o-mini",
                     prompt_version="v1.2.0",
                     log_status="SUCCESS",
-                    prompt_tokens=cb.prompt_tokens if cb else 0,
-                    completion_tokens=cb.completion_tokens if cb else 0,
-                    total_tokens=cb.total_tokens if cb else 0,
+                    prompt_tokens=prompt_tokens_val,
+                    completion_tokens=completion_tokens_val,
+                    total_tokens=total_tokens_val,
                     latency_ms=1500,
                     created_at=kst_now
                 )
