@@ -292,3 +292,85 @@
     display: none;
   }
 }
+
+/* ===== 카테고리 중분류(드롭다운) 스타일 추가 ===== */
+.nav-item-container {
+  position: relative; /* 중분류 메뉴가 펼쳐질 기준점 */
+  display: flex;
+  align-items: center;
+}
+
+.nav-main-link {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  color: var(--mf-ink);
+  transition: color 0.2s var(--mf-ease);
+}
+
+.nav-main-link:hover,
+.nav-main-link.active {
+  color: var(--mf-ink);
+}
+
+/* 기존 네비게이션 애니메이션(밑줄) 효과 유지 */
+.nav-main-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--mf-ink);
+  transition: width 0.25s var(--mf-ease);
+}
+
+.nav-main-link:hover::after,
+.nav-main-link.active::after {
+  width: 100%;
+}
+
+/* 드롭다운 (하위 메뉴 박스) */
+.nav-sub-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--mf-white);
+  border: 1px solid var(--mf-gray-150);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 12px 0;
+  min-width: 160px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  margin-top: 15px;
+  
+  /* 부드럽게 나타나는 애니메이션 */
+  animation: fadeInDown 0.2s ease-out;
+}
+
+/* 드롭다운 내부 링크 */
+.nav-sub-link {
+  padding: 10px 24px;
+  color: var(--mf-gray-600);
+  text-decoration: none;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s var(--mf-ease);
+}
+
+.nav-sub-link:hover {
+  background-color: var(--mf-gray-50);
+  color: var(--mf-ink);
+  font-weight: 700;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
