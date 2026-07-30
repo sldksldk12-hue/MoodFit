@@ -28,7 +28,7 @@ jobs:
           ./venv/bin/pip install -r requirements.txt --quiet
 
           cd /var/www/MoodFit/frontend
-          ./node_modules/.bin/vite build
+          npx vite build
 
           chmod -R 755 /var/www/MoodFit
           systemctl restart moodfit-backend nginx
