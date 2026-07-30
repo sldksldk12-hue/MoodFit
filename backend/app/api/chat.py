@@ -372,12 +372,14 @@ def extract_and_fetch_recommendation_products(
             recommended_products = recommended_products[:4]
             search_keyword = ", ".join(final_search_keywords)
 
+            kst_now = datetime.utcnow() + timedelta(hours=9)
             # 추천 세션 및 아이템 DB 저장 (다음 대화에서 중복 추천 방지용)
             try:
                 new_rec_session = RecommendationSession(
                     user_id=user_id,
                     chat_session_id=session_id,
                     weather_log_id=weather_log_id,
+                    created_at=kst_now
                 )
                 db.add(new_rec_session)
                 db.flush()
@@ -389,11 +391,12 @@ def extract_and_fetch_recommendation_products(
                             recommendation_session_id=new_rec_session.id,
                             product_id=prod_id,
                             score=95.0,
-                            recommendation_reason=summary_reason
+                            recommendation_reason=summary_reason,
+                            created_at=kst_now
                         )
                         db.add(new_rec_item)
 
-                # AI 호출 로그(ai_call_logs) DB 적재
+                # AI 호출 로그(ai_call_logs) DB 적재 (KST 한국 시각 100% 명시)
                 new_ai_log = AiCallLog(
                     chat_session_id=session_id,
                     recommendation_session_id=new_rec_session.id,
@@ -403,7 +406,8 @@ def extract_and_fetch_recommendation_products(
                     prompt_tokens=cb.prompt_tokens if cb else 0,
                     completion_tokens=cb.completion_tokens if cb else 0,
                     total_tokens=cb.total_tokens if cb else 0,
-                    latency_ms=1500
+                    latency_ms=1500,
+                    created_at=kst_now
                 )
                 db.add(new_ai_log)
                 db.commit()
