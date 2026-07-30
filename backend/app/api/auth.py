@@ -54,7 +54,55 @@ def verify_token(token: str) -> Optional[dict]:
     except jwt.PyJWTError:
         return None
 
-from app.schemas.auth_schema import UserRegister, PreferenceUpdate
+class FindUsernameRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    user_name: str
+    email: str
+    new_password: str
+
+@router.get("/check-username")
+@router.get("/check-username/")
+async def check_username(user_name: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_account == user_name.strip()).first()
+    if user:
+        return {"exists": True, "message": "이미 사용 중인 아이디입니다."}
+    return {"exists": False, "message": "사용 가능한 아이디입니다."}
+
+@router.post("/find-username")
+@router.post("/find-username/")
+async def find_username(req: FindUsernameRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email.strip()).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="해당 이메일로 가입된 아이디를 찾을 수 없습니다."
+        )
+    return {"status": "success", "user_account": user.user_account}
+
+@router.post("/reset-password")
+@router.post("/reset-password/")
+async def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(
+        User.user_account == req.user_name.strip(),
+        User.email == req.email.strip()
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="입력하신 아이디와 이메일 일치하는 회원을 찾을 수 없습니다."
+        )
+    try:
+        user.password_hash = get_password_hash(req.new_password)
+        db.commit()
+        return {"status": "success", "message": "비밀번호가 성공적으로 변경되었습니다."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"비밀번호 변경 실패: {str(e)}"
+        )
 
 # 회원가입 API
 @router.post("/register")
