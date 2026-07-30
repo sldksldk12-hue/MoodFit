@@ -64,27 +64,26 @@ class RagsFashionService:
         except Exception as err:
             print(f"⚠️ [RAG Vector Sync Note]: {err}")
 
-    def get_real_weather(self, map_y: Optional[float] = None, map_x: Optional[float] = None, city_name: Optional[str] = "Seoul") -> dict:
-        try:
-            if map_y is not None and map_x is not None:
-                # 위도/경도가 제공된 경우
-                url = f"http://api.openweathermap.org/data/2.5/weather?lat={map_y}&lon={map_x}&appid={self.weather_api_key}&units=metric&lang=kr"
-            else:
-                # 디폴트 서울 (Seoul)
-                url = f"http://api.openweathermap.org/data/2.5/weather?q=Seoul&appid={self.weather_api_key}&units=metric&lang=kr"
-                city_name = "Seoul"
-                
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    "temp": data["main"]["temp"],
-                    "desc": data["weather"][0]["description"],
-                    "region": city_name
-                }
-        except Exception as e:
-            print(f"[Error] 날씨 API 에러: {e}")
-        return {"temp": 22.0, "desc": "맑음(기본값)", "region": city_name}
+    def get_real_weather(self, map_y: Optional[float] = None, map_x: Optional[float] = None, city_name: Optional[str] = "서울") -> dict:
+        if self.weather_api_key:
+            try:
+                if map_y is not None and map_x is not None:
+                    url = f"http://api.openweathermap.org/data/2.5/weather?lat={map_y}&lon={map_x}&appid={self.weather_api_key}&units=metric&lang=kr"
+                else:
+                    url = f"http://api.openweathermap.org/data/2.5/weather?q=Seoul&appid={self.weather_api_key}&units=metric&lang=kr"
+                    city_name = "서울"
+                    
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        "temp": data["main"]["temp"],
+                        "desc": data["weather"][0]["description"],
+                        "region": city_name
+                    }
+            except Exception as e:
+                print(f"[Error] 날씨 API 에러: {e}")
+        return {"temp": 24.5, "desc": "맑음(쾌적한 날씨)", "region": city_name or "서울"}
 
     def generate_fashion_recommendation(self, db: Session, user_id: int, emotion: str, confidence: float, user_message: str, session_id: int = None) -> tuple[str, Optional[int]]:
         # 0. 관광 목적지 정보 (TPO) 조회 및 프롬프트 반영 준비

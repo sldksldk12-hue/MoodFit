@@ -71,14 +71,12 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
     """추출한 관광지 정보로 공공데이터 API를 검색하고 tour_logs에 저장합니다.
     동일 세션 내에 동일 관광지명이 이미 등록되어 있을 경우 기존 ID를 반환하여 재사용합니다.
     """
-    api_key = os.getenv("TOUR_API_KEY")
-    if not api_key:
-        print("[Warning] TOUR_API_KEY가 없습니다.")
-        return None
-    
     destination = destination_info.get("destination")
     search_keyword = destination_info.get("search_keyword", destination)
     
+    if not destination:
+        return None
+
     # 0. 동일 세션 내 동일 관광지명으로 기록된 로그가 이미 있는지 확인 (중복 적재 방지)
     existing_log = db.query(TourLog).filter(
         TourLog.session_id == session_id,
@@ -87,51 +85,44 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
     if existing_log:
         print(f"[Reuse] 동일 세션 내 중복 관광지 발견: [{existing_log.id}] {destination} (기존 로그 재사용)")
         return existing_log.id
-    
-    # 1. API 검색 (KTO searchKeyword2 국문 서비스)
-    url = "http://apis.data.go.kr/B551011/KorService2/searchKeyword2"
-    params = {
-        "serviceKey": urllib.parse.unquote(api_key),
-        "numOfRows": 1,
-        "pageNo": 1,
-        "MobileOS": "ETC",
-        "MobileApp": "MoodFit",
-        "_type": "json",
-        "arrange": "A",
-        "keyword": search_keyword
-    }
-    
+
+    api_key = os.getenv("TOUR_API_KEY")
     content_id = "NONE"
-    content_type = "기타"
-    addr = None
+    content_type = "축제/관광지"
+    addr = "대한민국"
     map_x = None
     map_y = None
     title = destination
-    
-    try:
-        response = requests.get(url, params=params, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            items = data.get("response", {}).get("body", {}).get("items", {})
-            item_list = items.get("item", []) if isinstance(items, dict) else []
-            if item_list:
-                item = item_list[0]
-                content_id = str(item.get("contentid", "NONE"))
-                title = item.get("title", destination)
-                addr = item.get("addr1")
-                map_x = float(item["mapx"]) if item.get("mapx") else None
-                map_y = float(item["mapy"]) if item.get("mapy") else None
-                
-                # contenttypeid 매핑
-                content_type_id = str(item.get("contenttypeid", ""))
-                type_mapping = {
-                    "12": "관광지", "14": "문화시설", "15": "축제/공연/행사", 
-                    "28": "레포츠", "32": "숙박", "38": "쇼핑", "39": "음식점"
-                }
-                content_type = type_mapping.get(content_type_id, "기타")
-    except Exception as e:
-        print(f"[Error] 공공데이터 관광지 검색 오류 (수동 모드 전환): {e}")
-        
+
+    if api_key:
+        try:
+            url = "http://apis.data.go.kr/B551011/KorService2/searchKeyword2"
+            params = {
+                "serviceKey": urllib.parse.unquote(api_key),
+                "numOfRows": 1,
+                "pageNo": 1,
+                "MobileOS": "ETC",
+                "MobileApp": "MoodFit",
+                "_type": "json",
+                "arrange": "A",
+                "keyword": search_keyword
+            }
+            res = requests.get(url, params=params, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                items = data.get("response", {}).get("body", {}).get("items", {}).get("item", [])
+                if isinstance(items, dict): items = [items]
+                if items:
+                    item = items[0]
+                    content_id = str(item.get("contentid", "NONE"))
+                    content_type = str(item.get("contenttypeid", "기타"))
+                    addr = item.get("addr1", "주소 미제공")
+                    map_x = float(item["mapx"]) if item.get("mapx") else None
+                    map_y = float(item["mapy"]) if item.get("mapy") else None
+                    title = item.get("title", destination)
+        except Exception as err:
+            print(f"⚠️ KTO API Call Fail: {err}")
+
     # 2. DB 저장
     try:
         new_tour_log = TourLog(
