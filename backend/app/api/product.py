@@ -102,6 +102,7 @@ async def get_product_detail(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")
 
 
+@router.get("")
 @router.get("/")
 async def get_product_list(
     # 프론트엔드에서 전달하는 category ID를 받기 위해 파라미터를 추가
