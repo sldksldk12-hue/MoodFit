@@ -54,6 +54,8 @@ def verify_token(token: str) -> Optional[dict]:
     except jwt.PyJWTError:
         return None
 
+from app.schemas.auth_schema import UserRegister, PreferenceUpdate
+
 class FindUsernameRequest(BaseModel):
     email: str
 
