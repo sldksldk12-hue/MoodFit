@@ -1,5 +1,5 @@
 import MyPageEmptyState from "./MyPageEmptyState";
-import "../../assets/styles/pages/mypage/MyPage.css"
+import "../../assets/styles/pages/mypage/MyPage.css";
 
 const RecentProductList = ({
   products = [],
