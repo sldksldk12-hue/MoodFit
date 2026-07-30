@@ -15,6 +15,7 @@ from app.schemas.order_schema import AddressSchema, OrderItemInput, OrderCreateR
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, summary="주문 생성 (체크아웃)")
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_order(req: OrderCreateRequest, db: Session = Depends(get_db)):
     """새로운 주문을 생성하고 주문 상세(order_items) 내역을 기록합니다."""
     

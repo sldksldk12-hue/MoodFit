@@ -447,7 +447,7 @@ const PaymentPage = () => {
       }
 
       const result = await createOrder({
-        userId: user.id,
+        userId: user?.id ?? 1,
         addressId: orderAddressId,
         addressInfo: orderAddressId
           ? null
