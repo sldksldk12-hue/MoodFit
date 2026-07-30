@@ -1,0 +1,35 @@
+name: MoodFit EC2 Auto Deployment
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Deploy to AWS EC2 via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          sudo bash -c '
+          cd /var/www/MoodFit
+          git fetch origin
+          git reset --hard origin/main
+
+          cd /var/www/MoodFit/backend
+          ./venv/bin/pip install -r requirements.txt --quiet
+
+          cd /var/www/MoodFit/frontend
+          ./node_modules/.bin/vite build
+
+          chmod -R 755 /var/www/MoodFit
+          systemctl restart moodfit-backend nginx
+          '
