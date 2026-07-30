@@ -58,6 +58,7 @@ from app.schemas.auth_schema import UserRegister, PreferenceUpdate
 
 # 회원가입 API
 @router.post("/register")
+@router.post("/register/")
 async def register_user(req: UserRegister, db: Session = Depends(get_db)):
     # 1. 아이디 중복 체크
     existing_user = db.query(User).filter(User.user_account == req.user_name).first()
@@ -101,6 +102,7 @@ async def register_user(req: UserRegister, db: Session = Depends(get_db)):
 
 # 로그인 API
 @router.post("/login")
+@router.post("/login/")
 async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # 1. 사용자 계정 조회
     user = db.query(User).filter(User.user_account == form_data.username).first()
@@ -123,6 +125,7 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Sessi
 
 # 내 정보 조회 API
 @router.get("/me")
+@router.get("/me/")
 async def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # 1. 토큰 해독
     payload = verify_token(token)
@@ -159,6 +162,7 @@ async def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depen
 
 # 취향 정보 수정 API
 @router.put("/preference")
+@router.put("/preference/")
 async def update_user_preference(req: PreferenceUpdate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # 1. 토큰 해독
     payload = verify_token(token)
