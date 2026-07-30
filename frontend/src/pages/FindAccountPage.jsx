@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Search, Lock, Mail, KeyRound, ArrowLeft } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { findUsername, resetPassword } from "../services/api";
-import "../assets/styles/pages/auth/LoginPage.css";
+import "../assets/styles/pages/auth/RegisterPage.css";
 
 const FindAccountPage = () => {
     const navigate = useNavigate();
@@ -60,15 +60,15 @@ const FindAccountPage = () => {
     };
 
     return (
-        <main className="login-page">
-            <section className="login-card" style={{ maxWidth: "460px" }}>
-                <div className="login-title">
+        <main className="register-page">
+            <section className="register-card" style={{ maxWidth: "480px" }}>
+                <div className="register-title">
                     <KeyRound size={34} />
-                    <h1>계정 정보 찾기</h1>
-                    <p>아이디 찾기 및 비밀번호 재설정을 진행하실 수 있습니다.</p>
+                    <h1 style={{ fontSize: "26px", whiteSpace: "nowrap", margin: "10px 0" }}>계정 정보 찾기</h1>
+                    <p style={{ fontSize: "14px", color: "#6b7280" }}>아이디 찾기 및 비밀번호 재설정을 진행하실 수 있습니다.</p>
                 </div>
 
-                <div style={{ display: "flex", margin: "20px 0", borderBottom: "2px solid #eee" }}>
+                <div style={{ display: "flex", margin: "20px 0 24px", borderBottom: "2px solid #e5e7eb" }}>
                     <button
                         type="button"
                         onClick={() => { setActiveTab("findId"); setFoundUsername(""); }}
@@ -78,8 +78,9 @@ const FindAccountPage = () => {
                             border: "none",
                             background: "none",
                             fontWeight: "bold",
-                            borderBottom: activeTab === "findId" ? "3px solid #111" : "none",
-                            color: activeTab === "findId" ? "#111" : "#888",
+                            fontSize: "15px",
+                            borderBottom: activeTab === "findId" ? "3px solid #172033" : "none",
+                            color: activeTab === "findId" ? "#172033" : "#9ca3af",
                             cursor: "pointer"
                         }}
                     >
@@ -94,8 +95,9 @@ const FindAccountPage = () => {
                             border: "none",
                             background: "none",
                             fontWeight: "bold",
-                            borderBottom: activeTab === "resetPw" ? "3px solid #111" : "none",
-                            color: activeTab === "resetPw" ? "#111" : "#888",
+                            fontSize: "15px",
+                            borderBottom: activeTab === "resetPw" ? "3px solid #172033" : "none",
+                            color: activeTab === "resetPw" ? "#172033" : "#9ca3af",
                             cursor: "pointer"
                         }}
                     >
@@ -104,7 +106,7 @@ const FindAccountPage = () => {
                 </div>
 
                 {activeTab === "findId" ? (
-                    <form className="login-form" onSubmit={handleFindUsername}>
+                    <form className="register-form" onSubmit={handleFindUsername}>
                         <label>
                             가입한 이메일
                             <input
@@ -116,25 +118,25 @@ const FindAccountPage = () => {
                             />
                         </label>
 
-                        <button type="submit" className="login-submit-btn" style={{ marginTop: "10px" }}>
+                        <button type="submit" className="register-button" style={{ marginTop: "10px" }}>
                             아이디 찾기
                         </button>
 
                         {foundUsername && (
-                            <div style={{ marginTop: "20px", padding: "16px", backgroundColor: "#f8f9fa", borderRadius: "8px", textAlign: "center" }}>
-                                <p style={{ fontSize: "14px", color: "#666" }}>고객님의 아이디입니다:</p>
-                                <strong style={{ fontSize: "18px", color: "#111", display: "block", marginTop: "6px" }}>
+                            <div style={{ marginTop: "20px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "12px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+                                <p style={{ fontSize: "14px", color: "#64748b" }}>고객님의 아이디입니다:</p>
+                                <strong style={{ fontSize: "20px", color: "#0f172a", display: "block", marginTop: "6px" }}>
                                     {foundUsername}
                                 </strong>
-                                <Link to="/moodfit/login" style={{ display: "inline-block", marginTop: "12px", color: "#007bff", fontWeight: "600" }}>
+                                <Link to="/moodfit/login" style={{ display: "inline-block", marginTop: "12px", color: "#3b82f6", fontWeight: "600", fontSize: "14px" }}>
                                     로그인하러 가기 &rarr;
                                 </Link>
                             </div>
                         )}
                     </form>
                 ) : (
-                    <form className="login-form" onSubmit={handleResetPassword}>
-                        <label>
+                    <form className="register-form" onSubmit={handleResetPassword}>
+                        <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                             아이디
                             <input
                                 type="text"
@@ -145,7 +147,7 @@ const FindAccountPage = () => {
                             />
                         </label>
 
-                        <label>
+                        <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                             가입한 이메일
                             <input
                                 type="email"
@@ -156,7 +158,7 @@ const FindAccountPage = () => {
                             />
                         </label>
 
-                        <label>
+                        <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                             새 비밀번호
                             <input
                                 type="password"
@@ -167,7 +169,7 @@ const FindAccountPage = () => {
                             />
                         </label>
 
-                        <label>
+                        <label style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                             새 비밀번호 확인
                             <input
                                 type="password"
@@ -178,14 +180,14 @@ const FindAccountPage = () => {
                             />
                         </label>
 
-                        <button type="submit" className="login-submit-btn" style={{ marginTop: "10px" }}>
+                        <button type="submit" className="register-button" style={{ marginTop: "10px" }}>
                             비밀번호 변경
                         </button>
                     </form>
                 )}
 
                 <div style={{ textAlign: "center", marginTop: "24px" }}>
-                    <Link to="/moodfit/login" style={{ color: "#666", fontSize: "14px", textDecoration: "none" }}>
+                    <Link to="/moodfit/login" style={{ color: "#6b7280", fontSize: "14px", textDecoration: "none" }}>
                         &larr; 로그인 화면으로 돌아가기
                     </Link>
                 </div>
