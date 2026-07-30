@@ -54,6 +54,7 @@ def verify_token(token: str) -> Optional[dict]:
     except jwt.PyJWTError:
         return None
 
+# 데이터 검증을 위한 Pydantic 모델 모음
 class FindUsernameRequest(BaseModel):
     email: str
 
@@ -62,6 +63,23 @@ class ResetPasswordRequest(BaseModel):
     email: str
     new_password: str
 
+class UserRegister(BaseModel):
+    user_name: str
+    email: EmailStr
+    password: str
+
+# [추가] 취향 정보 업데이트를 위한 모델
+# 모든 필드를 Optional로 처리하여 일부 데이터만 보내도 업데이트가 가능하도록 구성
+class PreferenceUpdate(BaseModel):
+    gender: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    body_form: Optional[str] = None
+    preferred_styles: Optional[str] = None
+    liked_colors: Optional[str] = None
+    disliked_colors: Optional[str] = None
+
+# API 라우터 모음
 @router.get("/check-username")
 @router.get("/check-username/")
 async def check_username(user_name: str, db: Session = Depends(get_db)):
