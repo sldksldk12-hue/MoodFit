@@ -33,11 +33,21 @@ async def lifespan(app: FastAPI):
         app.state.rag_service = rag_service
         print("✅ 모든 AI 및 RAG 인프라 로드 완료!")
         
-        # 카테고리, 상품 옵션 및 1:1 무드 태그 자동 적재 (Service 모듈의 함수 호출)
-        from app.domains.product.service import seed_initial_categories, seed_initial_product_options, seed_initial_product_mood_tags
+        # 카테고리, 상품, 상품 옵션 및 1:1 무드 태그 자동 적재 (Service 모듈의 함수 호출)
+        # seed_initial_products 함수가 임포트 목록에 추가
+        from app.domains.product.service import (
+            seed_initial_categories, 
+            seed_initial_products, 
+            seed_initial_product_options, 
+            seed_initial_product_mood_tags
+        )
         db = SessionLocal()
         try:
             seed_initial_categories(db)
+            
+            # 카테고리별 20개 상품 적재
+            seed_initial_products(db) 
+            
             seed_initial_product_options(db)
             seed_initial_product_mood_tags(db)
         finally:
@@ -70,6 +80,7 @@ app.include_router(inquiry.router)
 app.include_router(review.router)
 app.include_router(address.router)
 app.include_router(admin.router)
+
 @app.get("/")
 async def root():
     return {"message": "MoodFit AI 서버 운영 중", "rag_ready": rag_service is not None}

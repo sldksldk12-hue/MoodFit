@@ -773,3 +773,111 @@ def get_or_fetch_products(
         print(f"[Error] 데이터 자동 수집 파이프라인 에러: {e}")
         db.rollback()
         return []
+
+
+# 기존 코드는 그대로 둔 상태에서, 이 함수만 맨 아래에 추가합니다.
+
+def seed_initial_products(db: Session):
+    """
+    Fake Store API를 활용하여 각 대분류 카테고리별로 최소 20개의 상품이 유지되도록 DB에 적재합니다.
+    기존에 구축된 GPT 옵션/태그 로직을 그대로 활용하여 신규 상품에만 태그를 입힙니다.
+    """
+    print("🌱 카테고리별 초기 상품 데이터(최소 20개) 검사 및 적재를 시작합니다...")
+
+    # 카테고리 대분류별 ID 범위 및 하위 카테고리 목록 설정
+    category_groups = {
+        "상의": (100, 199, [101, 102, 103, 104, 105, 106]),
+        "하의": (200, 299, [201, 202, 203, 204, 205, 206, 207, 208]),
+        "아우터": (300, 399, [301, 302, 303, 304, 305, 306, 307]),
+        "악세사리/신발": (400, 499, [401, 402, 403, 404, 405, 406, 407, 408, 409, 410])
+    }
+
+    # 카테고리별 부족한 수량 파악
+    needs_by_group = {}
+    total_needed = 0
+    for group_name, (min_id, max_id, sub_cats) in category_groups.items():
+        current_count = db.query(Product).filter(
+            Product.category_id >= min_id, 
+            Product.category_id <= max_id
+        ).count()
+        
+        needed = max(0, 20 - current_count)
+        needs_by_group[group_name] = needed
+        total_needed += needed
+
+    if total_needed == 0:
+        print("✅ 모든 카테고리에 이미 20개 이상의 상품이 존재합니다. 적재를 건너뜁니다.")
+        return
+
+    # 부족한 상품이 있다면 외부 API 호출
+    api_url = "https://fakestoreapi.com/products"
+    response = requests.get(api_url)
+    if response.status_code != 200:
+        print(f"⚠️ 외부 API 호출 실패: {response.status_code}")
+        return
+
+    external_data = response.json()
+    products_to_save = []
+
+    # API 데이터를 카테고리 그룹별 소스로 분배
+    source_by_group = {"상의": [], "하의": [], "아우터": [], "악세사리/신발": []}
+    for ext_prod in external_data:
+        ext_category = ext_prod.get('category', '').lower()
+        if 'jewelery' in ext_category or 'electronics' in ext_category:
+            source_by_group["악세사리/신발"].append(ext_prod)
+        else:
+            source_by_group["상의"].append(ext_prod)
+            source_by_group["하의"].append(ext_prod)
+            source_by_group["아우터"].append(ext_prod)
+
+    # 각 카테고리별로 부족한 개수만큼 상품 생성
+    import random # 혹시 파일 상단에 없다면 함수 내부에서라도 임포트
+    for group_name, needed_count in needs_by_group.items():
+        if needed_count <= 0:
+            continue
+
+        source_items = source_by_group[group_name]
+        if not source_items:
+            continue
+
+        sub_cats = category_groups[group_name][2]
+
+        for _ in range(needed_count):
+            ext_prod = random.choice(source_items)
+
+            base_price = int(ext_prod.get('price', 0) * 1300)
+            discount_rate = random.choice([0, 10, 20, 30, 50])
+            discount_price = int(base_price * (1 - (discount_rate / 100)))
+
+            # 중복 방지를 위해 상품명에 고유 식별자 추가
+            variation_suffix = f" (Type-{random.randint(1000, 9999)})"
+            prod_name = ext_prod.get('title', '') + variation_suffix
+
+            matched_cat_id = random.choice(sub_cats)
+            saved_gender = random.choice(["남성", "여성", "공용"])
+
+            new_product = Product(
+                category_id=matched_cat_id,
+                shop_product_id=f"fakestore_{ext_prod.get('id')}_{random.randint(10000, 99999)}",
+                product_name=prod_name,
+                original_price=base_price,
+                discount_price=discount_price,
+                image_url=[ext_prod.get('image', '')],
+                purchase_link=api_url,
+                brand="FakeStore",
+                gender_target=saved_gender,
+                inventory=random.randint(10, 100)
+            )
+            products_to_save.append(new_product)
+
+    # DB 일괄 저장 및 기존 로직 연동
+    if products_to_save:
+        db.add_all(products_to_save)
+        db.commit()
+        print(f"✅ 총 {len(products_to_save)}개의 외부 상품 데이터를 카테고리별로 보충 저장했습니다!")
+
+        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 무드 태그 생성을 시작합니다...")
+        # 파트너님이 만들어두신 기존 함수를 호출합니다!
+        seed_initial_product_options(db)
+        seed_initial_product_mood_tags(db)
+        print("🎉 카테고리별 최소 20개 상품 세팅(옵션, 무드태그 포함)이 완벽하게 끝났습니다!")
