@@ -277,6 +277,17 @@ export const updatePreference = async (preferenceData) => {
   return response.data;
 };
 
+// 회원 정보 수정 (이메일, 비밀번호)
+export const updateProfile = async (profileData) => {
+  const token = localStorage.getItem("token");
+  const response = await api.put("/api/auth/profile", profileData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
+};
+
 // ===========================
 // 좋아요(찜) 기능
 // ===========================
