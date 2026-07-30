@@ -221,7 +221,7 @@ export const login = (username, password) => {
   params.append("username", username);
   params.append("password", password);
 
-  return api.post("/moodfit/login/", params, {
+  return api.post("/api/auth/login", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -232,7 +232,7 @@ export const login = (username, password) => {
 export const getMe = () => {
   const token = localStorage.getItem("token");
 
-  return api.get("/moodfit/me", {
+  return api.get("/api/auth/me", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -240,14 +240,14 @@ export const getMe = () => {
 };
 // 회원가입
 export const register = async (userData) => {
-  const response = await api.post("/moodfit/register/", userData);
+  const response = await api.post("/api/auth/register", userData);
   return response.data;
 }
 
 // 취향 정보 수정
 export const updatePreference = async (preferenceData) => {
   const token = localStorage.getItem("token");
-  const response = await api.put("/moodfit/preference", preferenceData, {
+  const response = await api.put("/api/auth/preference", preferenceData, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
