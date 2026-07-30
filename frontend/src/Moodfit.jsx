@@ -12,7 +12,6 @@ import MainPage from "./pages/MainPage";
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const FindAccountPage = lazy(() => import("./pages/FindAccountPage"));
-const ProfileEditPage = lazy(() => import("./pages/ProfileEditPage"));
 const DetailPage = lazy(() => import("./pages/DetailPage"));
 const ProductListPage = lazy(() => import("./pages/ProductList"));
 const RecomendList = lazy(() => import("./pages/RecomendList"));
@@ -94,15 +93,6 @@ const Moodfit = () => {
               element={
                 <ProtectedRoute>
                   <PreferencePage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/moodfit/profile/edit"
-              element={
-                <ProtectedRoute>
-                  <ProfileEditPage />
                 </ProtectedRoute>
               }
             />

@@ -1,10 +1,8 @@
 import axios from "axios";
 import { clearRequestCache } from "./requestCache";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "http://127.0.0.1:8000");
-
 const adminApi = axios.create({
-  baseURL: `${BASE_URL}/api/admin`,
+  baseURL: "http://127.0.0.1:8000/api/admin",
   headers: { "Content-Type": "application/json;charset=utf-8" },
 });
 
