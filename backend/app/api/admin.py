@@ -540,8 +540,8 @@ def update_user_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="회원을 찾을 수 없습니다.")
-    if user.id == current_admin.id and req.admin_role != "ADMIN":
-        raise HTTPException(status_code=400, detail="현재 로그인한 관리자의 권한은 해제할 수 없습니다.")
+    if user.user_account.strip().lower() == "admin1" and req.admin_role != "ADMIN":
+        raise HTTPException(status_code=400, detail="최고 관리자(admin1) 계정의 권한은 해제할 수 없습니다.")
     user.admin_role = req.admin_role
     db.commit()
     return {"id": user.id, "admin_role": user.admin_role}
