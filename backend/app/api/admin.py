@@ -94,8 +94,20 @@ def require_admin(
     user = db.query(User).filter(User.id == payload.get("id")).first()
     if not user:
         raise HTTPException(status_code=404, detail="관리자 계정을 찾을 수 없습니다.")
+    
+    # admin1 계정인 경우 ADMIN 권한 보장
+    if user.user_account.strip().lower() == "admin1":
+        if user.admin_role != "ADMIN":
+            try:
+                user.admin_role = "ADMIN"
+                db.commit()
+            except Exception:
+                db.rollback()
+        return user
+
+    # admin1 외의 다른 모든 계정은 ADMIN 권한 미부여 시 403 거부
     if user.admin_role != "ADMIN":
-        raise HTTPException(status_code=403, detail="관리자 권한이 필요합니다.")
+        raise HTTPException(status_code=403, detail="관리자(admin1) 권한이 필요합니다.")
     return user
 
 
