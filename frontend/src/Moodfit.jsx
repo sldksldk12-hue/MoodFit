@@ -98,6 +98,15 @@ const Moodfit = () => {
             />
 
             <Route
+              path="/moodfit/profile/edit"
+              element={
+                <ProtectedRoute>
+                  <PreferencePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
               path="/moodfit/orders"
               element={
                 <ProtectedRoute>
