@@ -20,7 +20,7 @@ import MyPageSummary from "../components/mypage/MyPageSummary";
 import MyPageQuickMenu from "../components/mypage/MyPageQuickMenu";
 import MyPageActivity from "../components/mypage/MyPageActivity";
 
-import "../assets/styles/pages/mypage/MyPage.css";
+import "../assets/styles/pages/mypage/Mypage.css";
 
 const MyPage = () => {
     const navigate = useNavigate();
