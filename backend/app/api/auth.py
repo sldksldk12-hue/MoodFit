@@ -257,3 +257,49 @@ async def update_user_preference(req: PreferenceUpdate, token: str = Depends(oau
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"취향 정보 저장 중 오류가 발생했습니다: {str(e)}"
         )
+
+class ProfileUpdate(BaseModel):
+    email: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
+
+# 회원 정보 수정 (이메일, 비밀번호)
+@router.put("/profile")
+@router.put("/profile/")
+async def update_profile_info(req: ProfileUpdate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="유효하지 않거나 만료된 토큰입니다."
+        )
+    user_id = payload.get("id")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="존재하지 않는 회원 정보입니다."
+        )
+
+    try:
+        if req.email and req.email.strip():
+            existing_email = db.query(User).filter(User.email == req.email.strip(), User.id != user_id).first()
+            if existing_email:
+                raise HTTPException(status_code=400, detail="이미 다른 계정에서 사용 중인 이메일입니다.")
+            user.email = req.email.strip()
+
+        if req.new_password and req.new_password.strip():
+            if not req.current_password:
+                raise HTTPException(status_code=400, detail="비밀번호를 변경하려면 현재 비밀번호를 입력해 주세요.")
+            if not verify_password(req.current_password, user.password_hash):
+                raise HTTPException(status_code=401, detail="현재 비밀번호가 일치하지 않습니다.")
+            user.password_hash = get_password_hash(req.new_password.strip())
+
+        db.commit()
+        return {"status": "success", "message": "회원 정보가 성공적으로 수정되었습니다."}
+    except HTTPException as he:
+        db.rollback()
+        raise he
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"회원 정보 수정 중 오류 발생: {str(e)}")
