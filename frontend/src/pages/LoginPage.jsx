@@ -99,9 +99,7 @@ const LoginPage = () => {
             <div className="login-links">
               <Link to="/moodfit/register">회원가입</Link>
               <span>|</span>
-              <a href="/find-id">아이디 찾기</a>
-              <span>|</span>
-              <a href="/find-password">비밀번호 찾기</a>
+              <Link to="/moodfit/find-account">아이디 / 비밀번호 찾기</Link>
             </div>
           </div>
         </section>

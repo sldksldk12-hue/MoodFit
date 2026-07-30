@@ -543,7 +543,7 @@ const CartPage = () => {
                    * 실제 장바구니 DB는 주문 완료 전까지 변경하지 않습니다.
                    */
                   const checkoutData = {
-                    checkoutId: crypto.randomUUID(),
+                    checkoutId: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `chk-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                     checkoutType: "cart",
                     returnPath: "/moodfit/cart",
                     checkoutItems: cartItems.map((item) => ({

@@ -15,9 +15,9 @@
  */
 // 이 파일에서 사용하는 외부 라이브러리와 내부 모듈을 불러옵니다.
 import { useState } from "react";
-import { UserPlus, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Eye, EyeOff, CheckCircle } from "lucide-react";
 import "../assets/styles/pages/auth/RegisterPage.css";
-import { register } from "../services/api";
+import { register, checkUsername } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -34,9 +34,21 @@ const RegisterPage = () => {
         email: "",
     });
 
-
     // showPassword: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [showPassword, setShowPassword] = useState(false);
+
+    const handleCheckUsername = async () => {
+        if (!user.user_name.trim()) {
+            alert("아이디를 입력해 주세요.");
+            return;
+        }
+        try {
+            const res = await checkUsername(user.user_name);
+            alert(res.message);
+        } catch (err) {
+            alert("아이디 중복 확인 중 오류가 발생했습니다.");
+        }
+    };
 
     // changeValue: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
     const changeValue = (e) => {
@@ -49,7 +61,6 @@ const RegisterPage = () => {
     // submitRegister: 사용자 이벤트 또는 데이터 처리 과정을 한 함수로 분리해 JSX를 단순하게 유지합니다.
     const submitRegister = async (e) => {
         e.preventDefault();
-
 
         if (user.password !== user.passwordCheck) {
             alert("비밀번호가 일치하지 않습니다.");
@@ -68,7 +79,12 @@ const RegisterPage = () => {
             })
             .catch((error) => {
                 console.error(error);
-                alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+                const detailMsg = error.response?.data?.detail;
+                if (detailMsg && typeof detailMsg === "string") {
+                    alert(detailMsg);
+                } else {
+                    alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+                }
             });
     };
 
@@ -85,14 +101,32 @@ const RegisterPage = () => {
                 <form className="register-form" onSubmit={submitRegister}>
                     <label>
                         아이디
-                        <input
-                            type="text"
-                            name="user_name"
-                            placeholder="아이디를 입력하세요"
-                            value={user.user_name}
-                            onChange={changeValue}
-                            required
-                        />
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <input
+                                type="text"
+                                name="user_name"
+                                placeholder="아이디를 입력하세요"
+                                value={user.user_name}
+                                onChange={changeValue}
+                                required
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCheckUsername}
+                                style={{
+                                    padding: "0 14px",
+                                    borderRadius: "8px",
+                                    border: "1px solid #ddd",
+                                    backgroundColor: "#f5f5f5",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap"
+                                }}
+                            >
+                                중복 확인
+                            </button>
+                        </div>
                     </label>
 
                     {/* <label>

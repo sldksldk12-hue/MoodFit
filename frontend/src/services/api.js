@@ -221,7 +221,7 @@ export const login = (username, password) => {
   params.append("username", username);
   params.append("password", password);
 
-  return api.post("/moodfit/login/", params, {
+  return api.post("/api/auth/login", params, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -232,7 +232,7 @@ export const login = (username, password) => {
 export const getMe = () => {
   const token = localStorage.getItem("token");
 
-  return api.get("/moodfit/me", {
+  return api.get("/api/auth/me", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -240,14 +240,36 @@ export const getMe = () => {
 };
 // 회원가입
 export const register = async (userData) => {
-  const response = await api.post("/moodfit/register/", userData);
+  const response = await api.post("/api/auth/register", userData);
   return response.data;
 }
+
+// 아이디 중복 확인
+export const checkUsername = async (user_name) => {
+  const response = await api.get("/api/auth/check-username", { params: { user_name } });
+  return response.data;
+};
+
+// 아이디 찾기
+export const findUsername = async (email) => {
+  const response = await api.post("/api/auth/find-username", { email });
+  return response.data;
+};
+
+// 비밀번호 재설정
+export const resetPassword = async ({ user_name, email, new_password }) => {
+  const response = await api.post("/api/auth/reset-password", {
+    user_name,
+    email,
+    new_password,
+  });
+  return response.data;
+};
 
 // 취향 정보 수정
 export const updatePreference = async (preferenceData) => {
   const token = localStorage.getItem("token");
-  const response = await api.put("/moodfit/preference", preferenceData, {
+  const response = await api.put("/api/auth/preference", preferenceData, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
