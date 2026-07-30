@@ -296,7 +296,7 @@ const handleBuyNow = () => {
    * 이전에 결제하지 않은 상품 정보와 섞이지 않습니다.
    */
   const checkoutData = {
-    checkoutId: crypto.randomUUID(),
+    checkoutId: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `chk-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     checkoutType: "direct",
     returnPath: `/moodfit/detail/${product.id}`,
     checkoutItems: [
