@@ -61,6 +61,9 @@ server {
 }
 EOT
 
+ln -sf /etc/nginx/sites-available/moodfit /etc/nginx/sites-enabled/moodfit
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
 systemctl restart moodfit-backend nginx
 
 echo "=========================================="
