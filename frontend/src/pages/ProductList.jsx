@@ -162,6 +162,10 @@ const ProductList = () => {
         return false;
       }
 
+      if (isBestCollection && Number(product.like_count || 0) <= 0) {
+        return false;
+      }
+
       if (!normalizedQuery) return true;
 
       return [

@@ -136,7 +136,7 @@ const MainPage = () => {
   const bestProducts = useMemo(
     () =>
       [...products]
-        .filter((item) => Number(item.like_count ?? 0) >= 5)
+        .filter((item) => Number(item.like_count ?? 0) > 0)
         .sort(
           (a, b) => Number(b.like_count ?? 0) - Number(a.like_count ?? 0)
         ),
