@@ -18,6 +18,15 @@ adminApi.interceptors.request.use((config) => {
 
 const unwrap = (request) => request.then((response) => response.data);
 
+export const uploadAdminImage = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const token = localStorage.getItem("token");
+  return axios.post(`${BASE_ADMIN_URL}/upload/image`, formData, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  }).then((res) => res.data);
+};
+
 export const getAdminDashboard = () => unwrap(adminApi.get("/dashboard"));
 export const getAdminCategories = () => unwrap(adminApi.get("/categories"));
 export const getAdminProducts = (params = {}) => unwrap(adminApi.get("/products", { params }));

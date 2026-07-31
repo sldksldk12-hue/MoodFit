@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from typing import Literal, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile
+import os
+import shutil
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
@@ -279,6 +281,43 @@ def analyze_product(
         "tags": tags,
         "ai_used": ai_used,
     }
+
+
+@router.post("/upload/image")
+def upload_image(
+    file: UploadFile = File(...),
+    _: User = Depends(require_admin),
+):
+    """
+    상품 이미지 파일을 업로드하고 정적 URL을 반환합니다.
+    """
+    allowed_exts = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg"}
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".jpg"
+    is_valid_type = (file.content_type and file.content_type.startswith("image/")) or (ext in allowed_exts)
+    
+    if not is_valid_type:
+        raise HTTPException(
+            status_code=400,
+            detail="이미지 파일만 업로드할 수 있습니다. (지원 확장자: JPG, PNG, WEBP, GIF, BMP, SVG)"
+        )
+
+    if not ext or ext not in allowed_exts:
+        ext = ".jpg"
+
+    unique_filename = f"prod_{uuid4().hex}{ext}"
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    upload_dir = os.path.join(base_dir, "static", "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, unique_filename)
+
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        image_url = f"/static/uploads/{unique_filename}"
+        return {"status": "success", "url": image_url}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"이미지 업로드 실패: {exc}")
 
 
 @router.post("/products", status_code=status.HTTP_201_CREATED)

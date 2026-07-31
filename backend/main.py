@@ -61,6 +61,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MoodFit AI API", version="1.3.0", lifespan=lifespan)
 
+from fastapi.staticfiles import StaticFiles
+import os
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+uploads_dir = os.path.join(static_dir, "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )

@@ -40,6 +40,7 @@ import {
   updateAdminOrderStatus,
   updateAdminProduct,
   updateAdminUserRole,
+  uploadAdminImage,
 } from "../services/adminApi";
 import { useAuth } from "../store/AuthContext";
 import { formatPrice } from "../utils/formatPrice";
@@ -418,6 +419,25 @@ const ReviewTable = ({ items, onDelete }) => items.length ? <div className="admi
 const ModalShell = ({ title, children, onClose }) => <div className="admin-modal-backdrop" onMouseDown={onClose}><section className="admin-modal" onMouseDown={(event) => event.stopPropagation()}><header><h2>{title}</h2><button type="button" onClick={onClose}><X /></button></header>{children}</section></div>;
 
 
+const handleFileUpload = async (event, product, onChange) => {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  try {
+    const uploadedUrls = [];
+    for (const file of files) {
+      const res = await uploadAdminImage(file);
+      if (res?.url) uploadedUrls.push(res.url);
+    }
+    if (uploadedUrls.length > 0) {
+      const currentText = product.image_urls_text || "";
+      const newText = currentText ? `${currentText}\n${uploadedUrls.join("\n")}` : uploadedUrls.join("\n");
+      onChange({ ...product, image_urls_text: newText });
+    }
+  } catch (error) {
+    alert("이미지 업로드 실패: " + (error.response?.data?.detail || error.message));
+  }
+};
+
 const ProductCreateModal = ({ product, categories, saving, analyzing, onChange, onAnalyze, onClose, onSubmit }) => {
   const setTag = (key, value) => onChange({ ...product, tags: { ...product.tags, [key]: value } });
   return <ModalShell title="새 상품 등록" onClose={onClose}><form className="admin-form product-create-form" onSubmit={onSubmit}>
@@ -426,7 +446,16 @@ const ProductCreateModal = ({ product, categories, saving, analyzing, onChange, 
     <div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>대상 성별<select value={product.gender_target} onChange={(e) => onChange({ ...product, gender_target: e.target.value })}><option>공용</option><option>남성</option><option>여성</option></select></label></div>
     <label>카테고리<select value={product.category_id} onChange={(e) => onChange({ ...product, category_id: e.target.value })} required><option value="">카테고리를 선택하세요</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.parent_id ? "└ " : ""}{item.category_name}</option>)}</select><small>{product.ai_used ? "AI가 추천했습니다. 필요하면 다른 카테고리를 선택하세요." : "관리자가 직접 선택하거나 AI 분석으로 추천받을 수 있습니다."}</small></label>
     <div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} required /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} required /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} required /></label></div>
-    <label>상품 이미지 URL<textarea rows="3" value={product.image_urls_text} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="여러 장은 줄바꿈 또는 쉼표로 구분하세요." /></label>
+    <div className="image-upload-wrapper">
+      <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+        <span>상품 이미지 (URL 또는 파일 업로드)</span>
+        <label className="secondary" style={{ cursor: "pointer", fontSize: "13px", padding: "4px 10px", border: "1px solid #ccc", borderRadius: "4px", background: "#f8f9fa" }}>
+          📁 컴퓨터/모바일 파일 선택
+          <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleFileUpload(e, product, onChange)} />
+        </label>
+      </label>
+      <textarea rows="3" value={product.image_urls_text} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="직접 이미지 URL을 입력하거나, 오른쪽 위 '파일 선택' 버튼으로 PC/모바일 이미지를 업로드하세요." />
+    </div>
     <label>상세 설명<textarea rows="4" value={product.product_content} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label>
     <fieldset className="tag-fieldset"><legend>추천 태그</legend><div className="form-row"><label>감정 태그<input value={product.tags.mood_tag} onChange={(e) => setTag("mood_tag", e.target.value)} required /></label><label>날씨 태그<input value={product.tags.weather_tag} onChange={(e) => setTag("weather_tag", e.target.value)} required /></label></div><div className="form-row"><label>계절 태그<input value={product.tags.season_tag} onChange={(e) => setTag("season_tag", e.target.value)} required /></label><label>TPO/관광 태그<input value={product.tags.tour_tag || ""} onChange={(e) => setTag("tour_tag", e.target.value)} /></label></div></fieldset>
     <footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving || analyzing}>{saving ? "등록 중..." : "상품 등록"}</button></footer>
@@ -443,7 +472,17 @@ const ProductModal = ({ product, categories, saving, onChange, onClose, onSubmit
     <label>상품명<input value={product.product_name} onChange={(e) => onChange({ ...product, product_name: e.target.value })} required /></label>
     <div className="form-row"><label>브랜드<input value={product.brand} onChange={(e) => onChange({ ...product, brand: e.target.value })} required /></label><label>카테고리<select value={product.category_id || ""} onChange={(e) => onChange({ ...product, category_id: e.target.value })}><option value="">미분류</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.category_name}</option>)}</select></label></div>
     <div className="form-row three"><label>원가<input type="number" min="0" value={product.original_price} onChange={(e) => onChange({ ...product, original_price: e.target.value })} /></label><label>판매가<input type="number" min="0" value={product.discount_price} onChange={(e) => onChange({ ...product, discount_price: e.target.value })} /></label><label>재고<input type="number" min="0" value={product.inventory} onChange={(e) => onChange({ ...product, inventory: e.target.value })} /></label><label>좋아요 수<input type="number" min="0" value={product.like_count || 0} onChange={(e) => onChange({ ...product, like_count: e.target.value })} /></label></div>
-    <label>상품 이미지 URL<textarea rows="4" value={product.image_urls_text || ""} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="여러 장은 줄바꿈 또는 쉼표로 구분하세요." /><small>첫 번째 URL이 대표 이미지로 사용됩니다.</small></label>
+    <div className="image-upload-wrapper">
+      <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+        <span>상품 이미지 (URL 또는 파일 업로드)</span>
+        <label className="secondary" style={{ cursor: "pointer", fontSize: "13px", padding: "4px 10px", border: "1px solid #ccc", borderRadius: "4px", background: "#f8f9fa" }}>
+          📁 컴퓨터/모바일 파일 선택
+          <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleFileUpload(e, product, onChange)} />
+        </label>
+      </label>
+      <textarea rows="4" value={product.image_urls_text || ""} onChange={(e) => onChange({ ...product, image_urls_text: e.target.value })} required placeholder="직접 이미지 URL을 입력하거나, 오른쪽 위 '파일 선택' 버튼으로 PC/모바일 이미지를 업로드하세요." />
+      <small>첫 번째 URL이 대표 이미지로 사용됩니다.</small>
+    </div>
     {previewImage && <div className="admin-product-image-preview"><span>대표 이미지 미리보기</span><img src={previewImage} alt="상품 대표 이미지 미리보기" onError={(event) => { event.currentTarget.style.display = "none"; }} /></div>}
     <label>상세 설명<textarea rows="5" value={product.product_content || ""} onChange={(e) => onChange({ ...product, product_content: e.target.value })} /></label>
     <footer><button type="button" className="secondary" onClick={onClose}>취소</button><button disabled={saving}>{saving ? "저장 중..." : "변경사항 저장"}</button></footer>
