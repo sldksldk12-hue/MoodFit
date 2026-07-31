@@ -427,6 +427,12 @@ export const createInquiry = async ({
   return response.data;
 };
 
+// 로그인 사용자의 문의 내역 목록 조회
+export const getUserInquiries = async (userId) => {
+  const response = await api.get(`/api/inquiries/user/${userId}`);
+  return response.data;
+};
+
 // ===========================
 // 배송지
 // ===========================

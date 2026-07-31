@@ -13,6 +13,7 @@ import {
     getUserLikes,
     getProductHistory,
     getUserReviews,
+    getUserInquiries,
 } from "../services";
 
 import MyPageProfile from "../components/mypage/MyPageProfile";
@@ -42,37 +43,15 @@ const MyPage = () => {
     });
 
     /*
-     * TODO
      * 리뷰 API가 완성되면 실제 리뷰 데이터로 교체합니다.
      */
     const [reviews, setReviews] = useState([]);
     const [reviewLoading, setReviewLoading] =
         useState(false);
-    /*
-     * TODO
-     * 문의 API가 완성되면 실제 문의 데이터로 교체합니다.
-     */
-    const inquiries = useMemo(
-        () => [
-            {
-                id: 1,
-                productId: 103,
-                productName: "리넨 오버 셔츠",
-                title: "재입고 예정이 있나요?",
-                status: "답변완료",
-                createdAt: "2026.07.19",
-            },
-            {
-                id: 2,
-                productId: 104,
-                productName: "베이직 러닝 스니커즈",
-                title: "사이즈 교환 문의드립니다.",
-                status: "답변대기",
-                createdAt: "2026.07.17",
-            },
-        ],
-        []
-    );
+    
+    // 로그인 사용자의 실제 DB 문의 내역 동적 상태
+    const [inquiries, setInquiries] = useState([]);
+    const [inquiryLoading, setInquiryLoading] = useState(false);
 
     /*
      * 장바구니와 좋아요 개수를 조회합니다.
@@ -86,13 +65,17 @@ const MyPage = () => {
 
         const fetchSummary = async () => {
             try {
-                const [cartItems, likes] = await Promise.all([
+                const [cartItems, likes, inqs] = await Promise.all([
                     getCartItems(userId),
                     getUserLikes(userId),
+                    getUserInquiries(userId).catch(() => []),
                 ]);
 
                 // 컴포넌트가 사라진 뒤에는 상태를 변경하지 않습니다.
                 if (isCancelled) return;
+
+                const realInquiries = Array.isArray(inqs) ? inqs : [];
+                setInquiries(realInquiries);
 
                 setSummary((previous) => ({
                     ...previous,

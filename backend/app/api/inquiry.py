@@ -52,3 +52,33 @@ def get_product_inquiries(product_id: int, db: Session = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"문의 내역 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/user/{user_id}")
+def get_user_inquiries(user_id: int, db: Session = Depends(get_db)):
+    """
+    특정 회원이 작성한 모든 문의 내역을 최신순으로 조회합니다.
+    """
+    try:
+        inquiries = db.query(Inquiry).filter(Inquiry.user_id == user_id).order_by(Inquiry.created_at.desc()).all()
+        result = []
+        for inq in inquiries:
+            prod_name = "상품 정보 없음"
+            if inq.product_id:
+                product = db.query(Product).filter(Product.id == inq.product_id).first()
+                if product:
+                    prod_name = product.product_name
+
+            result.append({
+                "id": inq.id,
+                "productId": inq.product_id,
+                "productName": prod_name,
+                "title": inq.title,
+                "content": inq.content,
+                "status": inq.inq_status or "답변대기",
+                "replyContent": inq.reply_content,
+                "createdAt": inq.created_at.strftime("%Y.%m.%d") if inq.created_at else ""
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"회원 문의 내역 조회 중 오류가 발생했습니다: {str(e)}")
