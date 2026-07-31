@@ -175,6 +175,7 @@ const AdminPage = () => {
         original_price: Number(editProduct.original_price),
         discount_price: Number(editProduct.discount_price),
         inventory: Number(editProduct.inventory),
+        like_count: Number(editProduct.like_count || 0),
         brand: editProduct.brand,
         gender_target: editProduct.gender_target,
         image_urls: imageUrls,
