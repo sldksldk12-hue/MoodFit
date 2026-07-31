@@ -1,8 +1,12 @@
 import axios from "axios";
 import { clearRequestCache } from "./requestCache";
 
+const BASE_ADMIN_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
+  : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
+
 const adminApi = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/admin",
+  baseURL: BASE_ADMIN_URL,
   headers: { "Content-Type": "application/json;charset=utf-8" },
 });
 
