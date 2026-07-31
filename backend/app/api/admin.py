@@ -63,6 +63,7 @@ class ProductUpdate(BaseModel):
     original_price: Optional[int] = Field(default=None, ge=0)
     discount_price: Optional[int] = Field(default=None, ge=0)
     inventory: Optional[int] = Field(default=None, ge=0)
+    like_count: Optional[int] = Field(default=None, ge=0)
     brand: Optional[str] = Field(default=None, min_length=1, max_length=100)
     gender_target: Optional[str] = Field(default=None, min_length=1, max_length=10)
     image_urls: Optional[list[str]] = None
