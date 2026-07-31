@@ -314,7 +314,7 @@ def upload_image(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        image_url = f"/static/uploads/{unique_filename}"
+        image_url = f"/api/static/uploads/{unique_filename}"
         return {"status": "success", "url": image_url}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"이미지 업로드 실패: {exc}")

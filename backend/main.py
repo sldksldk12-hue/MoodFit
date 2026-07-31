@@ -67,6 +67,7 @@ import os
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 uploads_dir = os.path.join(static_dir, "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/api/static", StaticFiles(directory=static_dir), name="api_static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.add_middleware(
