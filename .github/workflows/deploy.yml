@@ -27,9 +27,10 @@ jobs:
           cd /var/www/MoodFit/backend
           ./venv/bin/pip install -r requirements.txt --quiet
 
+          export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/root/.nvm/versions/node/$(ls /root/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:/home/ubuntu/.nvm/versions/node/$(ls /home/ubuntu/.nvm/versions/node 2>/dev/null | tail -n 1)/bin
           cd /var/www/MoodFit/frontend
           rm -rf dist node_modules/.vite
-          npx vite build
+          ./node_modules/.bin/vite build || npx vite build || npm run build
 
           chmod -R 755 /var/www/MoodFit
           
