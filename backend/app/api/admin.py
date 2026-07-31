@@ -232,8 +232,22 @@ def get_dashboard(
 
 @router.get("/categories")
 def get_categories(db: Session = Depends(get_db), _: User = Depends(require_admin)):
-    categories = db.query(ProductCategory).order_by(ProductCategory.category_name).all()
-    return [{"id": item.id, "category_name": item.category_name, "parent_id": item.parent_id} for item in categories]
+    all_cats = db.query(ProductCategory).all()
+    parents = [c for c in all_cats if c.parent_id is None]
+    parents.sort(key=lambda c: c.id)
+    
+    result = []
+    for parent in parents:
+        children = [c for c in all_cats if c.parent_id == parent.id]
+        if not children:
+            continue
+            
+        result.append({"id": parent.id, "category_name": parent.category_name, "parent_id": None})
+        children.sort(key=lambda c: c.id)
+        for child in children:
+            result.append({"id": child.id, "category_name": child.category_name, "parent_id": child.parent_id})
+            
+    return result
 
 
 def _recommend_category(db: Session, product_name: str) -> ProductCategory:
