@@ -29,7 +29,7 @@ const MyInquiryList = ({ inquiries, onNavigate }) => {
               type="button"
               className="mypage-list-title"
               onClick={() =>
-                onNavigate(`/moodfit/detail/${inquiry.productId}`)
+                onNavigate(`/moodfit/detail/${inquiry.productId}?tab=qna`)
               }
             >
               {inquiry.productName}
@@ -40,7 +40,14 @@ const MyInquiryList = ({ inquiries, onNavigate }) => {
 
           <div className="mypage-list-side">
             <time>{inquiry.createdAt}</time>
-            <button type="button">보기</button>
+            <button
+              type="button"
+              onClick={() =>
+                onNavigate(`/moodfit/detail/${inquiry.productId}?tab=qna`)
+              }
+            >
+              보기
+            </button>
           </div>
         </article>
       ))}

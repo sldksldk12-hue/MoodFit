@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import ProductDescription from "../components/detail/ProductDescription";
 import ProductReview from "../components/detail/ProductReview";
@@ -46,10 +46,18 @@ const initialProduct = {
 
 const DetailPage = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [tab, setTab] = useState("desc");
+  const [tab, setTab] = useState(searchParams.get("tab") || "desc");
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab) {
+      setTab(requestedTab);
+    }
+  }, [searchParams]);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState(1);
