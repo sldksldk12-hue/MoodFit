@@ -797,12 +797,19 @@ def seed_initial_products(db: Session):
         
         if response.status_code == 200:
             items = response.json().get("items", [])
+            
+            # 검색 결과 자체가 없는 경우 로그 출력
+            if not items:
+                print(f"⚠️ [{cat.category_name}] 네이버 검색 결과가 0개입니다. (키워드: {search_keyword})")
+                
             products_to_save = []
             
             for item in items:
                 shop_pid = item.get("productId", str(hash(item["link"])))
                 
                 if db.query(Product).filter(Product.shop_product_id == shop_pid).first():
+                    # 중복 상품 건너뜀 로그
+                    print(f"🔄 중복 상품 건너뜀: {item['title'][:15]}...") 
                     continue
                 
                 prod_name = item["title"].replace("<b>", "").replace("</b>", "")
@@ -839,6 +846,10 @@ def seed_initial_products(db: Session):
                 db.add_all(products_to_save)
                 db.commit()
                 total_added += len(products_to_save)
+                
+        # API 호출이 실패했을 때 에러 로그 출력 (일일 한도 초과 등)
+        else:
+            print(f"🚨 네이버 API 에러 발생! 상태 코드: {response.status_code}, 상세 원인: {response.text}")
 
     if total_added > 0:
         print(f"✅ 총 {total_added}개의 리얼 네이버 상품을 중분류 카테고리별로 꽉꽉 채웠습니다!")
