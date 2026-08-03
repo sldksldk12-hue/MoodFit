@@ -129,7 +129,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                             RecommendationSession.chat_session_id == current_session_id,
                             RecommendationSession.user_id == req.user_id
                         )
-                    ).order_by(RecommendationSession.created_at.desc()).limit(15).all()
+                    ).order_by(RecommendationSession.created_at.desc()).limit(3).all()
                     
                     exclude_ids = []
                     for rs in past_rec_sessions:
@@ -341,7 +341,7 @@ def extract_and_fetch_recommendation_products(
                     RecommendationSession.chat_session_id == session_id,
                     RecommendationSession.user_id == user_id
                 )
-            ).order_by(RecommendationSession.created_at.desc()).limit(15).all()
+            ).order_by(RecommendationSession.created_at.desc()).limit(3).all()
             
             exclude_ids = []
             for rs in past_rec_sessions:
