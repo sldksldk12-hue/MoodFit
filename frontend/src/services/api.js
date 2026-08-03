@@ -18,20 +18,22 @@ import axios from "axios";
 import { getCachedRequest, invalidateRequestCache } from "./requestCache";
 
 const resolveBaseUrl = () => {
-  let raw = import.meta.env.VITE_API_BASE_URL;
-  if (import.meta.env.PROD && (!raw || raw.includes("moodfit.kro.kr"))) {
+  if (import.meta.env.PROD) {
     return "";
   }
-  let url = raw || (import.meta.env.PROD ? "" : "https://moodfit.kro.kr");
-  if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
-    url = url.replace("http://", "https://");
+  let raw = import.meta.env.VITE_API_BASE_URL || "https://moodfit.kro.kr";
+  if (raw.includes("moodfit.kro.kr") && raw.startsWith("http://")) {
+    raw = raw.replace("http://", "https://");
   }
-  return url;
+  return raw;
 };
 
 const BASE_URL = resolveBaseUrl();
 
 export const getEffectiveBaseUrl = () => {
+  if (import.meta.env.PROD) {
+    return "";
+  }
   let url = BASE_URL;
   if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
     url = url.replace("http://", "https://");
@@ -40,19 +42,30 @@ export const getEffectiveBaseUrl = () => {
 };
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: import.meta.env.PROD ? "" : BASE_URL,
   headers: {
     "Content-Type": "application/json;charset=utf-8",
   },
 });
 
+if (import.meta.env.PROD) {
+  api.defaults.baseURL = "";
+}
+
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+  if (import.meta.env.PROD) {
+    if (config.baseURL && config.baseURL.includes("moodfit.kro.kr")) {
+      config.baseURL = "";
+    }
     if (config.url && config.url.startsWith("http://")) {
       config.url = config.url.replace("http://", "https://");
     }
+  } else if (typeof window !== "undefined" && window.location.protocol === "https:") {
     if (config.baseURL && config.baseURL.startsWith("http://")) {
       config.baseURL = config.baseURL.replace("http://", "https://");
+    }
+    if (config.url && config.url.startsWith("http://")) {
+      config.url = config.url.replace("http://", "https://");
     }
   }
   return config;

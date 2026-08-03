@@ -28,8 +28,9 @@ server {
     root /var/www/MoodFit/frontend/dist;
     index index.html;
 
-    location = /index.html {
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 
     location /static/ {
@@ -58,6 +59,7 @@ server {
 
     location / {
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 }
 EOT
