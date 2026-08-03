@@ -180,7 +180,7 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False, verbos
                         sizes = ["28(S)", "30(M)", "32(L)", "34(XL)"]
                         colors = ["중청", "연청", "진청", "블랙", "크림"]
                         measurements = [{"size": "30(M)", "waist": 38.5, "rise": 27, "thigh": 29.5, "length": 100}]
-                        specs = {"material": "데님, 면 98% 스판 2%", "fit": "와이드 핏", "season": "봄 / 가을", "country": "대한민국"}
+                        specs = {"material": "데님, 면 98% 스판 2%", "fit": "와이드 핏", "season": "봄 / 가 가을", "country": "대한민국"}
                     else:
                         sizes = ["95(S)", "100(M)", "105(L)", "110(XL)"]
                         colors = ["블랙", "화이트", "그레이", "네이비", "베이지"]
@@ -457,14 +457,15 @@ def get_or_fetch_products(
             for d_color in disliked_list:
                 if d_color not in keyword: base_conditions.append(~Product.product_name.ilike(f"%{d_color}%"))
 
+        # 성별 필터링 키워드 대폭 확장 ("우먼즈", "우먼스", "걸스" 등 완벽 차단)
         if gender == "남성":
             base_conditions.append(Product.gender_target != "여성")
-            female_keywords = ["여성", "원피스", "스커트", "블라우스", "크롭"]
+            female_keywords = ["여성", "여자", "우먼", "우먼스", "우먼즈", "걸스", "원피스", "스커트", "치마", "블라우스", "크롭"]
             for fk in female_keywords:
                 if fk not in keyword: base_conditions.append(~Product.product_name.ilike(f"%{fk}%"))
         elif gender == "여성":
             base_conditions.append(Product.gender_target != "남성")
-            male_keywords = ["남성용", "남자전용"]
+            male_keywords = ["남성용", "남자전용", "남성", "남자", "맨즈", "옴므", "보이즈"]
             for mk in male_keywords:
                 if mk not in keyword: base_conditions.append(~Product.product_name.ilike(f"%{mk}%"))
 
@@ -498,13 +499,11 @@ def get_or_fetch_products(
             
         local_products = []
         if mood_conditions:
-            # 검색 결과에 랜덤 정렬(order_by(func.rand())) 추가
             matched_products = query.filter(or_(*mood_conditions)).order_by(func.rand()).limit(display).all()
             for p in matched_products:
                 if p not in local_products: local_products.append(p)
 
         if len(local_products) < display:
-            # 정확한 키워드 매칭에도 랜덤 정렬 추가
             exact_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
             for p in exact_products:
                 if p not in local_products: local_products.append(p)
@@ -512,18 +511,21 @@ def get_or_fetch_products(
         if len(local_products) < display and len(core_terms) > 1:
             or_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
             or_query = db.query(Product).filter(and_(*base_conditions), or_(*or_core))
-            # OR 조건 검색에도 랜덤 정렬 추가
             or_products = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_products:
                 if p_item not in local_products: local_products.append(p_item)
         
-        if gender in ["남성", "여성"]:
-            gender_products = [
+        # 로컬 메모리 필터링 완화 (유니섹스/공용 제품이 억울하게 날아가는 것을 방지하고, 성별 금지어만 정확히 솎아냄)
+        if gender == "남성":
+            local_products = [
                 p for p in local_products 
-                if p.gender_target == gender or (gender in p.product_name) or ("남자" if gender == "남성" else "여자" in p.product_name)
+                if p.gender_target != "여성" and not any(fk in p.product_name for fk in ["여성", "여자", "우먼", "우먼스", "우먼즈", "걸스"])
             ]
-            if len(gender_products) >= display: local_products = gender_products
-            else: local_products = []
+        elif gender == "여성":
+            local_products = [
+                p for p in local_products 
+                if p.gender_target != "남성" and not any(mk in p.product_name for mk in ["남성", "남자", "맨즈", "옴므", "보이즈"])
+            ]
         
         if disliked_list and local_products:
             local_products = [p for p in local_products if not check_product_has_colors(db, p, disliked_list)]
@@ -623,29 +625,26 @@ def get_or_fetch_products(
                 } for p in new_products[:display]
             ]
             
-        # 폴백(Fallback) 쿼리에도 랜덤 정렬 추가
         final_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
         
         if len(final_products) < display and len(search_terms) > 1:
             term_or_conditions = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in search_terms]
             or_query = db.query(Product).filter(or_(*term_or_conditions))
             
-            if exclude_ids: or_query = or_query.filter(~Product.id.in_(exclude_ids))
-            if gender == "남성": or_query = or_query.filter(Product.gender_target != "여성")
-            elif gender == "여성": or_query = or_query.filter(Product.gender_target != "남성")
+            # 부분 일치 쿼리로 넘어갈 때도 성별 필터(base_conditions) 강제 적용 유지
+            if base_conditions:
+                or_query = or_query.filter(and_(*base_conditions))
 
-            # 조건 완화 쿼리에도 랜덤 정렬 추가
             or_prods = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_prods:
                 if p_item not in final_products: final_products.append(p_item)
 
         if not final_products:
             fallback_query = db.query(Product)
-            if exclude_ids: fallback_query = fallback_query.filter(~Product.id.in_(exclude_ids))
-            if gender == "남성": fallback_query = fallback_query.filter(Product.gender_target != "여성")
-            elif gender == "여성": fallback_query = fallback_query.filter(Product.gender_target != "남성")
+            # 최후의 보루(아무거나 가져오기) 상황에서도 성별 필터만큼은 무조건 유지되도록 적용
+            if base_conditions:
+                fallback_query = fallback_query.filter(and_(*base_conditions))
             
-            # 최후의 폴백 쿼리에도 랜덤 정렬 추가 (기존에는 좋아요 순이었으나 다양성을 위해 변경)
             final_products = fallback_query.order_by(func.rand()).limit(display).all()
 
         if final_products:
