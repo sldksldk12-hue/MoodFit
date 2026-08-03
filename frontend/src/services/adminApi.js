@@ -19,6 +19,14 @@ const adminApi = axios.create({
 });
 
 adminApi.interceptors.request.use((config) => {
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    if (config.url && config.url.startsWith("http://")) {
+      config.url = config.url.replace("http://", "https://");
+    }
+    if (config.baseURL && config.baseURL.startsWith("http://")) {
+      config.baseURL = config.baseURL.replace("http://", "https://");
+    }
+  }
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;

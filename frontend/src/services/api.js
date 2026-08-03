@@ -27,11 +27,31 @@ const resolveBaseUrl = () => {
 
 const BASE_URL = resolveBaseUrl();
 
+export const getEffectiveBaseUrl = () => {
+  let url = BASE_URL;
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+    url = url.replace("http://", "https://");
+  }
+  return url;
+};
+
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json;charset=utf-8",
   },
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    if (config.url && config.url.startsWith("http://")) {
+      config.url = config.url.replace("http://", "https://");
+    }
+    if (config.baseURL && config.baseURL.startsWith("http://")) {
+      config.baseURL = config.baseURL.replace("http://", "https://");
+    }
+  }
+  return config;
 });
 export const getFestival = () =>
   getCachedRequest("festival:v2", async () => {
@@ -95,7 +115,7 @@ export const chatStartStream = async ({
     payload.session_id = Number(sessionId);
   }
 
-  const response = await fetch(`${BASE_URL}/api/chat/emotion/stream`, {
+  const response = await fetch(`${getEffectiveBaseUrl()}/api/chat/emotion/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
