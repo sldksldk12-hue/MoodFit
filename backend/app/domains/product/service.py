@@ -73,7 +73,6 @@ HANJA_TO_HANGUL_MAP = {
 }
 
 def sanitize_json_hanja(obj):
-    """JSON 또는 텍스트 내 잔여 한자를 순수 한글로 자동 시정"""
     if isinstance(obj, str):
         res = obj
         for hanja, hangul in HANJA_TO_HANGUL_MAP.items():
@@ -86,10 +85,8 @@ def sanitize_json_hanja(obj):
     return obj
 
 def generate_gpt_product_options(product_name: str, category_name: str, brand: str) -> dict:
-    """GPT-4o-mini를 활용하여 맞춤형 옵션 생성"""
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
+    if not api_key: return None
         
     try:
         llm = ChatOpenAI(
@@ -131,14 +128,12 @@ JSON 출력 형식:
             HumanMessage(content=human_message)
         ])
         
-        result_json = json.loads(response.content)
-        return sanitize_json_hanja(result_json)
+        return sanitize_json_hanja(json.loads(response.content))
     except Exception as e:
         print(f"[Error] GPT 옵션 생성 에러 ({product_name}): {e}")
         return None
 
 def seed_initial_product_options(db: Session, force_reseed: bool = False, verbose: bool = False):
-    """모든 상품에 대해 GPT 맞춤형 옵션 적재"""
     try:
         if force_reseed:
             db.query(ProductOption).delete()
@@ -156,11 +151,7 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False, verbos
                     if cat:
                         category_name = cat.category_name
                 
-                gpt_data = generate_gpt_product_options(
-                    product_name=product.product_name,
-                    category_name=category_name,
-                    brand=product.brand
-                )
+                gpt_data = generate_gpt_product_options(product.product_name, category_name, product.brand)
                 
                 specs = None
                 if gpt_data and "sizes" in gpt_data and "colors" in gpt_data and "measurements" in gpt_data:
@@ -215,10 +206,8 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False, verbos
         print(f"[Error] 상품 옵션 자동 적재 중 오류 발생: {err}")
 
 def generate_gpt_product_mood_tags(product_name: str, category_name: str, brand: str) -> Optional[dict]:
-    """GPT 무드 태그 생성"""
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
+    if not api_key: return None
         
     try:
         llm = ChatOpenAI(
@@ -251,7 +240,6 @@ JSON 출력 형식:
         return None
 
 def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False, verbose: bool = False):
-    """모든 상품에 대해 무드 태그 적재"""
     try:
         if force_reseed:
             db.query(ProductMoodTag).delete()
@@ -331,6 +319,38 @@ def classify_product_category(db: Session, item_meta: dict, prod_name: str, sear
         if key in search_keyword: return cat_id
     return get_or_create_category(db, item_meta.get("category1", "AI 추천 상품"))
 
+COLOR_TONE_MAP = {
+    "어두운": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
+    "어둡": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
+    "밝은": ["화이트", "아이보리", "크림", "베이지", "연청", "핑크", "민트", "라이트"],
+    "밝": ["화이트", "아이보리", "크림", "베이지", "연청", "핑크", "민트", "라이트"],
+    "무채색": ["블랙", "화이트", "그레이", "차콜", "아이보리"],
+    "파스텔": ["핑크", "민트", "연보라", "소라", "스카이블루", "레몬"],
+    "화사한": ["레드", "옐로우", "오렌지", "그린", "블루", "퍼플", "핑크"],
+    "시원한": ["블루", "스카이블루", "네이비", "민트", "화이트"]
+}
+
+def expand_color_keywords(color_str: str) -> str:
+    """사용자가 입력한 색상 텍스트를 분석하여 구체적인 연관 색상 키워드로 확장합니다."""
+    if not color_str:
+        return ""
+        
+    expanded_colors = set()
+    words = color_str.replace("/", ",").split(",")
+    
+    for word in words:
+        word = word.strip()
+        if not word:
+            continue
+            
+        expanded_colors.add(word)
+        
+        for key, mapped_colors in COLOR_TONE_MAP.items():
+            if key in word:
+                expanded_colors.update(mapped_colors)
+                
+    return ",".join(list(expanded_colors))
+
 def check_product_has_colors(db: Session, product: Product, color_list: List[str]) -> bool:
     if not color_list: return False
     if any(c in product.product_name for c in color_list): return True
@@ -340,33 +360,32 @@ def check_product_has_colors(db: Session, product: Product, color_list: List[str
             if any(c in str(opt_val) for c in color_list): return True
     return False
 
-# 카테고리명을 영문 이미지 검색어로 변환하는 사전
 IMAGE_KEYWORD_MAP = {
-    "반소매 티셔츠": "tshirt", "긴소매 티셔츠": "longsleeve", "맨투맨": "sweatshirt",
+    "반소매 티셔츠": "short sleeve t-shirt", "긴소매 티셔츠": "long sleeve t-shirt", "맨투맨": "sweatshirt",
     "셔츠": "shirt", "후드": "hoodie", "니트": "sweater",
-    "데님": "denim", "트레이닝": "sweatpants", "코튼": "cottonpants",
-    "숏 팬츠": "shorts", "레깅스": "leggings", "조거 팬츠": "joggers",
+    "데님": "denim pants", "트레이닝": "sweatpants", "코튼": "cotton pants",
+    "숏 팬츠": "shorts", "레깅스": "leggings", "조거 팬츠": "jogger pants",
     "청바지": "jeans", "스커트": "skirt",
-    "집업": "zipup", "슈트": "suit", "가디건": "cardigan",
-    "패딩": "puffer", "재킷": "jacket", "코트": "coat", "베스트": "vest",
-    "캡": "cap", "베레모": "beret", "페도라": "fedora", "비니": "beanie",
-    "스니커즈": "sneakers", "스포츠화": "runningshoes", "구두": "dressshoes",
+    "집업": "zip-up hoodie", "슈트": "suit", "가디건": "cardigan",
+    "패딩": "puffer jacket", "재킷": "jacket", "코트": "coat", "베스트": "vest",
+    "캡": "baseball cap", "베레모": "beret", "페도라": "fedora", "비니": "beanie",
+    "스니커즈": "sneakers", "스포츠화": "running shoes", "구두": "leather shoes",
     "부츠": "boots", "샌들": "sandals"
 }
 
 def generate_realistic_korean_fashion(category_name: str, target_gender: str, needed: int) -> List[dict]:
-    """한국 트렌드에 맞는 고품질 가짜(Mock) 상품 데이터와 정확도 높은 이미지를 무작위로 생성합니다."""
+    """한국 트렌드에 맞는 데이터와 AI가 실시간으로 그려낸 맞춤형 패션 이미지를 생성합니다."""
     brands = ["무신사 스탠다드", "커버낫", "디스이즈네버댓", "스파오", "탑텐", "지오다노", "에잇세컨즈", "유니클로", "자라", "드로우핏", "인사일런스"]
     
     if target_gender == "남성":
         modifiers = ["오버핏", "레귤러핏", "와이드", "베이직", "캐주얼", "루즈핏", "컴포트", "데일리", "머슬핏"]
+        gender_keyword = "korean handsome man" 
     else:
         modifiers = ["오버핏", "크롭", "슬림핏", "와이드", "베이직", "러블리", "캐주얼", "데일리", "빈티지"]
+        gender_keyword = "korean beautiful woman"
         
     mock_items = []
-    
-    eng_keyword = IMAGE_KEYWORD_MAP.get(category_name, "clothing")
-    gender_keyword = "mens" if target_gender == "남성" else "womens"
+    eng_keyword = IMAGE_KEYWORD_MAP.get(category_name, "fashion clothing")
     
     for i in range(needed):
         brand = random.choice(brands)
@@ -375,7 +394,10 @@ def generate_realistic_korean_fashion(category_name: str, target_gender: str, ne
         prod_name = f"[{brand}] {target_gender} {modifier} {category_name}"
         base_price = random.randint(15, 120) * 1000
         
-        img_url = f"https://loremflickr.com/400/500/{gender_keyword},{eng_keyword}/all?lock={random.randint(1, 100000)}"
+        prompt = f"Korean fashion style, {gender_keyword} wearing {eng_keyword}, full body shot, street background, highly detailed"
+        encoded_prompt = quote(prompt) 
+        
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=400&height=500&nologo=true&seed={random.randint(1, 100000)}"
         
         mock_items.append({
             "productId": str(hash(prod_name + str(random.random())))[1:15],
@@ -401,8 +423,10 @@ def get_or_fetch_products(
     liked_colors: Optional[str] = None,
     disliked_colors: Optional[str] = None
 ):
-    """자체 DB 무드 태그 및 성별 스마트 매칭 -> 부족하면 자체 생성 로직 -> 프론트엔드 반환"""
     try:
+        liked_colors = expand_color_keywords(liked_colors)
+        disliked_colors = expand_color_keywords(disliked_colors)
+
         if exclude_ids is None: exclude_ids = []
         liked_list = [c.strip() for c in liked_colors.replace("/", ",").split(",") if c.strip()] if liked_colors else []
         disliked_list = [c.strip() for c in disliked_colors.replace("/", ",").split(",") if c.strip()] if disliked_colors else []
@@ -474,19 +498,22 @@ def get_or_fetch_products(
             
         local_products = []
         if mood_conditions:
-            matched_products = query.filter(or_(*mood_conditions)).limit(display).all()
+            # 검색 결과에 랜덤 정렬(order_by(func.rand())) 추가
+            matched_products = query.filter(or_(*mood_conditions)).order_by(func.rand()).limit(display).all()
             for p in matched_products:
                 if p not in local_products: local_products.append(p)
 
         if len(local_products) < display:
-            exact_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+            # 정확한 키워드 매칭에도 랜덤 정렬 추가
+            exact_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
             for p in exact_products:
                 if p not in local_products: local_products.append(p)
 
         if len(local_products) < display and len(core_terms) > 1:
             or_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
             or_query = db.query(Product).filter(and_(*base_conditions), or_(*or_core))
-            or_products = or_query.limit(display).all()
+            # OR 조건 검색에도 랜덤 정렬 추가
+            or_products = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_products:
                 if p_item not in local_products: local_products.append(p_item)
         
@@ -596,7 +623,8 @@ def get_or_fetch_products(
                 } for p in new_products[:display]
             ]
             
-        final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+        # 폴백(Fallback) 쿼리에도 랜덤 정렬 추가
+        final_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
         
         if len(final_products) < display and len(search_terms) > 1:
             term_or_conditions = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in search_terms]
@@ -606,7 +634,8 @@ def get_or_fetch_products(
             if gender == "남성": or_query = or_query.filter(Product.gender_target != "여성")
             elif gender == "여성": or_query = or_query.filter(Product.gender_target != "남성")
 
-            or_prods = or_query.limit(display).all()
+            # 조건 완화 쿼리에도 랜덤 정렬 추가
+            or_prods = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_prods:
                 if p_item not in final_products: final_products.append(p_item)
 
@@ -615,7 +644,9 @@ def get_or_fetch_products(
             if exclude_ids: fallback_query = fallback_query.filter(~Product.id.in_(exclude_ids))
             if gender == "남성": fallback_query = fallback_query.filter(Product.gender_target != "여성")
             elif gender == "여성": fallback_query = fallback_query.filter(Product.gender_target != "남성")
-            final_products = fallback_query.order_by(Product.like_count.desc(), Product.id.desc()).limit(display).all()
+            
+            # 최후의 폴백 쿼리에도 랜덤 정렬 추가 (기존에는 좋아요 순이었으나 다양성을 위해 변경)
+            final_products = fallback_query.order_by(func.rand()).limit(display).all()
 
         if final_products:
             return [
@@ -636,10 +667,6 @@ def get_or_fetch_products(
         return []
 
 def seed_initial_products(db: Session):
-    """
-    네이버 쇼핑 API 종료 대응: 자체 구축한 고품질 패션 데이터 생성기를 활용하여 
-    '중분류' 카테고리별로 리얼한 상품 데이터를 20개씩 안전하게 적재합니다.
-    """
     print("🌱 자체 고품질 패션 데이터 생성기로 카테고리별 상품(최소 20개) 적재를 시작합니다...")
 
     sub_categories = db.query(ProductCategory).filter(ProductCategory.parent_id.isnot(None)).all()
@@ -700,7 +727,7 @@ def seed_initial_products(db: Session):
 
     if total_added > 0:
         print(f"✅ 총 {total_added}개의 고품질 자체 생성 상품을 중분류 카테고리별로 채웠습니다!")
-        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 4대 무드 태그 생성을 시작합니다...")
+        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 무드 태그 생성을 시작합니다...")
         
         seed_initial_product_options(db)
         seed_initial_product_mood_tags(db)
