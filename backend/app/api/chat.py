@@ -219,7 +219,22 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     latency_ms=latency_ms
                 )
                 db.add(new_ai_log)
-                db.commit()             
+                db.commit()
+
+        if not recommended_products:
+            try:
+                fallback_items = get_or_fetch_products(
+                    db=db,
+                    keyword="데일리 룩",
+                    display=4,
+                    emotion=predicted_emotion,
+                    gender=user_gender if 'user_gender' in locals() else "공용"
+                )
+                recommended_products = fallback_items
+                if not search_keyword or search_keyword == "데일리 룩":
+                    search_keyword = "데일리 룩, 추천 아이템"
+            except Exception as fb_err:
+                print(f"⚠️ 최후의 상품 추출 폴백 에러: {fb_err}")             
                 db.refresh(new_ai_log)
 
         if recommended_products:
@@ -439,6 +454,21 @@ def extract_and_fetch_recommendation_products(
 
     except Exception as e:
         print(f"⚠️ 쇼핑 키워드 추출 실패: {e}")
+
+    if not recommended_products:
+        try:
+            fallback_items = get_or_fetch_products(
+                db=db,
+                keyword="데일리 룩",
+                display=4,
+                emotion=predicted_emotion,
+                gender=user_gender if 'user_gender' in locals() else "공용"
+            )
+            recommended_products = fallback_items
+            if not search_keyword or search_keyword == "데일리 룩":
+                search_keyword = "데일리 룩, 추천 아이템"
+        except Exception as fb_err:
+            print(f"⚠️ 최후의 상품 추출 폴백 에러: {fb_err}")
 
     return recommended_products, search_keyword, summary_reason
 

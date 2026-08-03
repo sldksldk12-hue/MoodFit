@@ -495,8 +495,8 @@ def get_or_fetch_products(
                 p for p in local_products 
                 if p.gender_target == gender or (gender in p.product_name) or ("남자" if gender == "남성" else "여자" in p.product_name)
             ]
-            if len(gender_products) >= display: local_products = gender_products
-            else: local_products = []
+            if gender_products:
+                local_products = gender_products
         
         if disliked_list and local_products:
             local_products = [p for p in local_products if not check_product_has_colors(db, p, disliked_list)]
@@ -623,18 +623,18 @@ def get_or_fetch_products(
                 elif gender == "여성": pure_fallback = pure_fallback.filter(Product.gender_target != "남성")
                 final_products = pure_fallback.order_by(Product.like_count.desc(), Product.id.desc()).limit(display).all()
 
-        if final_products:
-            return [
-                {
-                    "id": p.id,
-                    "title": p.product_name,
-                    "link": f"/product/{p.id}",
-                    "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
-                    "lprice": p.discount_price
-                } for p in final_products[:display]
-            ]
-        else:
-            return []
+        if not final_products:
+            final_products = db.query(Product).order_by(Product.id.desc()).limit(display).all()
+
+        return [
+            {
+                "id": p.id,
+                "title": p.product_name,
+                "link": f"/product/{p.id}",
+                "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
+                "lprice": p.discount_price
+            } for p in final_products[:display]
+        ]
             
     except Exception as e:
         print(f"[Error] 데이터 생성 및 수집 파이프라인 에러: {e}")
