@@ -16,7 +16,7 @@ cd /var/www/MoodFit/frontend
 rm -rf dist node_modules/.vite
 ./node_modules/.bin/vite build || npx vite build || npm run build
 
-chmod -R 755 /var/www/MoodFit
+chmod -R 755 /var/www/MoodFit || true
 
 cat << 'EOT' > /etc/nginx/sites-available/moodfit
 server {
