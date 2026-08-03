@@ -311,39 +311,56 @@ def extract_and_fetch_recommendation_products(
 
     try:
         user_gender = user.gender if user else "공용"
-        keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
-        
-        keyword_prompt = ChatPromptTemplate.from_template(
-            "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'와 '추천 이유 요약'을 추출해줘.\n"
-            "현재 유저 성별: {user_gender}\n"
-            "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈,크로스백')만 추출할 것!\n"
-            "[주의사항 2]: 최대 4개의 키워드를 추출할 때 상의, 하의, 신발, 악세사리(모자, 가방 등)를 각각 1개씩 골고루 포함시킬 것.\n"
-            "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
-            "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
-            "[주의사항 5]: 전체 추천글을 바탕으로, 이 코디를 추천하는 이유를 '친한 친구나 친절한 매장 직원'이 옆에서 다정하게 설명해주듯 3줄(3문장) 정도로 요약해 주세요. 요약에는 유저의 현재 기분, 날씨, 장소 정보가 있다면 자연스럽게 포함하고, 누락된 정보가 있다면 억지로 지어내지 말고 있는 대화 내용만 바탕으로 부드럽게 요약하세요.\n\n"
-            "추천글:\n{recommendation}\n\n{format_instructions}"
+        keyword_llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0,
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            model_kwargs={"response_format": {"type": "json_object"}}
         )
-        keyword_chain = keyword_prompt | keyword_llm | parser
+        
+        keyword_prompt = ChatPromptTemplate.from_messages([
+            ("system", (
+                "당신은 패션 키워드 추출기입니다. 전달받은 패션 추천글을 분석해서 다음 정보를 JSON으로 반환해줘.\n"
+                "1. search_keyword: 의류/잡화 카테고리/품목명 키워드 최대 4개를 쉼표로 구분 (예: '가디건, 청바지, 스니커즈, 볼캡')\n"
+                "2. summary_reason: 이 코디를 추천하는 핵심 이유를 친근한 말투로 3줄 요약한 문장\n"
+                "반드시 JSON 형식으로만 반환해줘. (키: 'search_keyword', 'summary_reason')"
+            )),
+            ("human", "유저 성별: {user_gender}\n추천글:\n{recommendation}")
+        ])
+        keyword_chain = keyword_prompt | keyword_llm | StrOutputParser()
         
         prompt_tokens_val = 0
         completion_tokens_val = 0
         total_tokens_val = 0
 
         with get_openai_callback() as cb:
-            parsed_result = keyword_chain.invoke({
+            raw_res = keyword_chain.invoke({
                 "recommendation": ai_recommendation,
-                "user_gender": user_gender,
-                "format_instructions": parser.get_format_instructions()
+                "user_gender": user_gender
             })
             if cb:
                 prompt_tokens_val = cb.prompt_tokens
                 completion_tokens_val = cb.completion_tokens
                 total_tokens_val = cb.total_tokens
 
-            summary_reason = parsed_result.summary_reason
-            raw_keywords = parsed_result.search_keyword.split(",")
-            keyword_list = [k.strip() for k in raw_keywords if k.strip()][:4]
+            try:
+                parsed_json = json.loads(raw_res)
+                summary_reason = parsed_json.get("summary_reason", summary_reason)
+                raw_keywords = parsed_json.get("search_keyword", "")
+                keyword_list = [k.strip() for k in raw_keywords.split(",") if k.strip()][:4]
+            except Exception:
+                keyword_list = []
+
+            if not keyword_list:
+                category_noun_list = [
+                    "셔츠", "남방", "티셔츠", "가디건", "카디건", "청바지", "슬랙스", "팬츠", "바지", "반바지",
+                    "스커트", "원피스", "재킷", "자켓", "코트", "바람막이", "후드", "맨투맨", "니트", "스니커즈",
+                    "운동화", "구두", "로퍼", "부츠", "샌들", "모자", "캡", "가방", "백팩", "크로스백"
+                ]
+                keyword_list = [noun for noun in category_noun_list if noun in ai_recommendation or noun in message][:4]
+
+            if not keyword_list:
+                keyword_list = ["셔츠", "팬츠", "스니커즈", "모자"]
 
             weather_desc = None
             if weather_log_id:
