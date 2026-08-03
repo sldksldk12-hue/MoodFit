@@ -447,8 +447,10 @@ def get_or_fetch_products(
         if matched_cat_noun:
             base_conditions.append(or_(Product.product_name.ilike(f"%{matched_cat_noun}%"), Product.brand.ilike(f"%{matched_cat_noun}%")))
 
-        and_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
-        conditions = base_conditions + and_core
+        conditions = list(base_conditions)
+        if not matched_cat_noun:
+            and_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
+            conditions.extend(and_core)
 
         query = db.query(Product).outerjoin(ProductMoodTag, Product.id == ProductMoodTag.product_id)
         query = query.filter(and_(*conditions))
