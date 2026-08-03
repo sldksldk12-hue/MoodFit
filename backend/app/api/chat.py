@@ -470,11 +470,14 @@ async def analyze_emotion_stream(req: ChatRequest, request: Request, db: Session
     db.commit()
     db.refresh(user_message)
 
-    new_emotion_log = EmotionLog(message_id=user_message.id, predicted_emotion=predicted_emotion, confidence=emotion_score, raw_input=req.message)
-    db.add(new_emotion_log)
-    db.commit()
-
     extracted_dest = extract_destination(req.message)
+    if extracted_dest:
+        try:
+            fetch_and_save_tour_log(
+                db=db, session_id=current_session_id, destination_info=extracted_dest
+            )
+        except Exception as t_err:
+            print(f"⚠️ 스트리밍 관광지 로그 저장 중 경고: {t_err}")
 
     async def event_generator():
         try:
