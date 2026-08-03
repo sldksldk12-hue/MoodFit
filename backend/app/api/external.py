@@ -63,8 +63,9 @@ async def get_recommended_festivals():
     if not api_key:
         return {"status": "success", "data": DEFAULT_FESTIVALS}
     try:
-        raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=10&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=C&eventStartDate=20240101"
-        response = requests.get(raw_url, timeout=3)
+        today_str = datetime.now().strftime("%Y0101")
+        raw_url = f"https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=15&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&eventStartDate={today_str}"
+        response = requests.get(raw_url, timeout=10)
         if response.status_code == 200:
             data = response.json()
             items = data.get("response", {}).get("body", {}).get("items", {})
@@ -78,16 +79,17 @@ async def get_recommended_festivals():
                     start_date = str(item.get("eventstartdate", ""))
                     end_date = str(item.get("eventenddate", ""))
                     period = f"{start_date[:4]}.{start_date[4:6]}.{start_date[6:]} ~ {end_date[:4]}.{end_date[4:6]}.{end_date[6:]}" if len(start_date) >= 8 else "상시 진행"
+                    img = item.get("firstimage") or item.get("firstimage2") or "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=800&q=80"
                     festivals.append({
                         "id": idx + 1,
                         "title": item.get("title", "축제명 없음"),
                         "location": item.get("addr1", "장소 미상"),
                         "period": period,
-                        "image_url": item.get("firstimage") or item.get("firstimage2") or "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=800&q=80",
-                        "description": "자세한 사항은 관광공사 홈페이지를 참고해주세요.",
-                        "tags": ["축제", "나들이"]
+                        "image_url": img,
+                        "description": "자세한 사항은 한국관광공사(VisitKorea)를 참고해 주세요.",
+                        "tags": ["축제", "관광", "나들이"]
                     })
-                return {"status": "success", "data": festivals[:5]}
+                return {"status": "success", "data": festivals[:6]}
     except requests.exceptions.Timeout:
         print("⚠️ 공공데이터 포털(data.go.kr) 응답 지연으로 기본 축제 카드를 표시합니다.")
     except Exception as e:
