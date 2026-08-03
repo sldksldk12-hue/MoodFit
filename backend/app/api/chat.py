@@ -125,16 +125,13 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                             weather_desc = w_log.condition_code
 
                     past_rec_sessions = db.query(RecommendationSession).filter(
-                        or_(
-                            RecommendationSession.chat_session_id == current_session_id,
-                            RecommendationSession.user_id == req.user_id
-                        )
-                    ).order_by(RecommendationSession.created_at.desc()).limit(3).all()
+                        RecommendationSession.chat_session_id == current_session_id
+                    ).all()
                     
                     exclude_ids = []
                     for rs in past_rec_sessions:
                         for r_item in rs.items:
-                            if r_item.product_id and r_item.product_id not in exclude_ids:
+                            if r_item.product_id not in exclude_ids:
                                 exclude_ids.append(r_item.product_id)
 
                     user_liked_colors = user.liked_colors if user else None
@@ -179,14 +176,12 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                             disliked_colors=user_disliked_colors
                         )
                         
+                        recommended_products.extend(fetched_items)
+                        
                         for item in fetched_items:
-                            item_id = item.get("id")
-                            if item_id and not any(p.get("id") == item_id for p in recommended_products):
-                                recommended_products.append(item)
-                                if item_id not in exclude_ids:
-                                    exclude_ids.append(item_id)
+                            exclude_ids.append(item['id'])
 
-                    # 🌟 넉넉하게 가져온 상품 리스트를 중복없이 정확히 4개까지만 자르기
+                    # 🌟 넉넉하게 가져온 상품 리스트를 정확히 4개까지만 자르기
                     recommended_products = recommended_products[:4]
 
                     search_keyword = ", ".join(final_search_keywords)
@@ -337,16 +332,13 @@ def extract_and_fetch_recommendation_products(
                     weather_desc = w_log.condition_code
 
             past_rec_sessions = db.query(RecommendationSession).filter(
-                or_(
-                    RecommendationSession.chat_session_id == session_id,
-                    RecommendationSession.user_id == user_id
-                )
-            ).order_by(RecommendationSession.created_at.desc()).limit(3).all()
+                RecommendationSession.chat_session_id == session_id
+            ).all()
             
             exclude_ids = []
             for rs in past_rec_sessions:
                 for r_item in rs.items:
-                    if r_item.product_id and r_item.product_id not in exclude_ids:
+                    if r_item.product_id not in exclude_ids:
                         exclude_ids.append(r_item.product_id)
 
             user_liked_colors = user.liked_colors if user else None
@@ -355,8 +347,6 @@ def extract_and_fetch_recommendation_products(
 
             final_search_keywords = []
             items_per_keyword = 4 if len(keyword_list) == 1 else (2 if len(keyword_list) in [2, 3] else 1)
-
-            recommended_products = []
 
             for kw in keyword_list:
                 search_kw = kw
@@ -384,12 +374,9 @@ def extract_and_fetch_recommendation_products(
                     disliked_colors=user_disliked_colors
                 )
                 
+                recommended_products.extend(fetched_items)
                 for item in fetched_items:
-                    item_id = item.get("id")
-                    if item_id and not any(p.get("id") == item_id for p in recommended_products):
-                        recommended_products.append(item)
-                        if item_id not in exclude_ids:
-                            exclude_ids.append(item_id)
+                    exclude_ids.append(item['id'])
 
             recommended_products = recommended_products[:4]
             search_keyword = ", ".join(final_search_keywords)
