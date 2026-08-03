@@ -9,7 +9,7 @@ if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 load_dotenv()
 
-DEFAULT_DB_URL = "mysql+pymysql://moodfit:1234@localhost:3306/moodfit"
+DEFAULT_DB_URL = "mysql+pymysql://moodfit:1234@localhost:3306/moodfit_db"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL") or DEFAULT_DB_URL
 
 # 엔진 생성 (MySQL 연동)
