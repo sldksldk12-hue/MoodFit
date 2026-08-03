@@ -340,33 +340,35 @@ def check_product_has_colors(db: Session, product: Product, color_list: List[str
             if any(c in str(opt_val) for c in color_list): return True
     return False
 
-# 카테고리명을 영문 이미지 검색어로 변환하는 사전
+# 카테고리명을 AI가 이해할 수 있는 '영문 키워드'로만 매핑
 IMAGE_KEYWORD_MAP = {
-    "반소매 티셔츠": "tshirt", "긴소매 티셔츠": "longsleeve", "맨투맨": "sweatshirt",
+    "반소매 티셔츠": "short sleeve t-shirt", "긴소매 티셔츠": "long sleeve t-shirt", "맨투맨": "sweatshirt",
     "셔츠": "shirt", "후드": "hoodie", "니트": "sweater",
-    "데님": "denim", "트레이닝": "sweatpants", "코튼": "cottonpants",
-    "숏 팬츠": "shorts", "레깅스": "leggings", "조거 팬츠": "joggers",
+    "데님": "denim pants", "트레이닝": "sweatpants", "코튼": "cotton pants",
+    "숏 팬츠": "shorts", "레깅스": "leggings", "조거 팬츠": "jogger pants",
     "청바지": "jeans", "스커트": "skirt",
-    "집업": "zipup", "슈트": "suit", "가디건": "cardigan",
-    "패딩": "puffer", "재킷": "jacket", "코트": "coat", "베스트": "vest",
-    "캡": "cap", "베레모": "beret", "페도라": "fedora", "비니": "beanie",
-    "스니커즈": "sneakers", "스포츠화": "runningshoes", "구두": "dressshoes",
+    "집업": "zip-up hoodie", "슈트": "suit", "가디건": "cardigan",
+    "패딩": "puffer jacket", "재킷": "jacket", "코트": "coat", "베스트": "vest",
+    "캡": "baseball cap", "베레모": "beret", "페도라": "fedora", "비니": "beanie",
+    "스니커즈": "sneakers", "스포츠화": "running shoes", "구두": "leather shoes",
     "부츠": "boots", "샌들": "sandals"
 }
 
 def generate_realistic_korean_fashion(category_name: str, target_gender: str, needed: int) -> List[dict]:
-    """한국 트렌드에 맞는 고품질 가짜(Mock) 상품 데이터와 정확도 높은 이미지를 무작위로 생성합니다."""
+    """한국 트렌드에 맞는 데이터와 AI가 실시간으로 그려낸 맞춤형 패션 이미지를 생성합니다."""
     brands = ["무신사 스탠다드", "커버낫", "디스이즈네버댓", "스파오", "탑텐", "지오다노", "에잇세컨즈", "유니클로", "자라", "드로우핏", "인사일런스"]
     
     if target_gender == "남성":
         modifiers = ["오버핏", "레귤러핏", "와이드", "베이직", "캐주얼", "루즈핏", "컴포트", "데일리", "머슬핏"]
+        gender_keyword = "korean handsome man" # AI에게 전달할 성별 묘사
     else:
         modifiers = ["오버핏", "크롭", "슬림핏", "와이드", "베이직", "러블리", "캐주얼", "데일리", "빈티지"]
+        gender_keyword = "korean beautiful woman"
         
     mock_items = []
     
-    eng_keyword = IMAGE_KEYWORD_MAP.get(category_name, "clothing")
-    gender_keyword = "mens" if target_gender == "남성" else "womens"
+    # 카테고리에 맞는 영문 키워드 가져오기
+    eng_keyword = IMAGE_KEYWORD_MAP.get(category_name, "fashion clothing")
     
     for i in range(needed):
         brand = random.choice(brands)
@@ -375,7 +377,12 @@ def generate_realistic_korean_fashion(category_name: str, target_gender: str, ne
         prod_name = f"[{brand}] {target_gender} {modifier} {category_name}"
         base_price = random.randint(15, 120) * 1000
         
-        img_url = f"https://loremflickr.com/400/500/{gender_keyword},{eng_keyword}/all?lock={random.randint(1, 100000)}"
+        # 💡 2. AI에게 그림을 그려달라고 할 프롬프트(명령어)를 작성합니다.
+        prompt = f"Korean fashion style, {gender_keyword} wearing {eng_keyword}, full body shot, street background, highly detailed"
+        encoded_prompt = quote(prompt) # URL에 넣을 수 있도록 텍스트를 인코딩(변환)
+        
+        # 💡 3. 무료 실시간 생성 API 호출! seed 값을 난수로 주어 매번 다른 이미지가 나오게 합니다.
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=400&height=500&nologo=true&seed={random.randint(1, 100000)}"
         
         mock_items.append({
             "productId": str(hash(prod_name + str(random.random())))[1:15],
