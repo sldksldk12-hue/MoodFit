@@ -1,9 +1,21 @@
 import axios from "axios";
 import { clearRequestCache } from "./requestCache";
 
-const BASE_ADMIN_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
-  : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
+const resolveAdminBaseUrl = () => {
+  let raw = import.meta.env.VITE_API_BASE_URL;
+  if (import.meta.env.PROD && (!raw || raw.includes("moodfit.kro.kr"))) {
+    return "/api/admin";
+  }
+  let url = raw
+    ? `${raw}/api/admin`
+    : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
+  if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
+    url = url.replace("http://", "https://");
+  }
+  return url;
+};
+
+const BASE_ADMIN_URL = resolveAdminBaseUrl();
 
 const adminApi = axios.create({
   baseURL: BASE_ADMIN_URL,
@@ -11,6 +23,14 @@ const adminApi = axios.create({
 });
 
 adminApi.interceptors.request.use((config) => {
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    if (config.url && config.url.startsWith("http://")) {
+      config.url = config.url.replace("http://", "https://");
+    }
+    if (config.baseURL && config.baseURL.startsWith("http://")) {
+      config.baseURL = config.baseURL.replace("http://", "https://");
+    }
+  }
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
