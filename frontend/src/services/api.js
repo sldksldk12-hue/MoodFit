@@ -17,7 +17,15 @@
 import axios from "axios";
 import { getCachedRequest, invalidateRequestCache } from "./requestCache";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "https://moodfit.kro.kr");
+const resolveBaseUrl = () => {
+  let url = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "https://moodfit.kro.kr");
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+    url = url.replace("http://", "https://");
+  }
+  return url;
+};
+
+const BASE_URL = resolveBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,

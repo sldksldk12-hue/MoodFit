@@ -1,9 +1,17 @@
 import axios from "axios";
 import { clearRequestCache } from "./requestCache";
 
-const BASE_ADMIN_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
-  : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
+const resolveAdminBaseUrl = () => {
+  let url = import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
+    : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+    url = url.replace("http://", "https://");
+  }
+  return url;
+};
+
+const BASE_ADMIN_URL = resolveAdminBaseUrl();
 
 const adminApi = axios.create({
   baseURL: BASE_ADMIN_URL,

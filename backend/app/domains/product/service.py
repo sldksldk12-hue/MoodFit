@@ -739,7 +739,16 @@ def get_or_fetch_products(
                 if p_item not in final_products:
                     final_products.append(p_item)
 
-        # 최후의 보루 로직으로 긁어모은 상품이 있다면 반환, 그래도 없으면 빈 배열 반환
+        if not final_products:
+            fallback_query = db.query(Product)
+            if exclude_ids:
+                fallback_query = fallback_query.filter(~Product.id.in_(exclude_ids))
+            if gender == "남성":
+                fallback_query = fallback_query.filter(Product.gender_target != "여성")
+            elif gender == "여성":
+                fallback_query = fallback_query.filter(Product.gender_target != "남성")
+            final_products = fallback_query.order_by(Product.like_count.desc(), Product.id.desc()).limit(display).all()
+
         if final_products:
             return [
                 {
