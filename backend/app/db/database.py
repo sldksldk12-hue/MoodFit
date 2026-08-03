@@ -3,11 +3,14 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-# .env 파일 로드
+# .env 파일 로드 (루트 및 백엔드 경로 둘 다 탐색)
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 load_dotenv()
 
-# .env에서 데이터베이스 URL 가져오기
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+DEFAULT_DB_URL = "mysql+pymysql://moodfit:1234@localhost:3306/moodfit"
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL") or DEFAULT_DB_URL
 
 # 엔진 생성 (MySQL 연동)
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
