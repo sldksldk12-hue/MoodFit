@@ -2,10 +2,14 @@ import axios from "axios";
 import { clearRequestCache } from "./requestCache";
 
 const resolveAdminBaseUrl = () => {
-  let url = import.meta.env.VITE_API_BASE_URL
-    ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
+  let raw = import.meta.env.VITE_API_BASE_URL;
+  if (import.meta.env.PROD && (!raw || raw.includes("moodfit.kro.kr"))) {
+    return "/api/admin";
+  }
+  let url = raw
+    ? `${raw}/api/admin`
     : (import.meta.env.PROD ? "/api/admin" : "https://moodfit.kro.kr/api/admin");
-  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+  if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
     url = url.replace("http://", "https://");
   }
   return url;

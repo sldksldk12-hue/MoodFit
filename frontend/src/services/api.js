@@ -18,8 +18,12 @@ import axios from "axios";
 import { getCachedRequest, invalidateRequestCache } from "./requestCache";
 
 const resolveBaseUrl = () => {
-  let url = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? "" : "https://moodfit.kro.kr");
-  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+  let raw = import.meta.env.VITE_API_BASE_URL;
+  if (import.meta.env.PROD && (!raw || raw.includes("moodfit.kro.kr"))) {
+    return "";
+  }
+  let url = raw || (import.meta.env.PROD ? "" : "https://moodfit.kro.kr");
+  if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
     url = url.replace("http://", "https://");
   }
   return url;
@@ -29,7 +33,7 @@ const BASE_URL = resolveBaseUrl();
 
 export const getEffectiveBaseUrl = () => {
   let url = BASE_URL;
-  if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("http://")) {
+  if (url.includes("moodfit.kro.kr") && url.startsWith("http://")) {
     url = url.replace("http://", "https://");
   }
   return url;
