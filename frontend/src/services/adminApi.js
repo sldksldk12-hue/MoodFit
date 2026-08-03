@@ -55,7 +55,7 @@ export const uploadAdminImage = (file) => {
 
 export const getAdminDashboard = () => unwrap(adminApi.get("/dashboard"));
 export const getAdminCategories = () => unwrap(adminApi.get("/categories"));
-export const getAdminProducts = (params = {}) => unwrap(adminApi.get("/products", { params }));
+export const getAdminProducts = (params = {}) => unwrap(adminApi.get("/products", { params: { size: 1000, ...params } }));
 export const analyzeAdminProduct = (payload) => unwrap(adminApi.post("/products/analyze", payload));
 export const createAdminProduct = (payload) =>
   unwrap(adminApi.post("/products", payload)).then((res) => {
