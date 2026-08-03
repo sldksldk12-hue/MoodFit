@@ -319,7 +319,6 @@ def classify_product_category(db: Session, item_meta: dict, prod_name: str, sear
         if key in search_keyword: return cat_id
     return get_or_create_category(db, item_meta.get("category1", "AI 추천 상품"))
 
-# 추상적인 색상 표현을 실제 구체적인 상품 색상 키워드로 확장하는 매핑 딕셔너리
 COLOR_TONE_MAP = {
     "어두운": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
     "어둡": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
@@ -361,7 +360,6 @@ def check_product_has_colors(db: Session, product: Product, color_list: List[str
             if any(c in str(opt_val) for c in color_list): return True
     return False
 
-# 이미지 하드코딩 URL 대신 카테고리명을 영문 키워드로 매핑하는 작은 사전 적용
 IMAGE_KEYWORD_MAP = {
     "반소매 티셔츠": "short sleeve t-shirt", "긴소매 티셔츠": "long sleeve t-shirt", "맨투맨": "sweatshirt",
     "셔츠": "shirt", "후드": "hoodie", "니트": "sweater",
@@ -399,7 +397,6 @@ def generate_realistic_korean_fashion(category_name: str, target_gender: str, ne
         prompt = f"Korean fashion style, {gender_keyword} wearing {eng_keyword}, full body shot, street background, highly detailed"
         encoded_prompt = quote(prompt) 
         
-        # Pollinations 무료 실시간 생성 API 호출 (seed 값으로 무한 변형)
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=400&height=500&nologo=true&seed={random.randint(1, 100000)}"
         
         mock_items.append({
@@ -427,7 +424,6 @@ def get_or_fetch_products(
     disliked_colors: Optional[str] = None
 ):
     try:
-        # 색상 확장 로직 적용
         liked_colors = expand_color_keywords(liked_colors)
         disliked_colors = expand_color_keywords(disliked_colors)
 
@@ -502,19 +498,22 @@ def get_or_fetch_products(
             
         local_products = []
         if mood_conditions:
-            matched_products = query.filter(or_(*mood_conditions)).limit(display).all()
+            # 검색 결과에 랜덤 정렬(order_by(func.rand())) 추가
+            matched_products = query.filter(or_(*mood_conditions)).order_by(func.rand()).limit(display).all()
             for p in matched_products:
                 if p not in local_products: local_products.append(p)
 
         if len(local_products) < display:
-            exact_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+            # 정확한 키워드 매칭에도 랜덤 정렬 추가
+            exact_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
             for p in exact_products:
                 if p not in local_products: local_products.append(p)
 
         if len(local_products) < display and len(core_terms) > 1:
             or_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
             or_query = db.query(Product).filter(and_(*base_conditions), or_(*or_core))
-            or_products = or_query.limit(display).all()
+            # OR 조건 검색에도 랜덤 정렬 추가
+            or_products = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_products:
                 if p_item not in local_products: local_products.append(p_item)
         
@@ -624,7 +623,8 @@ def get_or_fetch_products(
                 } for p in new_products[:display]
             ]
             
-        final_products = db.query(Product).filter(and_(*conditions)).limit(display).all()
+        # 폴백(Fallback) 쿼리에도 랜덤 정렬 추가
+        final_products = db.query(Product).filter(and_(*conditions)).order_by(func.rand()).limit(display).all()
         
         if len(final_products) < display and len(search_terms) > 1:
             term_or_conditions = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in search_terms]
@@ -634,7 +634,8 @@ def get_or_fetch_products(
             if gender == "남성": or_query = or_query.filter(Product.gender_target != "여성")
             elif gender == "여성": or_query = or_query.filter(Product.gender_target != "남성")
 
-            or_prods = or_query.limit(display).all()
+            # 조건 완화 쿼리에도 랜덤 정렬 추가
+            or_prods = or_query.order_by(func.rand()).limit(display).all()
             for p_item in or_prods:
                 if p_item not in final_products: final_products.append(p_item)
 
@@ -643,7 +644,9 @@ def get_or_fetch_products(
             if exclude_ids: fallback_query = fallback_query.filter(~Product.id.in_(exclude_ids))
             if gender == "남성": fallback_query = fallback_query.filter(Product.gender_target != "여성")
             elif gender == "여성": fallback_query = fallback_query.filter(Product.gender_target != "남성")
-            final_products = fallback_query.order_by(Product.like_count.desc(), Product.id.desc()).limit(display).all()
+            
+            # 최후의 폴백 쿼리에도 랜덤 정렬 추가 (기존에는 좋아요 순이었으나 다양성을 위해 변경)
+            final_products = fallback_query.order_by(func.rand()).limit(display).all()
 
         if final_products:
             return [
