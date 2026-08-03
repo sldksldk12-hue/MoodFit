@@ -189,7 +189,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                     # 🌟 넉넉하게 가져온 상품 리스트를 중복없이 정확히 4개까지만 자르기
                     recommended_products = recommended_products[:4]
 
-                    search_keyword = ", ".join(final_search_keywords)
+                    search_keyword = ", ".join(keyword_list)
                     
                     latency_ms = int((time.perf_counter() - start_time) * 1000)
                     new_ai_log = AiCallLog(
@@ -232,7 +232,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 )
                 recommended_products = fallback_items
                 if not search_keyword or search_keyword == "데일리 룩":
-                    search_keyword = "데일리 룩, 추천 아이템"
+                    search_keyword = "AI 취향 맞춤 스타일"
             except Exception as fb_err:
                 print(f"⚠️ 최후의 상품 추출 폴백 에러: {fb_err}")             
                 db.refresh(new_ai_log)
@@ -424,7 +424,7 @@ def extract_and_fetch_recommendation_products(
                             exclude_ids.append(item_id)
 
             recommended_products = recommended_products[:4]
-            search_keyword = ", ".join(final_search_keywords)
+            search_keyword = ", ".join(keyword_list)
 
             kst_now = datetime.utcnow() + timedelta(hours=9)
             # 추천 세션 및 아이템 DB 저장 (다음 대화에서 중복 추천 방지용)
@@ -483,7 +483,7 @@ def extract_and_fetch_recommendation_products(
             )
             recommended_products = fallback_items
             if not search_keyword or search_keyword == "데일리 룩":
-                search_keyword = "데일리 룩, 추천 아이템"
+                search_keyword = "AI 취향 맞춤 스타일"
         except Exception as fb_err:
             print(f"⚠️ 최후의 상품 추출 폴백 에러: {fb_err}")
 

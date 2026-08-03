@@ -508,8 +508,8 @@ def get_or_fetch_products(
             other_prods = [p for p in local_products if p not in liked_prods]
             local_products = liked_prods + other_prods
 
-        if len(local_products) >= display:
-            print(f"[Info] 자체 DB에서 안 보여준 신규 {gender if gender else ''} '{keyword}' 상품을 찾았습니다!")
+        if local_products:
+            print(f"[Info] 자체 DB에서 {len(local_products)}개의 {gender if gender else ''} '{keyword}' 상품을 찾았습니다!")
             return [
                 {
                     "id": p.id,
