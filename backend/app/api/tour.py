@@ -36,10 +36,10 @@ def extract_destination(message: str) -> Optional[dict]:
     try:
         extraction_prompt = ChatPromptTemplate.from_messages([
             ("system", (
-                "당신은 장소명 추출기입니다. 사용자의 질문을 분석해서, 방문하려는 '구체적인 관광지명 또는 축제명'이 존재하면 다음 정보를 추출해줘.\n"
-                "1. destination: 가고자 하는 장소/축제의 풀네임 (예: '가평 자라섬 재즈페스티벌', '경복궁 야간개장')\n"
-                "2. search_keyword: 검색 API(KTO)에서 잘 조회되도록 불필요한 수식어나 이벤트 단어(페스티벌, 축제, 야간개장 등)를 제거한 핵심 지명/관광지명 (예: '자라섬', '경복궁', '강동선사')\n"
-                "만약 장소나 축제명이 전혀 언급되지 않았다면 둘 다 'NONE'으로 채워줘.\n"
+                "당신은 장소명 추출기입니다. 사용자의 질문을 분석해서, 방문하려는 '관광지, 산, 바다, 명소, 지역/도시, 축제명' (예: '해운대', '설악산', '제주도', '강릉', '경복궁', '자라섬')이 존재하면 다음 정보를 추출해줘.\n"
+                "1. destination: 가고자 하는 장소/산/바다/축제의 명칭 (예: '해운대', '설악산', '경복궁', '가평 자라섬 재즈페스티벌')\n"
+                "2. search_keyword: 검색 API(KTO)에서 잘 조회되도록 불필요한 수식어나 이벤트 단어를 제거한 핵심 지명 (예: '해운대', '설악산', '경복궁', '자라섬')\n"
+                "만약 장소나 관광명소가 전혀 언급되지 않았다면 둘 다 'NONE'으로 채워줘.\n"
                 "결과는 반드시 JSON 형식으로만 반환해줘. (키: 'destination', 'search_keyword')"
             )),
             ("human", "{message}")
@@ -97,8 +97,9 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
     if api_key:
         try:
             encoded_kw = urllib.parse.quote(search_keyword)
-            raw_url = f"http://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey={api_key}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&keyword={encoded_kw}"
-            res = requests.get(raw_url, timeout=3)
+            # 🌟 http -> https 변경 및 타임아웃 10초 적용 (공공데이터 API 연결 타임아웃 방지)
+            raw_url = f"https://apis.data.go.kr/B551011/KorService2/searchKeyword2?serviceKey={api_key}&numOfRows=1&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&keyword={encoded_kw}"
+            res = requests.get(raw_url, timeout=10)
             if res.status_code == 200:
                 data = res.json()
                 items = data.get("response", {}).get("body", {}).get("items", {}).get("item", [])
@@ -111,8 +112,25 @@ def fetch_and_save_tour_log(db: Session, session_id: int, destination_info: dict
                     map_x = float(item["mapx"]) if item.get("mapx") else None
                     map_y = float(item["mapy"]) if item.get("mapy") else None
                     title = item.get("title", destination)
+                else:
+                    # 키워드 검색 실패 시 축제 전용 API(searchFestival2) 검색 시도
+                    fest_url = f"https://apis.data.go.kr/B551011/KorService2/searchFestival2?serviceKey={api_key}&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=MoodFit&_type=json&arrange=A&eventStartDate=20260101"
+                    fest_res = requests.get(fest_url, timeout=10)
+                    if fest_res.status_code == 200:
+                        fest_items = fest_res.json().get("response", {}).get("body", {}).get("items", {}).get("item", [])
+                        if isinstance(fest_items, dict): fest_items = [fest_items]
+                        for f_item in fest_items:
+                            f_title = f_item.get("title", "")
+                            if search_keyword in f_title or destination in f_title:
+                                content_id = str(f_item.get("contentid", "NONE"))
+                                content_type = str(f_item.get("contenttypeid", "15"))
+                                addr = f_item.get("addr1", "주소 미제공")
+                                map_x = float(f_item["mapx"]) if f_item.get("mapx") else None
+                                map_y = float(f_item["mapy"]) if f_item.get("mapy") else None
+                                title = f_title
+                                break
         except requests.exceptions.Timeout:
-            print("⚠️ KTO API 응답 지연 (Timeout 3s) - 폴백 로그로 대체 처리합니다.")
+            print("⚠️ KTO API 응답 지연 (Timeout 10s) - 폴백 로그로 대체 처리합니다.")
         except Exception as err:
             print(f"⚠️ KTO API Call Fail: {err}")
 
