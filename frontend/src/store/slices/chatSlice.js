@@ -181,19 +181,13 @@ export const sendChatMessage = createAsyncThunk(
 /*
   채팅 Slice 초기 상태
 */
+const savedSessionId = typeof window !== "undefined" ? localStorage.getItem("moodfit_chat_session_id") : null;
+
 const initialState = {
-  // HeroContent 입력창에 입력한 문장
   heroInput: "",
-
-  // 사용자와 AI의 전체 대화 목록
   messages: [],
-
-  // FastAPI가 발급한 대화 세션 ID
-  sessionId: null,
-
-  // AI 응답을 기다리는 중인지 여부
+  sessionId: savedSessionId ? Number(savedSessionId) : null,
   loading: false,
-
   // 메인 화면 채팅창 열림 여부
   mainChatOpen: false,
 
@@ -292,7 +286,12 @@ const chatSlice = createSlice({
       새 객체를 직접 작성하는 대신 initialState를 반환해
       모든 값을 한 번에 초기 상태로 되돌린다.
     */
-    resetChat: () => initialState,
+    resetChat: () => {
+      try {
+        localStorage.removeItem("moodfit_chat_session_id");
+      } catch (e) {}
+      return { ...initialState, sessionId: null };
+    },
   },
 
   /*
@@ -334,6 +333,9 @@ const chatSlice = createSlice({
             action.payload?.session_id !== undefined
           ) {
             state.sessionId = action.payload.session_id;
+            try {
+              localStorage.setItem("moodfit_chat_session_id", String(action.payload.session_id));
+            } catch (e) {}
           }
 
           const existingStreaming = state.messages.find((m) => m.isStreaming);
