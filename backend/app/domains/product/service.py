@@ -73,7 +73,6 @@ HANJA_TO_HANGUL_MAP = {
 }
 
 def sanitize_json_hanja(obj):
-    """JSON 또는 텍스트 내 잔여 한자를 순수 한글로 자동 시정"""
     if isinstance(obj, str):
         res = obj
         for hanja, hangul in HANJA_TO_HANGUL_MAP.items():
@@ -86,10 +85,8 @@ def sanitize_json_hanja(obj):
     return obj
 
 def generate_gpt_product_options(product_name: str, category_name: str, brand: str) -> dict:
-    """GPT-4o-mini를 활용하여 맞춤형 옵션 생성"""
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
+    if not api_key: return None
         
     try:
         llm = ChatOpenAI(
@@ -131,14 +128,12 @@ JSON 출력 형식:
             HumanMessage(content=human_message)
         ])
         
-        result_json = json.loads(response.content)
-        return sanitize_json_hanja(result_json)
+        return sanitize_json_hanja(json.loads(response.content))
     except Exception as e:
         print(f"[Error] GPT 옵션 생성 에러 ({product_name}): {e}")
         return None
 
 def seed_initial_product_options(db: Session, force_reseed: bool = False, verbose: bool = False):
-    """모든 상품에 대해 GPT 맞춤형 옵션 적재"""
     try:
         if force_reseed:
             db.query(ProductOption).delete()
@@ -156,11 +151,7 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False, verbos
                     if cat:
                         category_name = cat.category_name
                 
-                gpt_data = generate_gpt_product_options(
-                    product_name=product.product_name,
-                    category_name=category_name,
-                    brand=product.brand
-                )
+                gpt_data = generate_gpt_product_options(product.product_name, category_name, product.brand)
                 
                 specs = None
                 if gpt_data and "sizes" in gpt_data and "colors" in gpt_data and "measurements" in gpt_data:
@@ -215,10 +206,8 @@ def seed_initial_product_options(db: Session, force_reseed: bool = False, verbos
         print(f"[Error] 상품 옵션 자동 적재 중 오류 발생: {err}")
 
 def generate_gpt_product_mood_tags(product_name: str, category_name: str, brand: str) -> Optional[dict]:
-    """GPT 무드 태그 생성"""
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
+    if not api_key: return None
         
     try:
         llm = ChatOpenAI(
@@ -251,7 +240,6 @@ JSON 출력 형식:
         return None
 
 def seed_initial_product_mood_tags(db: Session, force_reseed: bool = False, verbose: bool = False):
-    """모든 상품에 대해 무드 태그 적재"""
     try:
         if force_reseed:
             db.query(ProductMoodTag).delete()
@@ -331,6 +319,39 @@ def classify_product_category(db: Session, item_meta: dict, prod_name: str, sear
         if key in search_keyword: return cat_id
     return get_or_create_category(db, item_meta.get("category1", "AI 추천 상품"))
 
+# 추상적인 색상 표현을 실제 구체적인 상품 색상 키워드로 확장하는 매핑 딕셔너리
+COLOR_TONE_MAP = {
+    "어두운": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
+    "어둡": ["블랙", "네이비", "차콜", "그레이", "다크", "카키", "브라운"],
+    "밝은": ["화이트", "아이보리", "크림", "베이지", "연청", "핑크", "민트", "라이트"],
+    "밝": ["화이트", "아이보리", "크림", "베이지", "연청", "핑크", "민트", "라이트"],
+    "무채색": ["블랙", "화이트", "그레이", "차콜", "아이보리"],
+    "파스텔": ["핑크", "민트", "연보라", "소라", "스카이블루", "레몬"],
+    "화사한": ["레드", "옐로우", "오렌지", "그린", "블루", "퍼플", "핑크"],
+    "시원한": ["블루", "스카이블루", "네이비", "민트", "화이트"]
+}
+
+def expand_color_keywords(color_str: str) -> str:
+    """사용자가 입력한 색상 텍스트를 분석하여 구체적인 연관 색상 키워드로 확장합니다."""
+    if not color_str:
+        return ""
+        
+    expanded_colors = set()
+    words = color_str.replace("/", ",").split(",")
+    
+    for word in words:
+        word = word.strip()
+        if not word:
+            continue
+            
+        expanded_colors.add(word)
+        
+        for key, mapped_colors in COLOR_TONE_MAP.items():
+            if key in word:
+                expanded_colors.update(mapped_colors)
+                
+    return ",".join(list(expanded_colors))
+
 def check_product_has_colors(db: Session, product: Product, color_list: List[str]) -> bool:
     if not color_list: return False
     if any(c in product.product_name for c in color_list): return True
@@ -340,7 +361,7 @@ def check_product_has_colors(db: Session, product: Product, color_list: List[str
             if any(c in str(opt_val) for c in color_list): return True
     return False
 
-# 카테고리명을 AI가 이해할 수 있는 '영문 키워드'로만 매핑
+# 이미지 하드코딩 URL 대신 카테고리명을 영문 키워드로 매핑하는 작은 사전 적용
 IMAGE_KEYWORD_MAP = {
     "반소매 티셔츠": "short sleeve t-shirt", "긴소매 티셔츠": "long sleeve t-shirt", "맨투맨": "sweatshirt",
     "셔츠": "shirt", "후드": "hoodie", "니트": "sweater",
@@ -360,14 +381,12 @@ def generate_realistic_korean_fashion(category_name: str, target_gender: str, ne
     
     if target_gender == "남성":
         modifiers = ["오버핏", "레귤러핏", "와이드", "베이직", "캐주얼", "루즈핏", "컴포트", "데일리", "머슬핏"]
-        gender_keyword = "korean handsome man" # AI에게 전달할 성별 묘사
+        gender_keyword = "korean handsome man" 
     else:
         modifiers = ["오버핏", "크롭", "슬림핏", "와이드", "베이직", "러블리", "캐주얼", "데일리", "빈티지"]
         gender_keyword = "korean beautiful woman"
         
     mock_items = []
-    
-    # 카테고리에 맞는 영문 키워드 가져오기
     eng_keyword = IMAGE_KEYWORD_MAP.get(category_name, "fashion clothing")
     
     for i in range(needed):
@@ -377,11 +396,10 @@ def generate_realistic_korean_fashion(category_name: str, target_gender: str, ne
         prod_name = f"[{brand}] {target_gender} {modifier} {category_name}"
         base_price = random.randint(15, 120) * 1000
         
-        # 💡 2. AI에게 그림을 그려달라고 할 프롬프트(명령어)를 작성합니다.
         prompt = f"Korean fashion style, {gender_keyword} wearing {eng_keyword}, full body shot, street background, highly detailed"
-        encoded_prompt = quote(prompt) # URL에 넣을 수 있도록 텍스트를 인코딩(변환)
+        encoded_prompt = quote(prompt) 
         
-        # 💡 3. 무료 실시간 생성 API 호출! seed 값을 난수로 주어 매번 다른 이미지가 나오게 합니다.
+        # Pollinations 무료 실시간 생성 API 호출 (seed 값으로 무한 변형)
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=400&height=500&nologo=true&seed={random.randint(1, 100000)}"
         
         mock_items.append({
@@ -408,8 +426,11 @@ def get_or_fetch_products(
     liked_colors: Optional[str] = None,
     disliked_colors: Optional[str] = None
 ):
-    """자체 DB 무드 태그 및 성별 스마트 매칭 -> 부족하면 자체 생성 로직 -> 프론트엔드 반환"""
     try:
+        # 색상 확장 로직 적용
+        liked_colors = expand_color_keywords(liked_colors)
+        disliked_colors = expand_color_keywords(disliked_colors)
+
         if exclude_ids is None: exclude_ids = []
         liked_list = [c.strip() for c in liked_colors.replace("/", ",").split(",") if c.strip()] if liked_colors else []
         disliked_list = [c.strip() for c in disliked_colors.replace("/", ",").split(",") if c.strip()] if disliked_colors else []
@@ -643,10 +664,6 @@ def get_or_fetch_products(
         return []
 
 def seed_initial_products(db: Session):
-    """
-    네이버 쇼핑 API 종료 대응: 자체 구축한 고품질 패션 데이터 생성기를 활용하여 
-    '중분류' 카테고리별로 리얼한 상품 데이터를 20개씩 안전하게 적재합니다.
-    """
     print("🌱 자체 고품질 패션 데이터 생성기로 카테고리별 상품(최소 20개) 적재를 시작합니다...")
 
     sub_categories = db.query(ProductCategory).filter(ProductCategory.parent_id.isnot(None)).all()
@@ -707,7 +724,7 @@ def seed_initial_products(db: Session):
 
     if total_added > 0:
         print(f"✅ 총 {total_added}개의 고품질 자체 생성 상품을 중분류 카테고리별로 채웠습니다!")
-        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 4대 무드 태그 생성을 시작합니다...")
+        print("⏳ 새로 추가된 상품들의 GPT 맞춤형 옵션 및 무드 태그 생성을 시작합니다...")
         
         seed_initial_product_options(db)
         seed_initial_product_mood_tags(db)
