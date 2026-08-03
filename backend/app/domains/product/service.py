@@ -447,10 +447,8 @@ def get_or_fetch_products(
         if matched_cat_noun:
             base_conditions.append(or_(Product.product_name.ilike(f"%{matched_cat_noun}%"), Product.brand.ilike(f"%{matched_cat_noun}%")))
 
-        conditions = list(base_conditions)
-        if not matched_cat_noun:
-            and_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
-            conditions.extend(and_core)
+        and_core = [or_(Product.product_name.ilike(f"%{term}%"), Product.brand.ilike(f"%{term}%")) for term in core_terms]
+        conditions = base_conditions + and_core
 
         query = db.query(Product).outerjoin(ProductMoodTag, Product.id == ProductMoodTag.product_id)
         query = query.filter(and_(*conditions))
@@ -497,8 +495,8 @@ def get_or_fetch_products(
                 p for p in local_products 
                 if p.gender_target == gender or (gender in p.product_name) or ("남자" if gender == "남성" else "여자" in p.product_name)
             ]
-            if gender_products:
-                local_products = gender_products
+            if len(gender_products) >= display: local_products = gender_products
+            else: local_products = []
         
         if disliked_list and local_products:
             local_products = [p for p in local_products if not check_product_has_colors(db, p, disliked_list)]
@@ -508,8 +506,8 @@ def get_or_fetch_products(
             other_prods = [p for p in local_products if p not in liked_prods]
             local_products = liked_prods + other_prods
 
-        if local_products:
-            print(f"[Info] 자체 DB에서 {len(local_products)}개의 {gender if gender else ''} '{keyword}' 상품을 찾았습니다!")
+        if len(local_products) >= display:
+            print(f"[Info] 자체 DB에서 안 보여준 신규 {gender if gender else ''} '{keyword}' 상품을 찾았습니다!")
             return [
                 {
                     "id": p.id,
@@ -613,28 +611,24 @@ def get_or_fetch_products(
                 if p_item not in final_products: final_products.append(p_item)
 
         if not final_products:
-            fallback_q = db.query(Product)
-            if exclude_ids:
-                fallback_q = fallback_q.filter(~Product.id.in_(exclude_ids))
-            if gender == "남성":
-                fallback_q = fallback_q.filter(Product.gender_target != "여성")
-            elif gender == "여성":
-                fallback_q = fallback_q.filter(Product.gender_target != "남성")
-            
-            final_products = fallback_q.order_by(func.rand()).limit(display).all()
+            fallback_query = db.query(Product)
+            if exclude_ids: fallback_query = fallback_query.filter(~Product.id.in_(exclude_ids))
+            if gender == "남성": fallback_query = fallback_query.filter(Product.gender_target != "여성")
+            elif gender == "여성": fallback_query = fallback_query.filter(Product.gender_target != "남성")
+            final_products = fallback_query.order_by(Product.like_count.desc(), Product.id.desc()).limit(display).all()
 
-        if not final_products:
-            final_products = db.query(Product).order_by(func.rand()).limit(display).all()
-
-        return [
-            {
-                "id": p.id,
-                "title": p.product_name,
-                "link": f"/product/{p.id}",
-                "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
-                "lprice": p.discount_price
-            } for p in final_products[:display]
-        ]
+        if final_products:
+            return [
+                {
+                    "id": p.id,
+                    "title": p.product_name,
+                    "link": f"/product/{p.id}",
+                    "image": p.image_url[0] if isinstance(p.image_url, list) and len(p.image_url) > 0 else p.image_url,
+                    "lprice": p.discount_price
+                } for p in final_products[:display]
+            ]
+        else:
+            return []
             
     except Exception as e:
         print(f"[Error] 데이터 생성 및 수집 파이프라인 에러: {e}")
