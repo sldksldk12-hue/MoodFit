@@ -20,6 +20,7 @@ from app.api.tour import extract_destination, fetch_and_save_tour_log
 router = APIRouter()
 
 @router.post("/emotion")
+@router.post("/emotion/")
 async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: Session = Depends(get_db)):
     classifier = request.app.state.ml_models.get("emotion_classifier")
     rag_service = request.app.state.rag_service

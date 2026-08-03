@@ -109,7 +109,7 @@ export const chatStart = async ({
   console.log("채팅 요청 payload:", payload);
 
   const response = await api.post(
-    "/api/chat/emotion/",
+    "/api/chat/emotion",
     payload
   );
 
