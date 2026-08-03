@@ -12,6 +12,7 @@ cd /var/www/MoodFit/backend
 
 export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:/root/.nvm/versions/node/$(ls /root/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:/home/ubuntu/.nvm/versions/node/$(ls /home/ubuntu/.nvm/versions/node 2>/dev/null | tail -n 1)/bin
 
+export VITE_API_BASE_URL=https://moodfit.kro.kr
 cd /var/www/MoodFit/frontend
 rm -rf dist node_modules/.vite
 ./node_modules/.bin/vite build || npx vite build || npm run build
