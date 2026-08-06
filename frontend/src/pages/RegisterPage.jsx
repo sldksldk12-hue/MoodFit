@@ -19,6 +19,7 @@ import { UserPlus, Eye, EyeOff, CheckCircle } from "lucide-react";
 import "../assets/styles/pages/auth/RegisterPage.css";
 import { register, checkUsername } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../store/AuthContext";
 
 /**
  * RegisterPage 컴포넌트
@@ -26,6 +27,7 @@ import { useNavigate } from "react-router-dom";
  */
 const RegisterPage = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     // user: 이 컴포넌트 안에서만 필요한 화면 상태이므로 useState로 관리합니다.
     const [user, setUser] = useState({
         user_name: "",
@@ -66,26 +68,32 @@ const RegisterPage = () => {
             alert("비밀번호가 일치하지 않습니다.");
             return;
         }
+
         const requestData = {
             user_name: user.user_name,
             email: user.email,
             password: user.password,
         };
-        await register(requestData)
-            .then(() => {
-                alert("회원가입이 완료되었습니다.");
-                // 회원가입 성공 후 로그인 페이지로 이동
+
+        try {
+            await register(requestData);
+            alert("회원가입이 완료되었습니다! 취향 설정 페이지로 이동합니다.");
+            try {
+                await login(user.user_name, user.password);
+                navigate("/moodfit/preference");
+            } catch (loginError) {
+                console.error("자동 로그인 처리 중 오류:", loginError);
                 navigate("/moodfit/login");
-            })
-            .catch((error) => {
-                console.error(error);
-                const detailMsg = error.response?.data?.detail;
-                if (detailMsg && typeof detailMsg === "string") {
-                    alert(detailMsg);
-                } else {
-                    alert("회원가입에 실패했습니다. 다시 시도해주세요.");
-                }
-            });
+            }
+        } catch (error) {
+            console.error(error);
+            const detailMsg = error.response?.data?.detail;
+            if (detailMsg && typeof detailMsg === "string") {
+                alert(detailMsg);
+            } else {
+                alert("회원가입에 실패했습니다. 다시 시도해주세요.");
+            }
+        }
     };
 
     // 상태에 따라 실제 브라우저에 표시할 JSX 구조를 반환합니다.

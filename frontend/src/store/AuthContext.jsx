@@ -167,6 +167,9 @@ export const AuthProvider = ({ children }) => {
   */
   const logout = () => {
     localStorage.removeItem("token");
+    try {
+      localStorage.removeItem("moodfit_chat_session_id");
+    } catch (e) {}
     setUser(null);
   };
 

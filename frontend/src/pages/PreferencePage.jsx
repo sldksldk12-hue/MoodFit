@@ -225,9 +225,18 @@ const PreferencePage = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="preference-submit">
-                        취향 저장하기
-                    </button>
+                    <div className="preference-actions">
+                        <button type="submit" className="preference-submit">
+                            취향 저장하기
+                        </button>
+                        <button
+                            type="button"
+                            className="preference-skip"
+                            onClick={() => navigate("/moodfit")}
+                        >
+                            나중에 하기
+                        </button>
+                    </div>
                 </form>
             </section>
         </main>

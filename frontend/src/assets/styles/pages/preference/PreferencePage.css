@@ -105,14 +105,49 @@
     border-color: #fecaca;
 }
 
+.preference-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 10px;
+}
+
 .preference-submit {
+    flex: 1;
     height: 58px;
     border: none;
     border-radius: 18px;
     background: #5b7cfa;
     color: white;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preference-submit:hover {
+    background: #4a6bfa;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(91, 124, 250, 0.3);
+}
+
+.preference-skip {
+    flex: 1;
+    height: 58px;
+    border: 1px solid #cbd5e1;
+    border-radius: 18px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preference-skip:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: translateY(-2px);
 }
 
 .chip:disabled,
