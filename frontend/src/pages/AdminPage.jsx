@@ -29,6 +29,7 @@ import {
   createAdminProduct,
   deleteAdminProduct,
   deleteAdminReview,
+  deleteAdminUser,
   getAdminCategories,
   getAdminDashboard,
   getAdminInquiries,
@@ -309,6 +310,21 @@ const AdminPage = () => {
     }
   };
 
+  const handleUserDelete = async (member) => {
+    const isMe = String(user?.user_account || "").trim().toLowerCase() === String(member?.user_account || "").trim().toLowerCase() || member?.id === user?.id;
+    if (isMe || String(member?.user_account || "").trim().toLowerCase() === "admin1") {
+      alert("최고 관리자(admin1) 계정이나 현재 로그인한 본인 계정은 삭제할 수 없습니다.");
+      return;
+    }
+    if (!window.confirm(`'${member.user_account}' 회원을 정말 삭제하시겠습니까? 연관 데이터가 모두 삭제됩니다.`)) return;
+    try {
+      await deleteAdminUser(member.id);
+      setData((previous) => previous.filter((item) => item.id !== member.id));
+    } catch (requestError) {
+      alert(getErrorMessage(requestError));
+    }
+  };
+
   const handleReviewDelete = async (review) => {
     if (!window.confirm("이 리뷰를 관리자 권한으로 삭제할까요?")) return;
     try {
@@ -364,7 +380,7 @@ const AdminPage = () => {
             {activeMenu === "products" && <ProductTable items={items} onEdit={openProductEdit} onDelete={handleProductDelete} />}
             {activeMenu === "orders" && <OrderTable items={items} onStatus={handleOrderStatus} />}
             {activeMenu === "inquiries" && <InquiryTable items={items} onReply={(item) => setReplyInquiry({ ...item, reply_content: item.reply_content || "" })} onViewProduct={handleViewInquiryProduct} />}
-            {activeMenu === "users" && <UserTable items={items} currentUserId={user?.id} currentUserAccount={user?.user_account} onRole={handleRole} />}
+            {activeMenu === "users" && <UserTable items={items} currentUserId={user?.id} currentUserAccount={user?.user_account} onRole={handleRole} onDelete={handleUserDelete} />}
             {activeMenu === "reviews" && <ReviewTable items={items} onDelete={handleReviewDelete} />}
           </>
         )}
@@ -405,12 +421,12 @@ const OrderTable = ({ items, onStatus }) => items.length ? <div className="admin
 
 const InquiryTable = ({ items, onReply, onViewProduct }) => items.length ? <div className="admin-card-list">{items.map((item) => <article className="inquiry-card" key={item.id}><div className="inquiry-card-head"><div><span className={`status-pill status-${item.inq_status}`}>{item.inq_status}</span><h3>{item.title}</h3><p>{item.user_account} · {dateText(item.created_at)}</p></div><div className="inquiry-card-actions"><button type="button" onClick={() => onViewProduct(item)}><ExternalLink size={16} />상품 보기</button><button type="button" onClick={() => onReply(item)}><MessageSquare size={16} />{item.reply_content ? "답변 수정" : "답변 작성"}</button></div></div><div className="inquiry-content"><strong>문의 내용</strong><p>{item.content}</p>{item.reply_content && <div className="reply-preview"><CheckCircle2 size={17} /><div><strong>관리자 답변</strong><p>{item.reply_content}</p></div></div>}</div></article>)}</div> : <Empty />;
 
-const UserTable = ({ items, currentUserId, currentUserAccount, onRole }) => {
+const UserTable = ({ items, currentUserId, currentUserAccount, onRole, onDelete }) => {
   const meAccount = String(currentUserAccount || "").trim().toLowerCase();
-  return items.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>회원</th><th>이메일</th><th>가입일</th><th>주문</th><th>리뷰</th><th>권한</th></tr></thead><tbody>{items.map((item) => {
+  return items.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>회원</th><th>이메일</th><th>가입일</th><th>주문</th><th>리뷰</th><th>권한</th><th>관리</th></tr></thead><tbody>{items.map((item) => {
     const itemAccount = String(item.user_account || "").trim().toLowerCase();
     const isMe = meAccount ? itemAccount === meAccount : item.id === currentUserId;
-    return <tr key={item.id}><td><strong>{item.user_account}</strong>{isMe && <span className="me-badge">나</span>}</td><td>{item.email}</td><td>{dateText(item.created_at)}</td><td>{item.order_count}건</td><td>{item.review_count}개</td><td><select disabled={isMe} value={item.admin_role} onChange={(event) => onRole(item, event.target.value)}><option value="USER">일반 회원</option><option value="ADMIN">관리자</option></select></td></tr>;
+    return <tr key={item.id}><td><strong>{item.user_account}</strong>{isMe && <span className="me-badge">나</span>}</td><td>{item.email}</td><td>{dateText(item.created_at)}</td><td>{item.order_count}건</td><td>{item.review_count}개</td><td><select disabled={isMe} value={item.admin_role} onChange={(event) => onRole(item, event.target.value)}><option value="USER">일반 회원</option><option value="ADMIN">관리자</option></select></td><td>{!isMe && itemAccount !== "admin1" && <button className="danger" type="button" onClick={() => onDelete(item)} style={{ padding: "4px 8px", fontSize: "13px" }}><Trash2 size={14} /> 삭제</button>}</td></tr>;
   })}</tbody></table></div> : <Empty />;
 };
 

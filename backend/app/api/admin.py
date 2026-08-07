@@ -596,6 +596,21 @@ def update_user_role(
     return {"id": user.id, "admin_role": user.admin_role}
 
 
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="회원을 찾을 수 없습니다.")
+    if user.user_account.strip().lower() == "admin1" or user.id == current_admin.id:
+        raise HTTPException(status_code=400, detail="최고 관리자(admin1) 계정이나 현재 로그인한 본인 계정은 삭제할 수 없습니다.")
+    db.delete(user)
+    db.commit()
+
+
 @router.get("/reviews")
 def get_reviews(
     q: str = "",

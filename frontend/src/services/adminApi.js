@@ -81,5 +81,7 @@ export const replyAdminInquiry = (id, replyContent) =>
 export const getAdminUsers = (params = {}) => unwrap(adminApi.get("/users", { params }));
 export const updateAdminUserRole = (id, adminRole) =>
   unwrap(adminApi.patch(`/users/${id}/role`, { admin_role: adminRole }));
+export const deleteAdminUser = (id) => unwrap(adminApi.delete(`/users/${id}`));
 export const getAdminReviews = (params = {}) => unwrap(adminApi.get("/reviews", { params }));
 export const deleteAdminReview = (id) => unwrap(adminApi.delete(`/reviews/${id}`));
+
