@@ -333,12 +333,20 @@ class RagsFashionService:
         except Exception:
             pass
 
+        effective_gender = detect_effective_gender(gender, user_message)
+
+        if effective_gender != gender and gender in ["남성", "여성"]:
+            gender_guideline = f"유저의 가입 성별은 [{gender}]이지만, 이번 대화 요청은 타인/선물/파트너용 [{effective_gender}] 스타일 추천 요청입니다. 반드시 100% [{effective_gender}] 전용 및 공용 착장 스타일만을 제안하고 다정하게 설명하세요."
+        else:
+            gender_guideline = f"유저 성별이 [{effective_gender}]로 설정되어 있으므로, 반드시 100% [{effective_gender}]에게 적합한 스타일과 의류 핏을 제안하고 반대 성별 전용 의류는 제안하지 마세요."
+
         prompt_inputs = {
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",
             "weather": current_weather,
             "tour_info": tour_info_text,
-            "gender": gender,
+            "gender": effective_gender,
+            "gender_guideline": gender_guideline,
             "user_height": user_height,
             "user_weight": user_weight,
             "body_form": body_form,
