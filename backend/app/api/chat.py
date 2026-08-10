@@ -17,6 +17,8 @@ from app.schemas.chat_schema import ChatRequest, AIResponseSchema
 from app.domains.product.service import get_or_fetch_products
 from app.api.tour import extract_destination, fetch_and_save_tour_log
 
+from app.domains.ai_chat.rag_service import detect_effective_gender
+
 router = APIRouter()
 
 @router.post("/emotion")
@@ -90,17 +92,18 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
             start_time = time.perf_counter()
             try:
                 user_gender = user.gender if user else "공용"
+                effective_gender = detect_effective_gender(user_gender, req.message)
                 keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
                 parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
                 
                 # 🌟 프롬프트 변경: [주의사항 5] 감성적인 3줄 요약 지시
                 keyword_prompt = ChatPromptTemplate.from_template(
                     "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'와 '추천 이유 요약'을 추출해줘.\n"
-                    "현재 유저 성별: {user_gender}\n"
+                    "현재 추천 대상 성별: {user_gender}\n"
                     "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈,크로스백')만 추출할 것!\n"
                     "[주의사항 2]: 최대 4개의 키워드를 추출할 때 상의, 하의, 신발, 악세사리(모자, 가방 등)를 각각 1개씩 골고루 포함시킬 것.\n"
                     "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
-                    "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
+                    "[주의사항 4]: 현재 추천 대상 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
                     "[주의사항 5]: 전체 추천글을 바탕으로, 이 코디를 추천하는 이유를 '친한 친구나 친절한 매장 직원'이 옆에서 다정하게 설명해주듯 3줄(3문장) 정도로 요약해 주세요. 요약에는 유저의 현재 기분, 날씨, 장소 정보가 있다면 자연스럽게 포함하고, 누락된 정보가 있다면 억지로 지어내지 말고 있는 대화 내용만 바탕으로 부드럽게 요약하세요.\n\n"
                     "추천글:\n{recommendation}\n\n{format_instructions}"
                 )
@@ -109,7 +112,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                 with get_openai_callback() as cb:
                     parsed_result = keyword_chain.invoke({
                         "recommendation": ai_recommendation,
-                        "user_gender": user_gender,
+                        "user_gender": effective_gender,
                         "format_instructions": parser.get_format_instructions()
                     })
                     
@@ -152,11 +155,11 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
 
                     for kw in keyword_list:
                         search_kw = kw
-                        if user_gender == "남성":
+                        if effective_gender == "남성":
                             search_kw = search_kw.replace("여성", "").replace("여자", "").replace("여성용", "").strip()
                             if "남성" not in search_kw and "남자" not in search_kw:
                                 search_kw = f"남성 {search_kw}"
-                        elif user_gender == "여성":
+                        elif effective_gender == "여성":
                             search_kw = search_kw.replace("남성", "").replace("남자", "").replace("남성용", "").strip()
                             if "여성" not in search_kw and "여자" not in search_kw:
                                 search_kw = f"여성 {search_kw}"
@@ -170,7 +173,7 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                             emotion=predicted_emotion,
                             weather_desc=weather_desc,
                             tour_category=tour_cat,
-                            gender=user_gender,
+                            gender=effective_gender,
                             exclude_ids=exclude_ids,
                             liked_colors=user_liked_colors,
                             disliked_colors=user_disliked_colors
@@ -291,16 +294,17 @@ def extract_and_fetch_recommendation_products(
 
     try:
         user_gender = user.gender if user else "공용"
+        effective_gender = detect_effective_gender(user_gender, user_message)
         keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
         
         keyword_prompt = ChatPromptTemplate.from_template(
             "다음 패션 추천글을 분석해서, 네이버 쇼핑에서 검색할 가장 핵심적인 '의류/잡화 쇼핑 키워드 최대 4개'와 '추천 이유 요약'을 추출해줘.\n"
-            "현재 유저 성별: {user_gender}\n"
+            "현재 추천 대상 성별: {user_gender}\n"
             "[주의사항 1]: '오버핏', '레인', '시원한', '편안한' 같은 수식어는 제외하고, 오직 명확한 카테고리/품목명(예: '가디건,청바지,스니커즈,크로스백')만 추출할 것!\n"
             "[주의사항 2]: 최대 4개의 키워드를 추출할 때 상의, 하의, 신발, 악세사리(모자, 가방 등)를 각각 1개씩 골고루 포함시킬 것.\n"
             "[주의사항 3]: 만약 추천글에 신발이나 악세사리가 직접적으로 명시되어 있지 않다면, 해당 코디에 가장 잘 어울리는 신발이나 악세사리를 AI가 스스로 판단하여 키워드에 추가할 것.\n"
-            "[주의사항 4]: 현재 유저 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
+            "[주의사항 4]: 현재 추천 대상 성별은 [{user_gender}]입니다. 유저 성별과 상충되는 단어는 절대 포함시키지 마세요.\n"
             "[주의사항 5]: 전체 추천글을 바탕으로, 이 코디를 추천하는 이유를 '친한 친구나 친절한 매장 직원'이 옆에서 다정하게 설명해주듯 3줄(3문장) 정도로 요약해 주세요. 요약에는 유저의 현재 기분, 날씨, 장소 정보가 있다면 자연스럽게 포함하고, 누락된 정보가 있다면 억지로 지어내지 말고 있는 대화 내용만 바탕으로 부드럽게 요약하세요.\n\n"
             "추천글:\n{recommendation}\n\n{format_instructions}"
         )
@@ -313,7 +317,7 @@ def extract_and_fetch_recommendation_products(
         with get_openai_callback() as cb:
             parsed_result = keyword_chain.invoke({
                 "recommendation": ai_recommendation,
-                "user_gender": user_gender,
+                "user_gender": effective_gender,
                 "format_instructions": parser.get_format_instructions()
             })
             if cb:
@@ -350,11 +354,11 @@ def extract_and_fetch_recommendation_products(
 
             for kw in keyword_list:
                 search_kw = kw
-                if user_gender == "남성":
+                if effective_gender == "남성":
                     search_kw = search_kw.replace("여성", "").replace("여자", "").replace("여성용", "").strip()
                     if "남성" not in search_kw and "남자" not in search_kw:
                         search_kw = f"남성 {search_kw}"
-                elif user_gender == "여성":
+                elif effective_gender == "여성":
                     search_kw = search_kw.replace("남성", "").replace("남자", "").replace("남성용", "").strip()
                     if "여성" not in search_kw and "여자" not in search_kw:
                         search_kw = f"여성 {search_kw}"
@@ -368,7 +372,7 @@ def extract_and_fetch_recommendation_products(
                     emotion=predicted_emotion,
                     weather_desc=weather_desc,
                     tour_category=tour_cat,
-                    gender=user_gender,
+                    gender=effective_gender,
                     exclude_ids=exclude_ids,
                     liked_colors=user_liked_colors,
                     disliked_colors=user_disliked_colors

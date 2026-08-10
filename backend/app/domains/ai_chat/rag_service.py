@@ -11,6 +11,32 @@ from langchain_core.output_parsers import StrOutputParser
 # ChatMessage, ChatSession 모델 추가
 from app.models.models import User, EmotionLog, WeatherLog, ChatMessage, ChatSession, TourLog 
 
+def detect_effective_gender(user_gender: Optional[str], user_message: str) -> str:
+    """
+    유저 가입 성별과 대화 문장을 분석하여, 타인/선물/파트너 복장 추천 요청인 경우
+    타겟 성별(여성/남성/공용)을 동적으로 감지하여 반환합니다.
+    """
+    msg = user_message.lower() if user_message else ""
+    female_keywords = [
+        "여자친구", "여친", "아내", "부인", "여동생", "누나", "엄마", "어머니",
+        "여성복", "여성의류", "여성용", "여자옷", "여자 의류", "여성 옷", "원피스", "스커트", "치마", "여성"
+    ]
+    male_keywords = [
+        "남자친구", "남친", "남편", "신랑", "남동생", "오빠", "형", "아빠", "아버지",
+        "남성복", "남성의류", "남성용", "남자옷", "남자 의류", "남성 옷", "남성"
+    ]
+
+    has_female_intent = any(k in msg for k in female_keywords)
+    has_male_intent = any(k in msg for k in male_keywords)
+
+    if has_female_intent and not has_male_intent:
+        return "여성"
+    if has_male_intent and not has_female_intent:
+        return "남성"
+
+    return user_gender if user_gender in ["남성", "여성", "공용"] else "공용"
+
+
 class RagsFashionService:
     def __init__(self):
         self.llm = ChatOpenAI(
@@ -30,7 +56,7 @@ class RagsFashionService:
 - 관광지 정보: {tour_info}
 
 [유저 패션 및 신체 프로필]
-- 유저 성별: {gender}
+- 추천 대상 성별: {gender}
 - 유저 키: {user_height}cm
 - 유저 몸무게: {user_weight}kg
 - 유저 체형: {body_form}
@@ -51,7 +77,7 @@ class RagsFashionService:
 2. 첫 문장에서는 유저의 현재 감정에 깊이 공감해주며, 상황이나 선호도(예: 어두운 계열 선호)에 대한 긍정적인 리액션을 보여주세요.
 3. 전체적인 룩의 무드가 어떻게 어울리는지, 왜 이 색상과 소재의 조합을 추천하는지 한 편의 짧은 글처럼 매끄럽게 이어지게 설명하세요.
 4. 이전 대화 핵심 요약문(Chat Summary)의 맥락을 완벽히 파악하고, 유저가 변경/추가를 원한다면 이전 추천을 바탕으로 연속성 있게 답변하세요.
-5. **성별 맞춤 필수**: 유저 성별이 [{gender}]로 설정되어 있으므로, 반드시 100% [{gender}]에게 적합한 스타일과 의류 핏(예: 남성 유저인 경우 남성용/남녀공용 착장)만을 제안하고, 반대 성별 전용 의류는 절대로 제안하지 마세요.
+5. **성별 맞춤 지침**: {gender_guideline}
 6. **선호 스타일 최우선 반영**: 유저가 설정한 선호 스타일({preferred_style}) 감성을 중심으로 전체 코디 분위기와 실루엣을 제안하세요.
 7. **선호/기피 색상 반영**: 유저가 좋아하는 색상({liked_colors})을 매칭에 우선 반영하고, **기피하는 색상({disliked_colors})은 옷, 신발, 액세서리 등 추천 목록 그 어디에도 절대 포함시키지 마세요.**"""),
             ("human", "{user_message}")
@@ -177,13 +203,21 @@ class RagsFashionService:
         except Exception as e:
             print(f"[Error] 유저 취향 정보 조회 실패: {e}")
 
-        # 4. 프롬프트에 유저 프로필 및 2줄 압축 요약문(chat_summary) 주입!
+        # 4. 동적 성별 감지 및 프롬프트 주입
+        effective_gender = detect_effective_gender(gender, user_message)
+
+        if effective_gender != gender and gender in ["남성", "여성"]:
+            gender_guideline = f"유저의 가입 성별은 [{gender}]이지만, 이번 대화 요청은 타인/선물/파트너용 [{effective_gender}] 스타일 추천 요청입니다. 반드시 100% [{effective_gender}] 전용 및 공용 착장 스타일만을 제안하고 다정하게 설명하세요."
+        else:
+            gender_guideline = f"유저 성별이 [{effective_gender}]로 설정되어 있으므로, 반드시 100% [{effective_gender}]에게 적합한 스타일과 의류 핏을 제안하고 반대 성별 전용 의류는 제안하지 마세요."
+
         response = self.chain.invoke({
             "emotion": emotion,
             "confidence": f"{confidence * 100:.1f}",
             "weather": current_weather,
             "tour_info": tour_info_text,
-            "gender": gender,
+            "gender": effective_gender,
+            "gender_guideline": gender_guideline,
             "user_height": user_height,
             "user_weight": user_weight,
             "body_form": body_form,
