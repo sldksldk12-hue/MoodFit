@@ -138,6 +138,10 @@ export const chatStartStream = async ({
     body: JSON.stringify(payload)
   });
 
+  if (!response.ok) {
+    throw new Error(`서버 응답 오류 (HTTP ${response.status})`);
+  }
+
   if (!response.body) {
     throw new Error("ReadableStream not supported");
   }

@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Request
@@ -294,7 +294,7 @@ def extract_and_fetch_recommendation_products(
 
     try:
         user_gender = user.gender if user else "공용"
-        effective_gender = detect_effective_gender(user_gender, user_message)
+        effective_gender = detect_effective_gender(user_gender, message)
         keyword_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
         parser = PydanticOutputParser(pydantic_object=AIResponseSchema)
         
