@@ -62,7 +62,7 @@ class RagsFashionService:
 - 유저 체형: {body_form}
 - 선호하는 스타일: {preferred_style}
 - 선호 색상: {liked_colors}
-- ⚠️ 절대 추천하면 안 되는 기피 색상 (하드 필터링 제약 조건): {disliked_colors}
+- 기본 기피 색상: {disliked_colors}
 
 [이전 대화 핵심 요약 (Chat Summary)]:
 {chat_summary}
@@ -79,7 +79,7 @@ class RagsFashionService:
 4. 이전 대화 핵심 요약문(Chat Summary)의 맥락을 완벽히 파악하고, 유저가 변경/추가를 원한다면 이전 추천을 바탕으로 연속성 있게 답변하세요.
 5. **성별 맞춤 지침**: {gender_guideline}
 6. **선호 스타일 최우선 반영**: 유저가 설정한 선호 스타일({preferred_style}) 감성을 중심으로 전체 코디 분위기와 실루엣을 제안하세요.
-7. **선호/기피 색상 반영**: 유저가 좋아하는 색상({liked_colors})을 매칭에 우선 반영하고, **기피하는 색상({disliked_colors})은 옷, 신발, 액세서리 등 추천 목록 그 어디에도 절대 포함시키지 마세요.**"""),
+7. **선호/기피 색상 및 대화 요청 반영**: 기본적으로 선호 색상({liked_colors})을 우선 반영하고 기피 색상({disliked_colors})은 가급적 피하되, **유저가 메시지에서 특정 색상/톤(예: '밝은 색상', '화이트', '파스텔' 등)을 명시적으로 직접 요청한 경우에는 유저의 이번 대화 요청을 최우선으로 반영하여 해당 색상의 의류를 적극 제안하세요.**"""),
             ("human", "{user_message}")
         ])
         

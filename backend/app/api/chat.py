@@ -138,7 +138,8 @@ async def analyze_emotion_and_recommend(req: ChatRequest, request: Request, db: 
                                 exclude_ids.append(r_item.product_id)
 
                     user_liked_colors = user.liked_colors if user else None
-                    user_disliked_colors = user.disliked_colors if user else None
+                    has_explicit_color_req = any(c in req.message for c in ["밝은", "화이트", "흰", "베이지", "핑크", "파스텔", "아이보리", "노랑", "연청", "컬러풀", "어두운", "블랙", "검정", "그레이", "회색", "다크", "차콜", "네이비"])
+                    user_disliked_colors = None if has_explicit_color_req else (user.disliked_colors if user else None)
                     tour_cat = extracted_dest.get("content_type") if extracted_dest else None
 
                     recommended_products = []
@@ -346,7 +347,8 @@ def extract_and_fetch_recommendation_products(
                         exclude_ids.append(r_item.product_id)
 
             user_liked_colors = user.liked_colors if user else None
-            user_disliked_colors = user.disliked_colors if user else None
+            has_explicit_color_req = any(c in message for c in ["밝은", "화이트", "흰", "베이지", "핑크", "파스텔", "아이보리", "노랑", "연청", "컬러풀", "어두운", "블랙", "검정", "그레이", "회색", "다크", "차콜", "네이비"])
+            user_disliked_colors = None if has_explicit_color_req else (user.disliked_colors if user else None)
             tour_cat = extracted_dest.get("content_type") if extracted_dest else None
 
             final_search_keywords = []
